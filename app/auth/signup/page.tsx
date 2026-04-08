@@ -1,0 +1,171 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+
+import { auth } from "@/lib/auth";
+import { customerRepository } from "@/lib/repositories/customer-repository";
+
+type SignupPageSearchParams = {
+  next?: string | string[];
+  error?: string | string[];
+  message?: string | string[];
+};
+
+type SignupPageProps = {
+  searchParams: Promise<SignupPageSearchParams>;
+};
+
+function readSingle(value: string | string[] | undefined) {
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+
+  return value;
+}
+
+function sanitizeNextPath(value: string | undefined) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return "/account";
+  }
+
+  return value;
+}
+
+async function signUpAction(formData: FormData) {
+  "use server";
+
+  const fullName = String(formData.get("fullName") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
+  const password = String(formData.get("password") ?? "").trim();
+  const nextPath = sanitizeNextPath(
+    String(formData.get("next") ?? "/account").trim(),
+  );
+  const nextQuery = encodeURIComponent(nextPath);
+
+  if (!email || password.length < 8) {
+    redirect(
+      `/auth/signup?next=${nextQuery}&error=${encodeURIComponent("Enter a valid email and a password with at least 8 characters.")}`,
+    );
+  }
+
+  try {
+    const session = await auth.signUp(
+      email,
+      password,
+      fullName ? { full_name: fullName } : undefined,
+    );
+
+    await customerRepository.upsertByEmail({
+      email,
+      profileId: session.user?.id ?? null,
+      firstName: fullName || null,
+    });
+
+    if (session.expiresAt) {
+      redirect(nextPath);
+    }
+
+    redirect(
+      `/auth/login?message=${encodeURIComponent("Account created. Please sign in to continue.")}`,
+    );
+  } catch {
+    redirect(
+      `/auth/signup?next=${nextQuery}&error=${encodeURIComponent("Unable to create your account right now.")}`,
+    );
+  }
+}
+
+export default async function SignupPage({ searchParams }: SignupPageProps) {
+  const params = await searchParams;
+  const nextPath = sanitizeNextPath(readSingle(params.next));
+  const error = readSingle(params.error);
+  const message = readSingle(params.message);
+
+  return (
+    <section className="container-page py-14 md:py-20">
+      <h1 className="font-serif text-4xl text-maroon-900 md:text-5xl">
+        Create Account
+      </h1>
+      <p className="mt-4 max-w-2xl text-base text-warm-gray-700">
+        Create your customer account for faster checkout and order tracking.
+      </p>
+
+      <form
+        action={signUpAction}
+        className="mt-8 max-w-xl space-y-4 border border-border-light bg-white p-5"
+      >
+        <input type="hidden" name="next" value={nextPath} />
+
+        <label className="block space-y-2">
+          <span className="text-sm font-medium text-warm-gray-700">
+            Full Name
+          </span>
+          <input
+            type="text"
+            name="fullName"
+            autoComplete="name"
+            className="h-11 w-full border border-border-light bg-white px-3 text-sm text-warm-gray-900"
+          />
+        </label>
+
+        <label className="block space-y-2">
+          <span className="text-sm font-medium text-warm-gray-700">Email</span>
+          <input
+            type="email"
+            name="email"
+            autoComplete="email"
+            required
+            className="h-11 w-full border border-border-light bg-white px-3 text-sm text-warm-gray-900"
+          />
+        </label>
+
+        <label className="block space-y-2">
+          <span className="text-sm font-medium text-warm-gray-700">
+            Password
+          </span>
+          <input
+            type="password"
+            name="password"
+            autoComplete="new-password"
+            required
+            minLength={8}
+            className="h-11 w-full border border-border-light bg-white px-3 text-sm text-warm-gray-900"
+          />
+        </label>
+
+        <button
+          type="submit"
+          className="inline-flex h-11 items-center border border-maroon-700 bg-maroon-700 px-6 text-sm font-medium uppercase tracking-[0.08em] text-white hover:bg-maroon-600"
+        >
+          Create Account
+        </button>
+
+        {error ? (
+          <p
+            tabIndex={-1}
+            autoFocus
+            role="alert"
+            aria-live="assertive"
+            className="text-sm text-red-700"
+          >
+            {error}
+          </p>
+        ) : null}
+        {message ? (
+          <p
+            role="status"
+            aria-live="polite"
+            className="text-sm text-maroon-700"
+          >
+            {message}
+          </p>
+        ) : null}
+      </form>
+
+      <div className="mt-5 text-sm text-maroon-700">
+        <Link href={`/auth/login?next=${encodeURIComponent(nextPath)}`}>
+          Already have an account? Sign in
+        </Link>
+      </div>
+    </section>
+  );
+}

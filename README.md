@@ -1,36 +1,104 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Thangka Treasure
 
-## Getting Started
+Modern e-commerce foundation built with Next.js App Router, ready for a storefront and Shopify-grade admin dashboard in one codebase.
 
-First, run the development server:
+## Tech Stack
+
+- Next.js 16.2.2
+- React 19
+- Tailwind CSS v4 (CSS-first theme)
+- Supabase (auth, database, storage)
+- Stripe (checkout + webhooks)
+
+## App Architecture
+
+- `app/(shop)` storefront routes
+- `app/(admin)` admin dashboard routes
+- `app/auth` authentication routes
+- `app/api` route handlers
+- `components/shop` storefront UI
+- `components/admin` admin UI
+- `lib` domain clients and utilities
+- `types` app-wide TypeScript contracts
+
+## Setup
+
+1. Install dependencies
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Create environment variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cp .env.example .env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. Start the app
 
-## Learn More
+```bash
+pnpm dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Environment Variables
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+See `.env.example` for all required values.
+For Vercel deployment setup, see `docs/vercel-environment-variables.md`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Operations Verification
 
-## Deploy on Vercel
+Validate Supabase env wiring and connectivity:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+pnpm ops:verify:supabase
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Validate production secret rollout completeness and key formats:
+
+```bash
+pnpm ops:verify:secrets
+```
+
+Use `pnpm ops:verify:supabase -- --skip-db` if you only want env/URL validation without live DB probes.
+
+### Monitoring and Health
+
+- `CRON_SECRET`: secures cron-only routes (`/api/cron/*`) and detailed `/api/health` output.
+- `ALERT_WEBHOOK_URL`: optional outbound webhook for degraded scheduled health-check alerts.
+- `RESEND_FROM_EMAIL`: sender used for transactional and campaign emails.
+
+## Database Workflow (Drizzle)
+
+Generate a migration after schema changes:
+
+```bash
+pnpm db:generate
+```
+
+Apply pending migrations:
+
+```bash
+pnpm db:migrate
+```
+
+Open Drizzle Studio:
+
+```bash
+pnpm db:studio
+```
+
+Validate schema-to-migration parity:
+
+```bash
+pnpm db:parity
+```
+
+Detailed deployment and rollback guidance is documented in
+`docs/database-migration-strategy.md`.
+
+## Notes
+
+- Request APIs like cookies/headers/params are async in Next.js 16.
+- Route protection is implemented via `proxy.ts` (the `middleware.ts` convention is deprecated).
+- Shopify URL parity redirects are configured in `next.config.ts`.

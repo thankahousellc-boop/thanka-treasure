@@ -1,26 +1,99 @@
 @import "tailwindcss";
 
+@theme {
+  --color-maroon-950: #1a0505;
+  --color-maroon-900: #4a0e0e;
+  --color-maroon-800: #6b1414;
+  --color-maroon-700: #8b1a1a;
+  --color-maroon-600: #a52222;
+  --color-maroon-500: #b83030;
+  --color-maroon-400: #d05050;
+  --color-maroon-100: #f5e6e6;
+  --color-maroon-50: #faf2f2;
+
+  --color-white: #ffffff;
+  --color-cream: #fdf8f4;
+  --color-warm-gray-100: #f5f0eb;
+  --color-warm-gray-300: #d4cbc2;
+  --color-warm-gray-500: #8c8278;
+  --color-warm-gray-700: #534b43;
+  --color-warm-gray-900: #2c2520;
+
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #fdf8f4;
+  --color-bg-accent: #6b1414;
+  --color-text-primary: #2c2520;
+  --color-text-secondary: #8c8278;
+  --color-text-on-accent: #ffffff;
+  --color-border-light: #d4cbc2;
+  --color-link: #a52222;
+  --color-link-hover: #8b1a1a;
+
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-playfair);
+  --font-reading: var(--font-lora);
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  min-height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  font-family: var(--font-sans), sans-serif;
+  line-height: 1.5;
+}
+
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--color-maroon-700);
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 1000;
+  transform: translateY(-160%);
+  border: 1px solid var(--color-maroon-700);
+  background: var(--color-white);
+  color: var(--color-maroon-900);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: transform 120ms ease;
+}
+
+.skip-link:focus-visible {
+  transform: translateY(0);
+}
+
+a {
+  color: var(--color-link);
+  transition: color 160ms ease;
+}
+
+a:hover {
+  color: var(--color-link-hover);
+}
+
+.container-page {
+  width: min(100%, 1280px);
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+@media (min-width: 768px) {
+  .container-page {
+    padding-inline: 1.5rem;
+  }
 }
