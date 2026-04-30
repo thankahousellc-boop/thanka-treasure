@@ -19,8 +19,7 @@ export const onRequestError: Instrumentation.onRequestError = async (
     routerKind: context.routerKind,
     requestPath: request.path,
     method: request.method,
-    digest: error.digest,
-    renderType: context.renderType,
+    digest: error instanceof Error && "digest" in error ? (error as Error & { digest?: string }).digest : undefined,
     renderSource: context.renderSource,
     revalidateReason: context.revalidateReason,
   });

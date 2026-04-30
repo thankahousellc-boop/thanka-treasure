@@ -55,13 +55,14 @@ export async function sendNewsletterCampaign(
     return summary;
   }
 
+  const resendClient = resend;
   const recipientChunks = chunkRecipients(input.recipients);
 
   for (const chunk of recipientChunks) {
     const batchResults = await Promise.all(
       chunk.map(async (recipient) => {
         try {
-          const response = await resend.emails.send({
+          const response = await resendClient.emails.send({
             from: resendFromEmail,
             to: [recipient.email],
             subject: input.subject,

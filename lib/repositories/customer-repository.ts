@@ -27,7 +27,7 @@ function buildAdminFilters(input: ListForAdminInput) {
         ilike(customers.email, needle),
         ilike(customers.firstName, needle),
         ilike(customers.lastName, needle),
-      ),
+      )!,
     );
   }
 

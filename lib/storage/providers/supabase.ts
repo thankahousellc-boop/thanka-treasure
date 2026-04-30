@@ -5,19 +5,23 @@ import { publicEnv, serverEnv } from "@/lib/env";
 import type { FileRef, StorageProvider, StorageUploadInput } from "../types";
 
 export class SupabaseStorageProvider implements StorageProvider {
-  private client = (() => {
-    if (
-      !publicEnv.NEXT_PUBLIC_SUPABASE_URL ||
-      !serverEnv.SUPABASE_SERVICE_ROLE_KEY
-    ) {
-      throw new Error("Supabase storage configuration is missing.");
-    }
+  private _client: ReturnType<typeof createClient> | null = null;
 
-    return createClient(
-      publicEnv.NEXT_PUBLIC_SUPABASE_URL,
-      serverEnv.SUPABASE_SERVICE_ROLE_KEY,
-    );
-  })();
+  private get client() {
+    if (!this._client) {
+      if (
+        !publicEnv.NEXT_PUBLIC_SUPABASE_URL ||
+        !serverEnv.SUPABASE_SERVICE_ROLE_KEY
+      ) {
+        throw new Error("Supabase storage configuration is missing.");
+      }
+      this._client = createClient(
+        publicEnv.NEXT_PUBLIC_SUPABASE_URL,
+        serverEnv.SUPABASE_SERVICE_ROLE_KEY,
+      );
+    }
+    return this._client;
+  }
 
   async upload(
     bucket: string,

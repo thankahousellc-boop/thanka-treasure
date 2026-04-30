@@ -16,6 +16,20 @@ type ReservedInventory = {
   quantity: number;
 };
 
+type StripeDeliveryUnit = "business_day" | "day" | "hour" | "month" | "week";
+
+type StripeShippingOption = {
+  shipping_rate_data: {
+    display_name: string;
+    type: "fixed_amount";
+    fixed_amount: { amount: number; currency: string };
+    delivery_estimate?: {
+      minimum?: { unit: StripeDeliveryUnit; value: number };
+      maximum?: { unit: StripeDeliveryUnit; value: number };
+    };
+  };
+};
+
 type ResolvedCheckoutItem = {
   productId: string;
   variantId: string;
@@ -57,7 +71,7 @@ const ALLOWED_SHIPPING_COUNTRIES = [
   "IN",
 ] as const;
 
-const ALLOWED_SHIPPING_COUNTRY_SET = new Set(ALLOWED_SHIPPING_COUNTRIES);
+const ALLOWED_SHIPPING_COUNTRY_SET = new Set<string>(ALLOWED_SHIPPING_COUNTRIES);
 
 type CarrierShippingOption = {
   displayName: string;
@@ -112,7 +126,7 @@ function buildDefaultShippingOptions(
 function toStripeShippingOptions(
   shippingOptions: CarrierShippingOption[],
   currency: string,
-): Stripe.Checkout.SessionCreateParams.ShippingOption[] {
+): StripeShippingOption[] {
   const normalizedCurrency = currency.toLowerCase();
 
   return shippingOptions.map((option) => ({
@@ -230,14 +244,14 @@ async function fetchCarrierShippingOptions(input: {
   }
 }
 
-function buildShippingOptions(input: {
+async function buildShippingOptions(input: {
   currency: string;
   destinationCountry: string;
   subtotal: number;
   items: ResolvedCheckoutItem[];
 }): Promise<{
   source: CarrierRateSource;
-  options: Stripe.Checkout.SessionCreateParams.ShippingOption[];
+  options: StripeShippingOption[];
 }> {
   const carrierOptions = await fetchCarrierShippingOptions(input);
 
@@ -554,7 +568,7 @@ export async function POST(request: Request) {
   let session;
   try {
     session = await stripe.checkout.sessions.create({
-      ui_mode: "embedded",
+      ui_mode: "embedded_page",
       mode: "payment",
       currency: currency.toLowerCase(),
       line_items: toStripeLineItems(resolvedItems, currency),

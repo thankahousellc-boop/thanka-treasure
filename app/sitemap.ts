@@ -4,6 +4,8 @@ import { blogRepository } from "@/lib/repositories/blog-repository";
 import { productRepository } from "@/lib/repositories/product-repository";
 import { getAbsoluteUrl } from "@/lib/seo";
 
+export const dynamic = "force-dynamic";
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [productEntries, blogEntries] = await Promise.all([
     productRepository.listActiveSitemapEntries(),

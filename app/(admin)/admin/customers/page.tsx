@@ -54,7 +54,7 @@ export default async function AdminCustomersPage({
           <p className="mt-2 text-2xl font-semibold text-zinc-900">{stats.marketingOptIns}</p>
         </div>
         <div className="rounded border border-zinc-200 bg-white p-4">
-          <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">High-value (>$500)</p>
+          <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">High-value (&gt;$500)</p>
           <p className="mt-2 text-2xl font-semibold text-zinc-900">{stats.highValueCustomers}</p>
         </div>
       </div>
