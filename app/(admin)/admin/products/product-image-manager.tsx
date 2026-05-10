@@ -1,4 +1,22 @@
+"use client";
+
 import Image from "next/image";
+import type { DragEvent } from "react";
+import { useRef, useState } from "react";
+
+import {
+  Badge,
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  EmptyState,
+  Field,
+  Icon,
+  Input,
+  Select,
+} from "@/components/admin/ui";
+import { resolveUrl } from "@/lib/storage";
 
 import {
   addProductImageAction,
@@ -8,23 +26,25 @@ import {
   updateProductImageMetaAction,
 } from "./actions";
 
-import { resolveUrl } from "@/lib/storage";
+type Variant = {
+  id: string;
+  title: string;
+  sku: string | null;
+};
+
+type ProductImage = {
+  id: string;
+  variantId: string | null;
+  bucket: string;
+  path: string;
+  altText: string | null;
+  position: number;
+};
 
 type ProductImageManagerProps = {
   productId: string;
-  variants: Array<{
-    id: string;
-    title: string;
-    sku: string | null;
-  }>;
-  images: Array<{
-    id: string;
-    variantId: string | null;
-    bucket: string;
-    path: string;
-    altText: string | null;
-    position: number;
-  }>;
+  variants: Variant[];
+  images: ProductImage[];
 };
 
 export function ProductImageManager({
@@ -38,185 +58,420 @@ export function ProductImageManager({
   const moveImageDown = moveProductImageDownAction.bind(null, productId);
   const deleteImage = deleteProductImageAction.bind(null, productId);
 
+  const [activeId, setActiveId] = useState<string | null>(
+    images[0]?.id ?? null,
+  );
+
+  const active =
+    images.find((image) => image.id === activeId) ?? images[0] ?? null;
+
   return (
-    <section className="space-y-4 rounded border border-zinc-200 bg-white p-5">
-      <div>
-        <h3 className="text-lg font-semibold text-zinc-900">Product images</h3>
-        <p className="mt-1 text-sm text-zinc-600">
-          Upload images, assign them to variants, reorder display positions, and
-          remove outdated media.
-        </p>
-      </div>
+    <Card>
+      <CardHeader
+        title="Product images"
+        description="Click a thumbnail to preview. Edit alt text and reorder below."
+      />
+      <CardBody className="space-y-5">
+        <UploadForm action={addImage} variants={variants} />
 
-      <form
-        action={addImage}
-        className="space-y-3 rounded border border-zinc-200 bg-zinc-50 p-4"
-      >
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="space-y-1">
-            <span className="text-xs font-medium uppercase tracking-[0.06em] text-zinc-600">
-              Image file
-            </span>
-            <input
-              type="file"
-              name="file"
-              accept="image/jpeg,image/png,image/webp"
-              required
-              className="block w-full rounded border border-zinc-300 bg-white px-2 py-2 text-sm text-zinc-900"
-            />
-          </label>
-
-          <label className="space-y-1">
-            <span className="text-xs font-medium uppercase tracking-[0.06em] text-zinc-600">
-              Assign variant
-            </span>
-            <select
-              name="variantId"
-              defaultValue=""
-              className="h-10 w-full rounded border border-zinc-300 bg-white px-2 text-sm text-zinc-900"
-            >
-              <option value="">Unassigned (shared image)</option>
-              {variants.map((variant) => (
-                <option key={variant.id} value={variant.id}>
-                  {variant.title}
-                  {variant.sku ? ` (${variant.sku})` : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        <label className="space-y-1">
-          <span className="text-xs font-medium uppercase tracking-[0.06em] text-zinc-600">
-            Alt text
-          </span>
-          <input
-            name="altText"
-            maxLength={220}
-            placeholder="Describe the image for accessibility"
-            className="h-10 w-full rounded border border-zinc-300 bg-white px-2 text-sm text-zinc-900"
+        {images.length > 0 && active ? (
+          <Gallery
+            active={active}
+            images={images}
+            variants={variants}
+            activeId={activeId}
+            onSelectActive={setActiveId}
+            updateImageMeta={updateImageMeta}
+            moveImageUp={moveImageUp}
+            moveImageDown={moveImageDown}
+            deleteImage={deleteImage}
           />
-        </label>
+        ) : (
+          <EmptyState
+            icon={<Icon.Image width={28} height={28} />}
+            title="No images yet."
+            description="Upload the first image to start building this product's gallery."
+          />
+        )}
+      </CardBody>
+    </Card>
+  );
+}
 
-        <button
-          type="submit"
-          className="inline-flex h-9 items-center rounded bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-700"
-        >
-          Upload image
-        </button>
-      </form>
+type UploadFormProps = {
+  action: (formData: FormData) => Promise<void>;
+  variants: Variant[];
+};
 
-      {images.length > 0 ? (
-        <div className="space-y-3">
-          {images.map((image) => {
-            const publicUrl = resolveUrl({
-              bucket: image.bucket,
-              path: image.path,
-            });
+function UploadForm({ action, variants }: UploadFormProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [pickedName, setPickedName] = useState<string | null>(null);
 
+  function handleDragEnter(event: DragEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (event.dataTransfer?.types?.includes("Files")) {
+      setIsDragging(true);
+    }
+  }
+
+  function handleDragOver(event: DragEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = "copy";
+    }
+  }
+
+  function handleDragLeave(event: DragEvent<HTMLFormElement>) {
+    if (event.currentTarget.contains(event.relatedTarget as Node)) {
+      return;
+    }
+    setIsDragging(false);
+  }
+
+  function handleDrop(event: DragEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsDragging(false);
+    const dropped = event.dataTransfer?.files;
+    if (!dropped || dropped.length === 0 || !fileInputRef.current) {
+      return;
+    }
+    const file = dropped[0];
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+      return;
+    }
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    fileInputRef.current.files = transfer.files;
+    setPickedName(file.name);
+  }
+
+  return (
+    <form
+      action={action}
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className="flex flex-wrap items-center gap-2 rounded-md px-2 py-2 transition"
+      style={{
+        background: isDragging
+          ? "var(--admin-accent-soft)"
+          : "var(--admin-surface-2)",
+        border: isDragging
+          ? "1px dashed var(--admin-accent)"
+          : "1px solid var(--admin-border)",
+      }}
+    >
+      <input
+        ref={fileInputRef}
+        type="file"
+        name="file"
+        accept="image/jpeg,image/png,image/webp"
+        required
+        onChange={(event) =>
+          setPickedName(event.target.files?.[0]?.name ?? null)
+        }
+        className="min-w-0 flex-1 text-xs file:mr-2 file:rounded-md file:border-0 file:bg-(--admin-accent) file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white hover:file:brightness-110"
+        style={{ color: "var(--admin-text-soft)" }}
+      />
+
+      <Select
+        name="variantId"
+        defaultValue=""
+        aria-label="Assign variant"
+        className="h-8 max-w-44 text-xs"
+      >
+        <option value="">Unassigned (shared)</option>
+        {variants.map((variant) => (
+          <option key={variant.id} value={variant.id}>
+            {variant.title}
+            {variant.sku ? ` · ${variant.sku}` : ""}
+          </option>
+        ))}
+      </Select>
+
+      <Button type="submit" variant="primary" size="sm">
+        <Icon.Upload width={14} height={14} />
+        <span>Upload</span>
+      </Button>
+
+      <span
+        className="basis-full text-[11px]"
+        style={{ color: "var(--admin-text-mute)" }}
+      >
+        {pickedName
+          ? `Ready: ${pickedName}`
+          : "Drag an image here or pick one. JPEG, PNG, or WEBP. Max 5MB. Alt text and ordering are set below."}
+      </span>
+    </form>
+  );
+}
+
+type GalleryProps = {
+  active: ProductImage;
+  images: ProductImage[];
+  variants: Variant[];
+  activeId: string | null;
+  onSelectActive: (id: string) => void;
+  updateImageMeta: (formData: FormData) => Promise<void>;
+  moveImageUp: (formData: FormData) => Promise<void>;
+  moveImageDown: (formData: FormData) => Promise<void>;
+  deleteImage: (formData: FormData) => Promise<void>;
+};
+
+function Gallery({
+  active,
+  images,
+  variants,
+  activeId,
+  onSelectActive,
+  updateImageMeta,
+  moveImageUp,
+  moveImageDown,
+  deleteImage,
+}: GalleryProps) {
+  const activeUrl = resolveUrl({ bucket: active.bucket, path: active.path });
+  const activeVariant = variants.find(
+    (variant) => variant.id === active.variantId,
+  );
+  const activeIndex = images.findIndex((image) => image.id === active.id);
+  const isFirst = activeIndex === 0;
+  const isLast = activeIndex === images.length - 1;
+
+  return (
+    <div className="grid items-start gap-4 md:grid-cols-[96px_minmax(0,1fr)]">
+      <div className="md:flex md:flex-col md:gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-1 md:flex-col md:overflow-visible md:pb-0">
+          {images.map((image, index) => {
+            const url = resolveUrl({ bucket: image.bucket, path: image.path });
+            const isSelected = image.id === activeId;
             return (
-              <div
+              <button
                 key={image.id}
-                className="grid gap-3 rounded border border-zinc-200 p-3 md:grid-cols-[160px_1fr]"
+                type="button"
+                onClick={() => onSelectActive(image.id)}
+                aria-label={`Preview image ${index + 1}`}
+                aria-current={isSelected ? "true" : undefined}
+                className="relative aspect-square w-22 shrink-0 overflow-hidden rounded-md transition"
+                style={{
+                  background: "var(--admin-surface-2)",
+                  border: isSelected
+                    ? "2px solid var(--admin-accent)"
+                    : "1px solid var(--admin-border-strong)",
+                  outline: isSelected
+                    ? "2px solid var(--admin-accent-soft)"
+                    : "none",
+                  outlineOffset: 2,
+                }}
               >
-                <div className="relative aspect-square overflow-hidden rounded border border-zinc-200 bg-zinc-50">
-                  {publicUrl ? (
-                    <Image
-                      src={publicUrl}
-                      alt={image.altText ?? "Product image"}
-                      fill
-                      sizes="160px"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="grid h-full w-full place-items-center px-2 text-center text-xs text-zinc-500">
-                      Preview unavailable
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  <p className="text-xs text-zinc-500">
-                    Position {image.position} • {image.bucket}/{image.path}
-                  </p>
-
-                  <form
-                    action={updateImageMeta}
-                    className="grid gap-3 md:grid-cols-[1fr_220px_auto]"
+                {url ? (
+                  <Image
+                    src={url}
+                    alt={image.altText ?? ""}
+                    fill
+                    sizes="88px"
+                    className="object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <span
+                    className="grid h-full w-full place-items-center text-[10px]"
+                    style={{ color: "var(--admin-text-mute)" }}
                   >
-                    <input type="hidden" name="imageId" value={image.id} />
-
-                    <input
-                      name="altText"
-                      defaultValue={image.altText ?? ""}
-                      maxLength={220}
-                      placeholder="Alt text"
-                      className="h-9 rounded border border-zinc-300 px-2 text-sm text-zinc-900"
-                    />
-
-                    <select
-                      name="variantId"
-                      defaultValue={image.variantId ?? ""}
-                      className="h-9 rounded border border-zinc-300 px-2 text-sm text-zinc-900"
-                    >
-                      <option value="">Unassigned</option>
-                      {variants.map((variant) => (
-                        <option key={variant.id} value={variant.id}>
-                          {variant.title}
-                          {variant.sku ? ` (${variant.sku})` : ""}
-                        </option>
-                      ))}
-                    </select>
-
-                    <button
-                      type="submit"
-                      className="inline-flex h-9 items-center justify-center rounded border border-zinc-300 px-3 text-xs font-medium uppercase tracking-[0.06em] text-zinc-700 hover:bg-zinc-100"
-                    >
-                      Save
-                    </button>
-                  </form>
-
-                  <div className="flex items-center gap-2">
-                    <form action={moveImageUp}>
-                      <input type="hidden" name="imageId" value={image.id} />
-                      <button
-                        type="submit"
-                        className="inline-flex h-8 items-center rounded border border-zinc-300 px-3 text-xs font-medium uppercase tracking-[0.06em] text-zinc-700 hover:bg-zinc-100"
-                      >
-                        Move up
-                      </button>
-                    </form>
-
-                    <form action={moveImageDown}>
-                      <input type="hidden" name="imageId" value={image.id} />
-                      <button
-                        type="submit"
-                        className="inline-flex h-8 items-center rounded border border-zinc-300 px-3 text-xs font-medium uppercase tracking-[0.06em] text-zinc-700 hover:bg-zinc-100"
-                      >
-                        Move down
-                      </button>
-                    </form>
-
-                    <form action={deleteImage}>
-                      <input type="hidden" name="imageId" value={image.id} />
-                      <button
-                        type="submit"
-                        className="inline-flex h-8 items-center rounded border border-rose-200 px-3 text-xs font-medium uppercase tracking-[0.06em] text-rose-700 hover:bg-rose-50"
-                      >
-                        Delete
-                      </button>
-                    </form>
-                  </div>
-                </div>
-              </div>
+                    No preview
+                  </span>
+                )}
+                <span
+                  className="absolute bottom-1 left-1 rounded px-1 text-[10px] font-medium"
+                  style={{
+                    background: "rgba(255,255,255,0.85)",
+                    color: "var(--admin-text)",
+                  }}
+                >
+                  {index + 1}
+                </span>
+              </button>
             );
           })}
         </div>
-      ) : (
-        <p className="rounded border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
-          No images uploaded yet.
+      </div>
+
+      <div className="space-y-3">
+        <div
+          className="relative aspect-4/5 overflow-hidden rounded-lg"
+          style={{
+            background: "var(--admin-surface-2)",
+            border: "1px solid var(--admin-border-strong)",
+          }}
+        >
+          {activeUrl ? (
+            <Image
+              src={activeUrl}
+              alt={active.altText ?? "Product image"}
+              fill
+              priority
+              sizes="(max-width: 980px) 100vw, 50vw"
+              className="object-cover"
+              unoptimized
+            />
+          ) : (
+            <div
+              className="grid h-full w-full place-items-center text-sm"
+              style={{ color: "var(--admin-text-mute)" }}
+            >
+              Preview unavailable
+            </div>
+          )}
+
+          <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
+            <Badge tone="neutral">Position {active.position}</Badge>
+            {activeVariant ? (
+              <Badge tone="info">
+                {activeVariant.title}
+                {activeVariant.sku ? ` · ${activeVariant.sku}` : ""}
+              </Badge>
+            ) : (
+              <Badge tone="muted">Shared image</Badge>
+            )}
+          </div>
+
+          <div className="absolute right-3 bottom-3 flex items-center gap-1.5">
+            <IconActionForm
+              action={moveImageUp}
+              imageId={active.id}
+              label="Move up"
+              disabled={isFirst}
+              icon={<Icon.ChevronDown style={{ transform: "rotate(180deg)" }} />}
+            />
+            <IconActionForm
+              action={moveImageDown}
+              imageId={active.id}
+              label="Move down"
+              disabled={isLast}
+              icon={<Icon.ChevronDown />}
+            />
+            <IconActionForm
+              action={deleteImage}
+              imageId={active.id}
+              label="Delete image"
+              icon={<Icon.Close />}
+              tone="danger"
+              confirmMessage="Delete this image? This cannot be undone."
+            />
+          </div>
+        </div>
+
+        <form
+          action={updateImageMeta}
+          className="grid gap-3 rounded-lg p-3 md:grid-cols-[1fr_220px_auto] md:items-end"
+          style={{
+            background: "var(--admin-surface-2)",
+            border: "1px solid var(--admin-border)",
+          }}
+        >
+          <input type="hidden" name="imageId" value={active.id} />
+
+          <Field label="Alt text">
+            <Input
+              name="altText"
+              key={`alt-${active.id}`}
+              defaultValue={active.altText ?? ""}
+              maxLength={220}
+              placeholder="Describe this image"
+            />
+          </Field>
+
+          <Field label="Variant">
+            <Select
+              name="variantId"
+              key={`variant-${active.id}`}
+              defaultValue={active.variantId ?? ""}
+            >
+              <option value="">Unassigned</option>
+              {variants.map((variant) => (
+                <option key={variant.id} value={variant.id}>
+                  {variant.title}
+                  {variant.sku ? ` · ${variant.sku}` : ""}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
+          <Button type="submit" variant="primary" size="md">
+            Save
+          </Button>
+        </form>
+
+        <p className="text-[11px]" style={{ color: "var(--admin-text-mute)" }}>
+          {active.bucket}/{active.path}
         </p>
-      )}
-    </section>
+      </div>
+    </div>
+  );
+}
+
+type IconActionFormProps = {
+  action: (formData: FormData) => Promise<void>;
+  imageId: string;
+  label: string;
+  icon: React.ReactNode;
+  disabled?: boolean;
+  tone?: "default" | "danger";
+  confirmMessage?: string;
+};
+
+function IconActionForm({
+  action,
+  imageId,
+  label,
+  icon,
+  disabled,
+  tone = "default",
+  confirmMessage,
+}: IconActionFormProps) {
+  const baseColor = tone === "danger" ? "#b3261e" : "var(--admin-text)";
+  const baseBg = "rgba(255, 255, 255, 0.92)";
+  const hoverBg =
+    tone === "danger" ? "rgba(179, 38, 30, 0.12)" : "var(--admin-accent-soft)";
+
+  return (
+    <form
+      action={action}
+      onSubmit={(event) => {
+        if (
+          confirmMessage &&
+          !window.confirm(confirmMessage)
+        ) {
+          event.preventDefault();
+        }
+      }}
+    >
+      <input type="hidden" name="imageId" value={imageId} />
+      <button
+        type="submit"
+        disabled={disabled}
+        title={label}
+        aria-label={label}
+        className="inline-flex h-8 w-8 items-center justify-center rounded-md backdrop-blur-sm transition disabled:cursor-not-allowed disabled:opacity-40"
+        style={{
+          color: baseColor,
+          background: baseBg,
+          border: "1px solid var(--admin-border-strong)",
+        }}
+        onMouseEnter={(event) => {
+          if (!disabled) {
+            event.currentTarget.style.backgroundColor = hoverBg;
+          }
+        }}
+        onMouseLeave={(event) => {
+          if (!disabled) {
+            event.currentTarget.style.backgroundColor = baseBg;
+          }
+        }}
+      >
+        {icon}
+      </button>
+    </form>
   );
 }

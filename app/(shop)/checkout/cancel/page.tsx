@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { ReturnToCartButton } from "./cancel-actions";
+
 export default function CheckoutCancelPage() {
   return (
     <section className="container-page py-14 md:py-20">
@@ -18,12 +20,7 @@ export default function CheckoutCancelPage() {
         >
           Retry Checkout
         </Link>
-        <Link
-          href="/cart"
-          className="inline-flex h-10 items-center border border-border-light px-4 text-xs font-medium uppercase tracking-[0.06em] text-warm-gray-700 hover:bg-bg-secondary"
-        >
-          Return to Cart
-        </Link>
+        <ReturnToCartButton />
         <Link
           href="/products"
           className="inline-flex h-10 items-center border border-border-light px-4 text-xs font-medium uppercase tracking-[0.06em] text-warm-gray-700 hover:bg-bg-secondary"

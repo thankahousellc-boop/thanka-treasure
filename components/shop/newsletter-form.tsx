@@ -22,15 +22,11 @@ export function NewsletterForm({ source = "footer" }: NewsletterFormProps) {
     try {
       const response = await fetch("/api/newsletter", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, source }),
       });
 
-      if (!response.ok) {
-        throw new Error("Unable to subscribe");
-      }
+      if (!response.ok) throw new Error("Unable to subscribe");
 
       setEmail("");
       setStatus("success");
@@ -40,39 +36,35 @@ export function NewsletterForm({ source = "footer" }: NewsletterFormProps) {
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex w-full flex-col gap-2 sm:flex-row"
-    >
+    <form onSubmit={handleSubmit} className="flex w-full flex-col gap-3">
       <label htmlFor={emailId} className="sr-only">
         Email address
       </label>
-      <input
-        id={emailId}
-        name="email"
-        autoComplete="email"
-        type="email"
-        required
-        value={email}
-        onChange={(event) => {
-          if (status !== "idle") {
-            setStatus("idle");
-          }
-
-          setEmail(event.target.value);
-        }}
-        placeholder="Enter your email"
-        className="h-11 flex-1 border border-border-light bg-white px-3 text-sm text-warm-gray-900 focus:border-maroon-600"
-      />
-      <button
-        type="submit"
-        disabled={status === "saving"}
-        aria-describedby={statusMessageId}
-        aria-busy={status === "saving"}
-        className="h-11 border border-maroon-700 bg-maroon-700 px-5 text-sm font-medium uppercase tracking-[0.08em] text-white transition hover:bg-maroon-600 disabled:cursor-not-allowed disabled:opacity-70"
-      >
-        {status === "saving" ? "Submitting" : "Subscribe"}
-      </button>
+      <div className="flex items-center gap-1.5 rounded-full border border-(--line) bg-paper p-1.5 pl-5 focus-within:border-ink">
+        <input
+          id={emailId}
+          name="email"
+          autoComplete="email"
+          type="email"
+          required
+          value={email}
+          onChange={(event) => {
+            if (status !== "idle") setStatus("idle");
+            setEmail(event.target.value);
+          }}
+          placeholder="Enter your email"
+          className="h-10 flex-1 border-0 bg-transparent text-sm text-ink outline-none placeholder:text-ink-mute"
+        />
+        <button
+          type="submit"
+          disabled={status === "saving"}
+          aria-describedby={statusMessageId}
+          aria-busy={status === "saving"}
+          className="rounded-full bg-ink px-5 py-2.5 text-[12px] font-medium uppercase tracking-[0.16em] text-paper transition hover:bg-ink-soft disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {status === "saving" ? "Submitting…" : "Subscribe"}
+        </button>
+      </div>
       <p
         id={statusMessageId}
         role={status === "error" ? "alert" : "status"}
@@ -81,10 +73,14 @@ export function NewsletterForm({ source = "footer" }: NewsletterFormProps) {
         className="text-sm"
       >
         {status === "success" ? (
-          <span className="text-maroon-700">Subscription received.</span>
+          <span className="text-saffron-deep">
+            Subscription received. Welcome to the atelier.
+          </span>
         ) : null}
         {status === "error" ? (
-          <span className="text-red-700">Something went wrong. Try again.</span>
+          <span className="text-saffron-deep">
+            Something went wrong. Please try again.
+          </span>
         ) : null}
       </p>
     </form>

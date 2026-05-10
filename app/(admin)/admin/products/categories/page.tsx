@@ -1,5 +1,16 @@
-import Link from "next/link";
-
+import {
+  Badge,
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Field,
+  Icon,
+  Input,
+  PageHeader,
+  Select,
+  Textarea,
+} from "@/components/admin/ui";
 import { collectionRepository } from "@/lib/repositories/collection-repository";
 
 import {
@@ -9,6 +20,8 @@ import {
   updateProductCategoryAction,
   updateProductCollectionAction,
 } from "./actions";
+
+export const dynamic = "force-dynamic";
 
 type CollectionWithProductIds = {
   id: string;
@@ -37,7 +50,6 @@ async function loadTaxonomyForAdmin() {
     );
 
     const productIdsByCollectionId = new Map<string, string[]>();
-
     for (const link of links) {
       const current = productIdsByCollectionId.get(link.collectionId) ?? [];
       current.push(link.productId);
@@ -72,282 +84,378 @@ export default async function AdminProductTaxonomyPage() {
   const { categories, collections, products } = await loadTaxonomyForAdmin();
 
   return (
-    <section className="space-y-8">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-semibold text-zinc-900">
-            Manage product taxonomy
-          </h2>
-          <p className="mt-1 text-sm text-zinc-600">
-            Maintain category slugs and curate manual collections with product
-            assignment.
-          </p>
-        </div>
-
-        <Link
-          href="/admin/products"
-          className="inline-flex h-10 items-center rounded border border-zinc-300 px-4 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
-        >
-          Back to products
-        </Link>
-      </div>
+    <>
+      <PageHeader
+        title="Categories & collections"
+        description="Categories drive product URLs and filters. Collections bundle products under curated themes."
+      />
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <section className="space-y-4 rounded border border-zinc-200 bg-white p-5">
-          <h3 className="text-base font-semibold text-zinc-900">Categories</h3>
+        {/* CATEGORIES */}
+        <Card>
+          <CardHeader
+            title={
+              <span className="inline-flex items-center gap-2">
+                Categories
+                <Badge tone="muted">{categories.length}</Badge>
+              </span>
+            }
+            description="Used in product URLs and filters."
+          />
+          <CardBody className="space-y-1 px-0 py-0">
+            {categories.length === 0 ? (
+              <InlineEmpty message="No categories yet — add your first one below." />
+            ) : (
+              <ul className="divide-y" style={{ borderColor: "var(--admin-border)" }}>
+                {categories.map((category) => (
+                  <li key={category.id}>
+                    <details className="group">
+                      <summary className="flex cursor-pointer list-none items-center gap-3 px-5 py-3 transition hover:bg-(--admin-surface-2)">
+                        <Icon.ChevronRight
+                          width={14}
+                          height={14}
+                          className="transition group-open:rotate-90"
+                          style={{ color: "var(--admin-text-mute)" }}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p
+                            className="truncate text-sm font-medium"
+                            style={{ color: "var(--admin-text)" }}
+                          >
+                            {category.name}
+                          </p>
+                          <p
+                            className="truncate text-[11px]"
+                            style={{ color: "var(--admin-text-mute)" }}
+                          >
+                            /{category.slug}
+                          </p>
+                        </div>
+                        <span
+                          className="shrink-0 text-[11px]"
+                          style={{ color: "var(--admin-text-mute)" }}
+                        >
+                          {category.productCount} product
+                          {category.productCount === 1 ? "" : "s"}
+                        </span>
+                      </summary>
+                      <form
+                        action={updateProductCategoryAction}
+                        className="space-y-3 border-t px-5 py-4"
+                        style={{
+                          borderColor: "var(--admin-border)",
+                          background: "var(--admin-surface-2)",
+                        }}
+                      >
+                        <input type="hidden" name="id" value={category.id} />
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <Field label="Name">
+                            <Input name="name" defaultValue={category.name} required />
+                          </Field>
+                          <Field label="Slug">
+                            <Input name="slug" defaultValue={category.slug} />
+                          </Field>
+                        </div>
+                        <div className="grid gap-3 md:grid-cols-[1fr_120px]">
+                          <Field label="Description">
+                            <Input
+                              name="description"
+                              defaultValue={category.description ?? ""}
+                            />
+                          </Field>
+                          <Field label="Position">
+                            <Input
+                              name="position"
+                              type="number"
+                              min={0}
+                              defaultValue={category.position}
+                            />
+                          </Field>
+                        </div>
+                        <div className="flex justify-end">
+                          <Button type="submit" size="sm">
+                            Save changes
+                          </Button>
+                        </div>
+                      </form>
+                    </details>
+                  </li>
+                ))}
+              </ul>
+            )}
 
-          <form action={createProductCategoryAction} className="space-y-3">
-            <div className="grid gap-3 md:grid-cols-2">
-              <input
-                name="name"
-                placeholder="Name"
-                required
-                className="h-10 rounded border border-zinc-300 px-3 text-sm text-zinc-900"
-              />
-              <input
-                name="slug"
-                placeholder="Slug (optional)"
-                className="h-10 rounded border border-zinc-300 px-3 text-sm text-zinc-900"
-              />
-            </div>
+            <InlineCreateForm
+              kind="category"
+              action={createProductCategoryAction}
+            />
+          </CardBody>
+        </Card>
 
-            <div className="grid gap-3 md:grid-cols-[1fr_120px]">
-              <input
+        {/* COLLECTIONS */}
+        <Card>
+          <CardHeader
+            title={
+              <span className="inline-flex items-center gap-2">
+                Collections
+                <Badge tone="muted">{collections.length}</Badge>
+              </span>
+            }
+            description="Bundle products under curated themes."
+          />
+          <CardBody className="space-y-1 px-0 py-0">
+            {collections.length === 0 ? (
+              <InlineEmpty message="No collections yet — create your first one below." />
+            ) : (
+              <ul
+                className="divide-y"
+                style={{ borderColor: "var(--admin-border)" }}
+              >
+                {collections.map((collection) => (
+                  <li key={collection.id}>
+                    <details className="group">
+                      <summary className="flex cursor-pointer list-none items-center gap-3 px-5 py-3 transition hover:bg-(--admin-surface-2)">
+                        <Icon.ChevronRight
+                          width={14}
+                          height={14}
+                          className="transition group-open:rotate-90"
+                          style={{ color: "var(--admin-text-mute)" }}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p
+                            className="truncate text-sm font-medium"
+                            style={{ color: "var(--admin-text)" }}
+                          >
+                            {collection.title}
+                          </p>
+                          <p
+                            className="truncate text-[11px]"
+                            style={{ color: "var(--admin-text-mute)" }}
+                          >
+                            /{collection.slug} · {collection.type}
+                          </p>
+                        </div>
+                        <span
+                          className="shrink-0 text-[11px]"
+                          style={{ color: "var(--admin-text-mute)" }}
+                        >
+                          {collection.productCount} product
+                          {collection.productCount === 1 ? "" : "s"}
+                        </span>
+                      </summary>
+                      <div
+                        className="space-y-4 border-t px-5 py-4"
+                        style={{
+                          borderColor: "var(--admin-border)",
+                          background: "var(--admin-surface-2)",
+                        }}
+                      >
+                        <form
+                          action={updateProductCollectionAction}
+                          className="space-y-3"
+                        >
+                          <input type="hidden" name="id" value={collection.id} />
+                          <input
+                            type="hidden"
+                            name="oldSlug"
+                            value={collection.slug}
+                          />
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <Field label="Title">
+                              <Input
+                                name="title"
+                                defaultValue={collection.title}
+                                required
+                              />
+                            </Field>
+                            <Field label="Slug">
+                              <Input name="slug" defaultValue={collection.slug} />
+                            </Field>
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-[1fr_140px]">
+                            <Field label="Description">
+                              <Input
+                                name="description"
+                                defaultValue={collection.description ?? ""}
+                              />
+                            </Field>
+                            <Field label="Type">
+                              <Select name="type" defaultValue={collection.type}>
+                                <option value="manual">Manual</option>
+                                <option value="automated">Automated</option>
+                              </Select>
+                            </Field>
+                          </div>
+                          <div className="flex justify-end">
+                            <Button type="submit" size="sm">
+                              Save details
+                            </Button>
+                          </div>
+                        </form>
+
+                        <form
+                          action={updateCollectionProductsAction}
+                          className="space-y-3 border-t pt-4"
+                          style={{ borderColor: "var(--admin-border)" }}
+                        >
+                          <input
+                            type="hidden"
+                            name="collectionId"
+                            value={collection.id}
+                          />
+                          <input
+                            type="hidden"
+                            name="collectionSlug"
+                            value={collection.slug}
+                          />
+                          <Field
+                            label="Products in collection"
+                            hint="Hold ⌘ / Ctrl to select multiple."
+                          >
+                            <Select
+                              name="productIds"
+                              multiple
+                              defaultValue={collection.productIds}
+                              className="min-h-32"
+                            >
+                              {products.map((product) => (
+                                <option key={product.id} value={product.id}>
+                                  {product.title} ({product.status})
+                                </option>
+                              ))}
+                            </Select>
+                          </Field>
+                          <div className="flex justify-end">
+                            <Button type="submit" variant="secondary" size="sm">
+                              Save products
+                            </Button>
+                          </div>
+                        </form>
+                      </div>
+                    </details>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <InlineCreateForm
+              kind="collection"
+              action={createProductCollectionAction}
+            />
+          </CardBody>
+        </Card>
+      </div>
+    </>
+  );
+}
+
+function InlineEmpty({ message }: { message: string }) {
+  return (
+    <p
+      className="px-5 py-4 text-xs"
+      style={{ color: "var(--admin-text-mute)" }}
+    >
+      {message}
+    </p>
+  );
+}
+
+function InlineCreateForm({
+  kind,
+  action,
+}: {
+  kind: "category" | "collection";
+  action: (formData: FormData) => Promise<void>;
+}) {
+  const labels =
+    kind === "category"
+      ? {
+          summary: "New category",
+          name: "Name",
+          slug: "Slug",
+          extra: "Position",
+          extraDefault: "0",
+          submit: "Add category",
+        }
+      : {
+          summary: "New collection",
+          name: "Title",
+          slug: "Slug",
+          extra: "Type",
+          extraDefault: "manual",
+          submit: "Add collection",
+        };
+
+  return (
+    <details
+      className="group border-t"
+      style={{ borderColor: "var(--admin-border)" }}
+    >
+      <summary
+        className="flex cursor-pointer list-none items-center gap-2 px-5 py-3 text-sm font-medium transition hover:bg-(--admin-surface-2)"
+        style={{ color: "var(--admin-accent)" }}
+      >
+        <Icon.Plus width={14} height={14} />
+        {labels.summary}
+      </summary>
+      <form
+        action={action}
+        className="space-y-3 border-t px-5 py-4"
+        style={{
+          borderColor: "var(--admin-border)",
+          background: "var(--admin-surface-2)",
+        }}
+      >
+        <div className="grid gap-3 md:grid-cols-2">
+          <Field label={labels.name}>
+            <Input
+              name={kind === "category" ? "name" : "title"}
+              required
+              placeholder={
+                kind === "category" ? "e.g. Buddhas" : "e.g. Bestsellers"
+              }
+            />
+          </Field>
+          <Field label={labels.slug} hint="Optional. Generated when blank.">
+            <Input
+              name="slug"
+              placeholder={kind === "category" ? "buddhas" : "bestsellers"}
+            />
+          </Field>
+        </div>
+        <div className="grid gap-3 md:grid-cols-[1fr_140px]">
+          <Field label="Description">
+            {kind === "category" ? (
+              <Input name="description" placeholder="Optional summary" />
+            ) : (
+              <Textarea
                 name="description"
-                placeholder="Description (optional)"
-                className="h-10 rounded border border-zinc-300 px-3 text-sm text-zinc-900"
+                rows={2}
+                placeholder="Optional summary"
               />
-              <input
+            )}
+          </Field>
+          <Field label={labels.extra}>
+            {kind === "category" ? (
+              <Input
                 name="position"
                 type="number"
                 min={0}
-                defaultValue={0}
-                className="h-10 rounded border border-zinc-300 px-3 text-sm text-zinc-900"
+                defaultValue={labels.extraDefault}
               />
-            </div>
-
-            <button
-              type="submit"
-              className="inline-flex h-9 items-center rounded bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-700"
-            >
-              Add category
-            </button>
-          </form>
-
-          {categories.length > 0 ? (
-            <div className="space-y-2">
-              {categories.map((category) => (
-                <form
-                  key={category.id}
-                  action={updateProductCategoryAction}
-                  className="space-y-2 rounded border border-zinc-200 p-3"
-                >
-                  <input type="hidden" name="id" value={category.id} />
-
-                  <div className="grid gap-2 md:grid-cols-2">
-                    <input
-                      name="name"
-                      defaultValue={category.name}
-                      required
-                      className="h-9 rounded border border-zinc-300 px-2 text-sm text-zinc-900"
-                    />
-                    <input
-                      name="slug"
-                      defaultValue={category.slug}
-                      className="h-9 rounded border border-zinc-300 px-2 text-sm text-zinc-900"
-                    />
-                  </div>
-
-                  <div className="grid gap-2 md:grid-cols-[1fr_100px_auto]">
-                    <input
-                      name="description"
-                      defaultValue={category.description ?? ""}
-                      placeholder="Description"
-                      className="h-9 rounded border border-zinc-300 px-2 text-sm text-zinc-900"
-                    />
-                    <input
-                      name="position"
-                      type="number"
-                      min={0}
-                      defaultValue={category.position}
-                      className="h-9 rounded border border-zinc-300 px-2 text-sm text-zinc-900"
-                    />
-                    <button
-                      type="submit"
-                      className="inline-flex h-9 items-center justify-center rounded border border-zinc-300 px-3 text-xs font-medium uppercase tracking-[0.06em] text-zinc-700 hover:bg-zinc-100"
-                    >
-                      Save
-                    </button>
-                  </div>
-
-                  <p className="text-xs text-zinc-500">
-                    Referenced by {category.productCount} product
-                    {category.productCount === 1 ? "" : "s"}.
-                  </p>
-                </form>
-              ))}
-            </div>
-          ) : (
-            <p className="rounded border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
-              No categories yet.
-            </p>
-          )}
-        </section>
-
-        <section className="space-y-4 rounded border border-zinc-200 bg-white p-5">
-          <h3 className="text-base font-semibold text-zinc-900">Collections</h3>
-
-          <form action={createProductCollectionAction} className="space-y-3">
-            <div className="grid gap-3 md:grid-cols-2">
-              <input
-                name="title"
-                placeholder="Title"
-                required
-                className="h-10 rounded border border-zinc-300 px-3 text-sm text-zinc-900"
-              />
-              <input
-                name="slug"
-                placeholder="Slug (optional)"
-                className="h-10 rounded border border-zinc-300 px-3 text-sm text-zinc-900"
-              />
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-[1fr_160px]">
-              <input
-                name="description"
-                placeholder="Description (optional)"
-                className="h-10 rounded border border-zinc-300 px-3 text-sm text-zinc-900"
-              />
-              <select
-                name="type"
-                defaultValue="manual"
-                className="h-10 rounded border border-zinc-300 px-3 text-sm text-zinc-900"
-              >
+            ) : (
+              <Select name="type" defaultValue={labels.extraDefault}>
                 <option value="manual">Manual</option>
                 <option value="automated">Automated</option>
-              </select>
-            </div>
-
-            <button
-              type="submit"
-              className="inline-flex h-9 items-center rounded bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-700"
-            >
-              Add collection
-            </button>
-          </form>
-
-          {collections.length > 0 ? (
-            <div className="space-y-3">
-              {collections.map((collection) => (
-                <div
-                  key={collection.id}
-                  className="space-y-3 rounded border border-zinc-200 p-3"
-                >
-                  <form
-                    action={updateProductCollectionAction}
-                    className="space-y-2"
-                  >
-                    <input type="hidden" name="id" value={collection.id} />
-                    <input
-                      type="hidden"
-                      name="oldSlug"
-                      value={collection.slug}
-                    />
-
-                    <div className="grid gap-2 md:grid-cols-2">
-                      <input
-                        name="title"
-                        defaultValue={collection.title}
-                        required
-                        className="h-9 rounded border border-zinc-300 px-2 text-sm text-zinc-900"
-                      />
-                      <input
-                        name="slug"
-                        defaultValue={collection.slug}
-                        className="h-9 rounded border border-zinc-300 px-2 text-sm text-zinc-900"
-                      />
-                    </div>
-
-                    <div className="grid gap-2 md:grid-cols-[1fr_140px_auto]">
-                      <input
-                        name="description"
-                        defaultValue={collection.description ?? ""}
-                        placeholder="Description"
-                        className="h-9 rounded border border-zinc-300 px-2 text-sm text-zinc-900"
-                      />
-                      <select
-                        name="type"
-                        defaultValue={collection.type}
-                        className="h-9 rounded border border-zinc-300 px-2 text-sm text-zinc-900"
-                      >
-                        <option value="manual">Manual</option>
-                        <option value="automated">Automated</option>
-                      </select>
-                      <button
-                        type="submit"
-                        className="inline-flex h-9 items-center justify-center rounded border border-zinc-300 px-3 text-xs font-medium uppercase tracking-[0.06em] text-zinc-700 hover:bg-zinc-100"
-                      >
-                        Save
-                      </button>
-                    </div>
-                  </form>
-
-                  <form
-                    action={updateCollectionProductsAction}
-                    className="space-y-2"
-                  >
-                    <input
-                      type="hidden"
-                      name="collectionId"
-                      value={collection.id}
-                    />
-                    <input
-                      type="hidden"
-                      name="collectionSlug"
-                      value={collection.slug}
-                    />
-
-                    <label className="block space-y-1">
-                      <span className="text-xs font-medium uppercase tracking-[0.06em] text-zinc-600">
-                        Products in collection
-                      </span>
-                      <select
-                        name="productIds"
-                        multiple
-                        defaultValue={collection.productIds}
-                        className="min-h-40 w-full rounded border border-zinc-300 px-2 py-1 text-sm text-zinc-900"
-                      >
-                        {products.map((product) => (
-                          <option key={product.id} value={product.id}>
-                            {product.title} ({product.status})
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-xs text-zinc-500">
-                        {collection.productCount} product
-                        {collection.productCount === 1 ? "" : "s"} assigned.
-                      </p>
-                      <button
-                        type="submit"
-                        className="inline-flex h-9 items-center rounded border border-zinc-300 px-3 text-xs font-medium uppercase tracking-[0.06em] text-zinc-700 hover:bg-zinc-100"
-                      >
-                        Save products
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="rounded border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
-              No collections yet.
-            </p>
-          )}
-        </section>
-      </div>
-    </section>
+              </Select>
+            )}
+          </Field>
+        </div>
+        <div className="flex justify-end">
+          <Button type="submit" size="sm">
+            {labels.submit}
+          </Button>
+        </div>
+      </form>
+    </details>
   );
 }

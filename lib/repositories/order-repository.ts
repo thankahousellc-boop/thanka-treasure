@@ -23,6 +23,12 @@ type CheckoutOrderItemInput = {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  frameSnapshot?: {
+    id: string;
+    name: string;
+    imageUrl?: string | null;
+    priceDelta: number;
+  } | null;
 };
 
 type CreateFromCheckoutSessionInput = {
@@ -539,6 +545,7 @@ export const orderRepository = {
             quantity: item.quantity,
             unitPrice: item.unitPrice,
             totalPrice: item.totalPrice,
+            frameSnapshot: item.frameSnapshot ?? null,
             updatedAt: new Date(),
           })),
         );

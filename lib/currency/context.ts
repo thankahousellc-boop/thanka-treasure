@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { cache } from "react";
 import { cookies, headers } from "next/headers";
 
@@ -51,12 +52,18 @@ function sanitizeExchangeRates(
   return sanitized;
 }
 
-const readExchangeRates = cache(async () => {
-  const configuredRates =
-    await settingsRepository.get<Record<string, unknown>>("exchange_rates");
+const loadExchangeRates = unstable_cache(
+  async () => {
+    const configuredRates =
+      await settingsRepository.get<Record<string, unknown>>("exchange_rates");
 
-  return sanitizeExchangeRates(configuredRates);
-});
+    return sanitizeExchangeRates(configuredRates);
+  },
+  ["exchange_rates"],
+  { tags: ["settings:exchange_rates"], revalidate: 3600 },
+);
+
+const readExchangeRates = cache(loadExchangeRates);
 
 export async function getExchangeRates() {
   return readExchangeRates();

@@ -6,6 +6,7 @@ import slugify from "slugify";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
+import { frameRepository } from "@/lib/repositories/frame-repository";
 import { productRepository } from "@/lib/repositories/product-repository";
 import { BUCKETS, storage } from "@/lib/storage";
 
@@ -245,6 +246,25 @@ async function assertAdmin() {
   }
 }
 
+function parseFrameSelections(formData: FormData) {
+  const ids = getStringList(formData, "frameId").filter((value) =>
+    /^[0-9a-f-]{8,}$/i.test(value),
+  );
+  const defaultId = getString(formData, "defaultFrameId");
+  const uniqueIds = Array.from(new Set(ids));
+
+  const selections = uniqueIds.map((frameId) => ({
+    frameId,
+    isDefault: frameId === defaultId,
+  }));
+
+  if (selections.length > 0 && !selections.some((row) => row.isDefault)) {
+    selections[0].isDefault = true;
+  }
+
+  return selections;
+}
+
 function parseProductForm(formData: FormData) {
   const parsed = productFormSchema.safeParse({
     title: getString(formData, "title"),
@@ -287,7 +307,10 @@ export async function createProductAction(formData: FormData) {
   await assertAdmin();
 
   const payload = parseProductForm(formData);
+  const frameSelections = parseFrameSelections(formData);
   const created = await productRepository.createForAdmin(payload);
+
+  await frameRepository.setForProduct(created.id, frameSelections);
 
   revalidatePath("/admin/products");
   revalidatePath("/products");
@@ -311,11 +334,14 @@ export async function updateProductAction(
   }
 
   const payload = parseProductForm(formData);
+  const frameSelections = parseFrameSelections(formData);
   const updated = await productRepository.updateForAdmin(productId, payload);
 
   if (!updated) {
     throw new Error("Failed to update product.");
   }
+
+  await frameRepository.setForProduct(productId, frameSelections);
 
   revalidatePath("/admin/products");
   revalidatePath("/products");
@@ -473,6 +499,78 @@ export async function deleteProductImageAction(
 
   await productRepository.deleteImageForAdmin(productId, imageId);
   revalidateProductPaths(productId, existing.product.slug);
+}
+
+const productStatusValues = ["draft", "active", "archived"] as const;
+
+type ProductStatusValue = (typeof productStatusValues)[number];
+
+export async function quickSetProductStatusAction(
+  productId: string,
+  status: ProductStatusValue,
+  formData: FormData,
+) {
+  void formData;
+
+  await assertAdmin();
+
+  if (!productId) return;
+
+  const existing = await productRepository.findByIdForAdmin(productId);
+  const updated = await productRepository.setStatusForAdmin(productId, status);
+
+  if (!updated) return;
+
+  revalidatePath("/admin/products");
+  revalidatePath(`/admin/products/${productId}`);
+  revalidatePath("/products");
+
+  if (existing) {
+    revalidatePath(`/products/${existing.product.slug}`);
+  }
+
+  if (updated.slug !== existing?.product.slug) {
+    revalidatePath(`/products/${updated.slug}`);
+  }
+}
+
+export async function setProductStatusAction(formData: FormData) {
+  await assertAdmin();
+
+  const id = getString(formData, "id");
+  const statusRaw = getString(formData, "status");
+
+  if (!id) {
+    return;
+  }
+
+  if (
+    !productStatusValues.includes(
+      statusRaw as (typeof productStatusValues)[number],
+    )
+  ) {
+    throw new Error("Invalid product status.");
+  }
+
+  const status = statusRaw as (typeof productStatusValues)[number];
+  const existing = await productRepository.findByIdForAdmin(id);
+  const updated = await productRepository.setStatusForAdmin(id, status);
+
+  if (!updated) {
+    return;
+  }
+
+  revalidatePath("/admin/products");
+  revalidatePath(`/admin/products/${id}`);
+  revalidatePath("/products");
+
+  if (existing) {
+    revalidatePath(`/products/${existing.product.slug}`);
+  }
+
+  if (updated.slug !== existing?.product.slug) {
+    revalidatePath(`/products/${updated.slug}`);
+  }
 }
 
 export async function archiveProductAction(formData: FormData) {

@@ -18,7 +18,9 @@ import { profiles } from "./profiles";
 import {
   collectionProducts,
   collections,
+  frames,
   inventory,
+  productFrames,
   productImages,
   products,
   productVariants,
@@ -33,6 +35,22 @@ export const productsRelations = relations(products, ({ many }) => ({
   variants: many(productVariants),
   images: many(productImages),
   collectionLinks: many(collectionProducts),
+  frameLinks: many(productFrames),
+}));
+
+export const framesRelations = relations(frames, ({ many }) => ({
+  productLinks: many(productFrames),
+}));
+
+export const productFramesRelations = relations(productFrames, ({ one }) => ({
+  product: one(products, {
+    fields: [productFrames.productId],
+    references: [products.id],
+  }),
+  frame: one(frames, {
+    fields: [productFrames.frameId],
+    references: [frames.id],
+  }),
 }));
 
 export const productVariantsRelations = relations(

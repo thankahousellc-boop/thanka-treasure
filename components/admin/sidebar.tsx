@@ -1,79 +1,83 @@
+import Image from "next/image";
 import Link from "next/link";
 
-import { contactRepository } from "@/lib/repositories/contact-repository";
-import { newsletterRepository } from "@/lib/repositories/newsletter-repository";
+import { getBranding } from "@/lib/branding";
+import { loadAdminBadges } from "@/lib/admin-shell-data";
 
-type SidebarItem = {
-  href: string;
-  label: string;
-  badge?: number;
-};
-
-async function getSidebarItems(): Promise<SidebarItem[]> {
-  let messageBadge = 0;
-  let subscriberBadge = 0;
-
-  try {
-    const [messageStats, subscriberStats] = await Promise.all([
-      contactRepository.getAdminStats(),
-      newsletterRepository.getAdminStats(),
-    ]);
-
-    messageBadge = messageStats.newCount;
-    subscriberBadge = subscriberStats.activeCount;
-  } catch {
-    messageBadge = 0;
-    subscriberBadge = 0;
-  }
-
-  return [
-    { href: "/admin", label: "Overview" },
-    { href: "/admin/orders", label: "Orders" },
-    { href: "/admin/products", label: "Products" },
-    { href: "/admin/products/inventory", label: "Inventory" },
-    { href: "/admin/products/categories", label: "Catalog taxonomy" },
-    { href: "/admin/blog", label: "Blog" },
-    { href: "/admin/customers", label: "Customers" },
-    { href: "/admin/discounts", label: "Discounts" },
-    { href: "/admin/analytics", label: "Analytics" },
-    { href: "/admin/messages", label: "Messages", badge: messageBadge },
-    {
-      href: "/admin/subscribers",
-      label: "Subscribers",
-      badge: subscriberBadge,
-    },
-    { href: "/admin/pages", label: "Pages" },
-    { href: "/admin/settings", label: "Settings" },
-  ];
-}
+import { SidebarNav } from "./sidebar-nav";
 
 export async function AdminSidebar() {
-  const items = await getSidebarItems();
+  const [badges, branding] = await Promise.all([
+    loadAdminBadges(),
+    getBranding(),
+  ]);
 
   return (
-    <aside className="hidden w-64 border-r border-zinc-200 bg-zinc-50 p-5 lg:block">
-      <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
-        Thangka Admin
-      </p>
-      <nav aria-label="Admin sections" className="mt-5 space-y-1">
-        {items.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="flex items-center justify-between rounded px-3 py-2 text-sm text-zinc-700 transition hover:bg-zinc-200"
-          >
-            <span>{item.label}</span>
-            {item.badge && item.badge > 0 ? (
-              <span
-                aria-label={`${item.badge} unread`}
-                className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold text-white"
-              >
-                {item.badge}
-              </span>
-            ) : null}
-          </Link>
-        ))}
-      </nav>
+    <aside
+      className="hidden h-screen w-64 shrink-0 flex-col lg:sticky lg:top-0 lg:flex"
+      style={{
+        background: "var(--admin-surface)",
+        borderRight: "1px solid var(--admin-border)",
+      }}
+    >
+      <SidebarBrand branding={branding} />
+      <div className="flex-1 overflow-y-auto px-3 py-4">
+        <SidebarNav badges={badges} />
+      </div>
+      <div
+        className="px-5 py-3 text-[10.5px] uppercase tracking-[0.14em]"
+        style={{
+          color: "var(--admin-text-mute)",
+          borderTop: "1px solid var(--admin-border)",
+        }}
+      >
+        v0.1 · admin console
+      </div>
     </aside>
+  );
+}
+
+function SidebarBrand({ branding }: { branding: Awaited<ReturnType<typeof getBranding>> }) {
+  return (
+    <Link
+      href="/admin"
+      className="flex items-center gap-3 px-5 py-5 transition hover:opacity-90"
+      style={{ borderBottom: "1px solid var(--admin-border)" }}
+    >
+      {branding.logoLightUrl ? (
+        <Image
+          src={branding.logoLightUrl}
+          alt={branding.brandName}
+          width={36}
+          height={36}
+          className="h-9 w-9 rounded object-contain"
+          unoptimized
+        />
+      ) : (
+        <span
+          className="grid h-9 w-9 place-items-center rounded text-sm font-semibold"
+          style={{
+            backgroundColor: "var(--admin-accent)",
+            color: "#fff",
+          }}
+        >
+          {branding.brandName.charAt(0)}
+        </span>
+      )}
+      <div className="min-w-0">
+        <p
+          className="admin-display truncate text-[17px] font-medium"
+          style={{ color: "var(--admin-text)" }}
+        >
+          {branding.brandName}
+        </p>
+        <p
+          className="truncate text-[10px] uppercase tracking-[0.18em]"
+          style={{ color: "var(--admin-text-mute)" }}
+        >
+          Admin
+        </p>
+      </div>
+    </Link>
   );
 }

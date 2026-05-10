@@ -1,5 +1,15 @@
-import Link from "next/link";
-
+import {
+  Badge,
+  Button,
+  ButtonLink,
+  Card,
+  CardBody,
+  CardHeader,
+  EmptyState,
+  Field,
+  Icon,
+  Input,
+} from "@/components/admin/ui";
 import { inventoryRepository } from "@/lib/repositories/inventory-repository";
 
 import { updateVariantInventoryAction } from "./actions";
@@ -8,48 +18,25 @@ type AdminInventoryPageProps = {
   searchParams: Promise<{ q?: string }>;
 };
 
+type InventoryTone = "success" | "warning" | "danger" | "neutral" | "muted";
+
 function toNumber(value: number) {
-  if (!Number.isFinite(value)) {
-    return 0;
-  }
-
-  return value;
+  return Number.isFinite(value) ? value : 0;
 }
 
-function toInventoryStatus(
-  availableQuantity: number,
-  lowStockThreshold: number,
-) {
-  if (availableQuantity <= 0) {
-    return {
-      label: "Out of stock",
-      className: "bg-red-100 text-red-700",
-    };
-  }
-
-  if (availableQuantity <= lowStockThreshold) {
-    return {
-      label: "Low stock",
-      className: "bg-amber-100 text-amber-700",
-    };
-  }
-
-  return {
-    label: "Healthy",
-    className: "bg-emerald-100 text-emerald-700",
-  };
+function inventoryBadge(
+  available: number,
+  threshold: number,
+): { label: string; tone: InventoryTone } {
+  if (available <= 0) return { label: "Out of stock", tone: "danger" };
+  if (available <= threshold) return { label: "Low stock", tone: "warning" };
+  return { label: "Healthy", tone: "success" };
 }
 
-function toProductStatusClasses(status: string) {
-  if (status === "active") {
-    return "bg-emerald-100 text-emerald-700";
-  }
-
-  if (status === "archived") {
-    return "bg-zinc-200 text-zinc-700";
-  }
-
-  return "bg-amber-100 text-amber-700";
+function productBadgeTone(status: string): InventoryTone {
+  if (status === "active") return "success";
+  if (status === "archived") return "muted";
+  return "warning";
 }
 
 async function loadInventoryRows(query: string) {
@@ -69,204 +56,293 @@ export default async function AdminProductInventoryPage({
   const { q = "" } = await searchParams;
   const rows = await loadInventoryRows(q);
 
+  const totalAvailable = rows.reduce(
+    (acc, row) => acc + toNumber(row.availableQuantity),
+    0,
+  );
+  const lowStockCount = rows.filter((row) => {
+    const available = toNumber(row.availableQuantity);
+    const threshold = toNumber(row.lowStockThreshold);
+    return available > 0 && available <= threshold;
+  }).length;
+  const outOfStockCount = rows.filter(
+    (row) => toNumber(row.availableQuantity) <= 0,
+  ).length;
+
   return (
     <section className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-semibold text-zinc-900">
+      {rows.map((row) => (
+        <form
+          key={`form-${row.variantId}`}
+          id={`inv-${row.variantId}`}
+          action={updateVariantInventoryAction}
+          className="hidden"
+        >
+          <input type="hidden" name="variantId" value={row.variantId} />
+          <input type="hidden" name="productId" value={row.productId} />
+        </form>
+      ))}
+
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2
+            className="admin-display text-2xl font-semibold"
+            style={{ color: "var(--admin-text)" }}
+          >
             Variant inventory
           </h2>
-          <p className="mt-1 text-sm text-zinc-600">
+          <p
+            className="mt-1 text-sm"
+            style={{ color: "var(--admin-text-soft)" }}
+          >
             Track per-variant stock, reserved units, and low-stock thresholds.
           </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/admin/products"
-            className="inline-flex h-10 items-center rounded border border-zinc-300 px-4 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
-          >
-            Back to products
-          </Link>
-        </div>
-      </div>
-
-      <form
-        className="rounded border border-zinc-200 bg-white p-4"
-        method="get"
-      >
-        <label className="space-y-1">
-          <span className="text-xs font-medium uppercase tracking-[0.06em] text-zinc-600">
-            Search variants
-          </span>
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              name="q"
-              defaultValue={q}
-              placeholder="Product title, slug, variant, or SKU"
-              className="h-10 min-w-70 flex-1 rounded border border-zinc-300 px-3 text-sm text-zinc-900"
-            />
-            <button
-              type="submit"
-              className="inline-flex h-10 items-center rounded bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-700"
-            >
-              Filter
-            </button>
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
+            <span style={{ color: "var(--admin-text-mute)" }}>
+              {rows.length} {rows.length === 1 ? "variant" : "variants"}
+            </span>
+            <span style={{ color: "var(--admin-text-mute)" }}>·</span>
+            <span style={{ color: "var(--admin-text-soft)" }}>
+              {totalAvailable} available
+            </span>
+            {lowStockCount > 0 ? (
+              <Badge tone="warning">{lowStockCount} low stock</Badge>
+            ) : null}
+            {outOfStockCount > 0 ? (
+              <Badge tone="danger">{outOfStockCount} out</Badge>
+            ) : null}
           </div>
-        </label>
-      </form>
+        </div>
+        <ButtonLink href="/admin/products" variant="secondary" size="md">
+          ← Back to products
+        </ButtonLink>
+      </header>
 
-      {rows.length > 0 ? (
-        <div className="overflow-x-auto rounded border border-zinc-200 bg-white">
-          <table className="min-w-full divide-y divide-zinc-200 text-sm">
-            <caption className="sr-only">
-              Product variants with inventory levels, thresholds, and inline
-              update controls.
-            </caption>
-            <thead className="bg-zinc-50">
-              <tr className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
-                <th scope="col" className="px-4 py-3">
-                  Product
-                </th>
-                <th scope="col" className="px-4 py-3">
-                  Variant
-                </th>
-                <th scope="col" className="px-4 py-3">
-                  Status
-                </th>
-                <th scope="col" className="px-4 py-3">
-                  On hand
-                </th>
-                <th scope="col" className="px-4 py-3">
-                  Reserved
-                </th>
-                <th scope="col" className="px-4 py-3">
-                  Available
-                </th>
-                <th scope="col" className="px-4 py-3">
-                  Low-stock threshold
-                </th>
-                <th scope="col" className="px-4 py-3">
-                  Update
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100 text-zinc-700">
-              {rows.map((row) => {
-                const quantity = toNumber(row.quantity);
-                const reservedQuantity = toNumber(row.reservedQuantity);
-                const availableQuantity = toNumber(row.availableQuantity);
-                const lowStockThreshold = toNumber(row.lowStockThreshold);
-                const inventoryStatus = toInventoryStatus(
-                  availableQuantity,
-                  lowStockThreshold,
-                );
+      <Card>
+        <CardBody>
+          <form method="get" className="flex flex-wrap items-end gap-3">
+            <Field
+              label="Search variants"
+              hint="Match by product title, slug, variant name, or SKU."
+              className="min-w-0 flex-1"
+            >
+              <div className="relative">
+                <span
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
+                  style={{ color: "var(--admin-text-mute)" }}
+                >
+                  <Icon.Search />
+                </span>
+                <Input
+                  name="q"
+                  defaultValue={q}
+                  placeholder="e.g. enlightenment thangka, TT-001"
+                  className="pl-9"
+                />
+              </div>
+            </Field>
+            <Button type="submit" variant="primary" size="md">
+              Filter
+            </Button>
+            {q ? (
+              <ButtonLink href="/admin/products/inventory" variant="ghost" size="md">
+                Clear
+              </ButtonLink>
+            ) : null}
+          </form>
+        </CardBody>
+      </Card>
 
-                return (
-                  <tr key={row.variantId}>
-                    <th scope="row" className="px-4 py-3 text-left align-top">
-                      <p className="font-medium text-zinc-900">
-                        {row.productTitle}
-                      </p>
-                      <p className="text-xs text-zinc-500">
-                        /{row.productSlug}
-                      </p>
-                    </th>
-                    <td className="px-4 py-3 align-top">
-                      <p className="font-medium text-zinc-900">
-                        {row.variantTitle}
-                      </p>
-                      <p className="text-xs text-zinc-500">
-                        {row.sku ?? "No SKU"}
-                      </p>
-                    </td>
-                    <td className="px-4 py-3 align-top">
-                      <div className="flex flex-col items-start gap-1">
-                        <span
-                          className={`rounded px-2 py-1 text-xs uppercase tracking-[0.06em] ${toProductStatusClasses(row.productStatus)}`}
+      <Card>
+        <CardHeader
+          title="All variants"
+          description="Edit On hand and Threshold inline, then save the row."
+        />
+        {rows.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table
+              className="min-w-full text-sm"
+              style={{ color: "var(--admin-text)" }}
+            >
+              <caption className="sr-only">
+                Product variants with editable on-hand quantities and low-stock
+                thresholds.
+              </caption>
+              <thead>
+                <tr
+                  className="text-left text-[11px] font-semibold uppercase tracking-[0.08em]"
+                  style={{
+                    color: "var(--admin-text-mute)",
+                    borderBottom: "1px solid var(--admin-border)",
+                    background: "var(--admin-surface-2)",
+                  }}
+                >
+                  <th scope="col" className="px-5 py-3">
+                    Product
+                  </th>
+                  <th scope="col" className="px-5 py-3">
+                    Variant
+                  </th>
+                  <th scope="col" className="px-5 py-3">
+                    Status
+                  </th>
+                  <th scope="col" className="px-5 py-3 text-right">
+                    On hand
+                  </th>
+                  <th scope="col" className="px-5 py-3 text-right">
+                    Reserved
+                  </th>
+                  <th scope="col" className="px-5 py-3 text-right">
+                    Available
+                  </th>
+                  <th scope="col" className="px-5 py-3 text-right">
+                    Threshold
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-5 py-3 text-right"
+                    aria-label="Actions"
+                  />
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, index) => {
+                  const formId = `inv-${row.variantId}`;
+                  const quantity = toNumber(row.quantity);
+                  const reserved = toNumber(row.reservedQuantity);
+                  const available = toNumber(row.availableQuantity);
+                  const threshold = toNumber(row.lowStockThreshold);
+                  const stockBadge = inventoryBadge(available, threshold);
+                  const productTone = productBadgeTone(row.productStatus);
+                  const isFirst = index === 0;
+
+                  return (
+                    <tr
+                      key={row.variantId}
+                      className="transition-colors"
+                      style={{
+                        borderTop: isFirst
+                          ? undefined
+                          : "1px solid var(--admin-border)",
+                      }}
+                    >
+                      <th scope="row" className="px-5 py-4 text-left align-top">
+                        <p
+                          className="font-medium"
+                          style={{ color: "var(--admin-text)" }}
                         >
-                          {row.productStatus}
-                        </span>
-                        <span
-                          className={`rounded px-2 py-1 text-xs uppercase tracking-[0.06em] ${inventoryStatus.className}`}
+                          {row.productTitle}
+                        </p>
+                        <p
+                          className="mt-0.5 text-[11px]"
+                          style={{ color: "var(--admin-text-mute)" }}
                         >
-                          {inventoryStatus.label}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 align-top text-zinc-900">
-                      {quantity}
-                    </td>
-                    <td className="px-4 py-3 align-top text-zinc-900">
-                      {reservedQuantity}
-                    </td>
-                    <td className="px-4 py-3 align-top font-semibold text-zinc-900">
-                      {availableQuantity}
-                    </td>
-                    <td className="px-4 py-3 align-top text-zinc-900">
-                      {lowStockThreshold}
-                    </td>
-                    <td className="px-4 py-3 align-top">
-                      <form
-                        action={updateVariantInventoryAction}
-                        className="space-y-2"
-                      >
-                        <input
-                          type="hidden"
-                          name="variantId"
-                          value={row.variantId}
-                        />
-                        <input
-                          type="hidden"
-                          name="productId"
-                          value={row.productId}
-                        />
-                        <div className="grid grid-cols-2 gap-2">
-                          <label className="space-y-1">
-                            <span className="text-[11px] uppercase tracking-[0.06em] text-zinc-500">
-                              On hand
-                            </span>
-                            <input
-                              type="number"
-                              name="quantity"
-                              min={0}
-                              step={1}
-                              defaultValue={quantity}
-                              className="h-9 w-24 rounded border border-zinc-300 px-2 text-sm text-zinc-900"
-                            />
-                          </label>
-                          <label className="space-y-1">
-                            <span className="text-[11px] uppercase tracking-[0.06em] text-zinc-500">
-                              Threshold
-                            </span>
-                            <input
-                              type="number"
-                              name="lowStockThreshold"
-                              min={0}
-                              step={1}
-                              defaultValue={lowStockThreshold}
-                              className="h-9 w-24 rounded border border-zinc-300 px-2 text-sm text-zinc-900"
-                            />
-                          </label>
+                          /{row.productSlug}
+                        </p>
+                      </th>
+                      <td className="px-5 py-4 align-top">
+                        <p
+                          className="font-medium"
+                          style={{ color: "var(--admin-text)" }}
+                        >
+                          {row.variantTitle}
+                        </p>
+                        <p
+                          className="mt-0.5 font-mono text-[11px]"
+                          style={{ color: "var(--admin-text-mute)" }}
+                        >
+                          {row.sku ?? "No SKU"}
+                        </p>
+                      </td>
+                      <td className="px-5 py-4 align-top">
+                        <div className="flex flex-col items-start gap-1.5">
+                          <Badge tone={stockBadge.tone}>{stockBadge.label}</Badge>
+                          <Badge tone={productTone}>{row.productStatus}</Badge>
                         </div>
-                        <button
+                      </td>
+                      <td className="px-5 py-4 align-top text-right">
+                        <Input
+                          form={formId}
+                          name="quantity"
+                          type="number"
+                          min={0}
+                          step={1}
+                          defaultValue={quantity}
+                          className="ml-auto h-9 w-24 text-right"
+                        />
+                      </td>
+                      <td
+                        className="px-5 py-4 align-top text-right tabular-nums"
+                        style={{ color: "var(--admin-text-soft)" }}
+                      >
+                        {reserved}
+                      </td>
+                      <td
+                        className="px-5 py-4 align-top text-right font-semibold tabular-nums"
+                        style={{ color: "var(--admin-text)" }}
+                      >
+                        {available}
+                      </td>
+                      <td className="px-5 py-4 align-top text-right">
+                        <Input
+                          form={formId}
+                          name="lowStockThreshold"
+                          type="number"
+                          min={0}
+                          step={1}
+                          defaultValue={threshold}
+                          className="ml-auto h-9 w-24 text-right"
+                        />
+                      </td>
+                      <td className="px-5 py-4 align-top text-right">
+                        <Button
+                          form={formId}
                           type="submit"
-                          className="inline-flex h-9 items-center rounded border border-zinc-300 px-3 text-xs font-medium uppercase tracking-[0.06em] text-zinc-700 hover:bg-zinc-100"
+                          variant="primary"
+                          size="sm"
                         >
                           Save
-                        </button>
-                      </form>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="rounded border border-zinc-200 bg-white p-6 text-sm text-zinc-600">
-          No variants matched your filter.
-        </div>
-      )}
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <CardBody>
+            <EmptyState
+              icon={<Icon.Box width={28} height={28} />}
+              title={q ? "No variants matched your filter." : "No variants yet."}
+              description={
+                q
+                  ? "Try a different product title, slug, variant name, or SKU."
+                  : "Create products and variants to see inventory levels here."
+              }
+              action={
+                q ? (
+                  <ButtonLink
+                    href="/admin/products/inventory"
+                    variant="secondary"
+                    size="sm"
+                  >
+                    Clear filter
+                  </ButtonLink>
+                ) : (
+                  <ButtonLink
+                    href="/admin/products/new"
+                    variant="primary"
+                    size="sm"
+                  >
+                    Create product
+                  </ButtonLink>
+                )
+              }
+            />
+          </CardBody>
+        )}
+      </Card>
     </section>
   );
 }

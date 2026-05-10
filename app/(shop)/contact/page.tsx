@@ -1,13 +1,14 @@
 import { ContactForm } from "@/components/shop/contact-form";
-import { publicEnv } from "@/lib/env";
+import { getStoreContact, normalizeWhatsAppNumber } from "@/lib/site-settings";
 
-export default function ContactPage() {
-  const whatsappPrimary =
-    publicEnv.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "+9779851000000";
-  const whatsappNumbers = [whatsappPrimary, "+9779800000000"];
-
-  const normalizeWhatsAppNumber = (value: string) =>
-    value.replace(/[^\d]/g, "");
+export default async function ContactPage() {
+  const contact = await getStoreContact();
+  const addressLines = [contact.addressLine1, contact.addressLine2].filter(
+    (line) => line && line.length > 0,
+  );
+  const emails = [contact.supportEmail, contact.secondaryEmail].filter(
+    (email) => email && email.length > 0,
+  );
 
   return (
     <div>
@@ -33,62 +34,64 @@ export default function ContactPage() {
               Contact details
             </h2>
 
-            <div className="space-y-1 text-sm text-warm-gray-700">
-              <p className="text-xs uppercase tracking-[0.08em] text-warm-gray-500">
-                Address
-              </p>
-              <p>Paryatan Marg, Thamel, Kathmandu, Nepal</p>
-            </div>
+            {addressLines.length > 0 ? (
+              <div className="space-y-1 text-sm text-warm-gray-700">
+                <p className="text-xs uppercase tracking-[0.08em] text-warm-gray-500">
+                  Address
+                </p>
+                {addressLines.map((line) => (
+                  <p key={line}>{line}</p>
+                ))}
+              </div>
+            ) : null}
 
-            <div className="space-y-2 text-sm text-warm-gray-700">
-              <p className="text-xs uppercase tracking-[0.08em] text-warm-gray-500">
-                Phone & WhatsApp
-              </p>
-              <p>
-                <a
-                  href="tel:+977014545555"
-                  className="font-medium text-maroon-700 hover:text-maroon-600"
-                >
-                  +977-01-4545555
-                </a>
-              </p>
-              <div className="space-y-1">
-                {whatsappNumbers.map((number) => (
-                  <p key={number}>
+            {(contact.phone || contact.whatsapp) ? (
+              <div className="space-y-2 text-sm text-warm-gray-700">
+                <p className="text-xs uppercase tracking-[0.08em] text-warm-gray-500">
+                  Phone & WhatsApp
+                </p>
+                {contact.phone ? (
+                  <p>
                     <a
-                      href={`https://wa.me/${normalizeWhatsAppNumber(number)}`}
+                      href={`tel:${contact.phone.replace(/\s+/g, "")}`}
+                      className="font-medium text-maroon-700 hover:text-maroon-600"
+                    >
+                      {contact.phone}
+                    </a>
+                  </p>
+                ) : null}
+                {contact.whatsapp ? (
+                  <p>
+                    <a
+                      href={`https://wa.me/${normalizeWhatsAppNumber(contact.whatsapp)}`}
                       className="font-medium text-maroon-700 hover:text-maroon-600"
                       target="_blank"
                       rel="noreferrer"
                     >
-                      {number}
+                      {contact.whatsapp}
+                    </a>
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
+            {emails.length > 0 ? (
+              <div className="space-y-2 text-sm text-warm-gray-700">
+                <p className="text-xs uppercase tracking-[0.08em] text-warm-gray-500">
+                  Email
+                </p>
+                {emails.map((email) => (
+                  <p key={email}>
+                    <a
+                      href={`mailto:${email}`}
+                      className="font-medium text-maroon-700 hover:text-maroon-600"
+                    >
+                      {email}
                     </a>
                   </p>
                 ))}
               </div>
-            </div>
-
-            <div className="space-y-2 text-sm text-warm-gray-700">
-              <p className="text-xs uppercase tracking-[0.08em] text-warm-gray-500">
-                Email
-              </p>
-              <p>
-                <a
-                  href="mailto:hello@thankatreasure.com"
-                  className="font-medium text-maroon-700 hover:text-maroon-600"
-                >
-                  hello@thankatreasure.com
-                </a>
-              </p>
-              <p>
-                <a
-                  href="mailto:support@thankatreasure.com"
-                  className="font-medium text-maroon-700 hover:text-maroon-600"
-                >
-                  support@thankatreasure.com
-                </a>
-              </p>
-            </div>
+            ) : null}
           </div>
 
           <div className="rounded border border-border-light bg-maroon-50 p-6 md:p-8">

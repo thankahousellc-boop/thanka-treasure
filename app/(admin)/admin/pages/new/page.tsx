@@ -8,6 +8,7 @@ export default function AdminNewStaticPage() {
       description="Create pages like About, Shipping Policy, or Privacy Policy."
       submitLabel="Create page"
       action={createStaticPageAction}
+      showTemplates
       values={{
         title: "",
         slug: "",

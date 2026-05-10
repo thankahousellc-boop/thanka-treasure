@@ -13,6 +13,13 @@ import { stripe } from "@/lib/stripe/client";
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+type FrameSnapshot = {
+  id: string;
+  name: string;
+  imageUrl?: string | null;
+  priceDelta: number;
+};
+
 type CheckoutLineItem = {
   variantId: string | null;
   productTitle: string;
@@ -21,6 +28,7 @@ type CheckoutLineItem = {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  frameSnapshot: FrameSnapshot | null;
 };
 
 type StoredOrder = NonNullable<
@@ -53,6 +61,7 @@ function toCheckoutLineItems(lineItems: Stripe.LineItem[]): CheckoutLineItem[] {
     let variantId: string | null = null;
     let variantTitle: string | null = null;
     let sku: string | null = null;
+    let frameSnapshot: FrameSnapshot | null = null;
 
     if (
       priceProduct &&
@@ -66,6 +75,16 @@ function toCheckoutLineItems(lineItems: Stripe.LineItem[]): CheckoutLineItem[] {
           : null;
       variantTitle = metadata.variantTitle ?? null;
       sku = metadata.sku ?? null;
+
+      if (metadata.frameId && uuidPattern.test(metadata.frameId)) {
+        const priceDelta = Number(metadata.framePriceDelta ?? "0");
+        frameSnapshot = {
+          id: metadata.frameId,
+          name: metadata.frameName ?? "Frame",
+          imageUrl: metadata.frameImageUrl ?? null,
+          priceDelta: Number.isFinite(priceDelta) ? priceDelta : 0,
+        };
+      }
     }
 
     return {
@@ -76,6 +95,7 @@ function toCheckoutLineItems(lineItems: Stripe.LineItem[]): CheckoutLineItem[] {
       quantity,
       unitPrice,
       totalPrice,
+      frameSnapshot,
     };
   });
 }

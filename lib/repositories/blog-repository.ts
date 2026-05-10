@@ -86,6 +86,15 @@ function dedupeIds(ids: string[] | undefined) {
   return [...new Set((ids ?? []).filter((id) => id.length > 0))];
 }
 
+function publiclyVisibleCondition(now: Date) {
+  return or(
+    and(eq(blogPosts.status, "published"), lte(blogPosts.publishedAt, now)),
+    and(eq(blogPosts.status, "scheduled"), lte(blogPosts.scheduledAt, now)),
+  );
+}
+
+const publicSortDate = sql`coalesce(${blogPosts.publishedAt}, ${blogPosts.scheduledAt})`;
+
 export const blogRepository = {
   async listPublished(input: ListPublishedInput = {}) {
     const result = await this.listPublishedPage(input);
@@ -131,8 +140,7 @@ export const blogRepository = {
       : undefined;
 
     const where = and(
-      eq(blogPosts.status, "published"),
-      lte(blogPosts.publishedAt, now),
+      publiclyVisibleCondition(now),
       query
         ? or(
             ilike(blogPosts.title, `%${query}%`),
@@ -147,7 +155,7 @@ export const blogRepository = {
       .select()
       .from(blogPosts)
       .where(where)
-      .orderBy(desc(blogPosts.publishedAt), desc(blogPosts.createdAt))
+      .orderBy(desc(publicSortDate), desc(blogPosts.createdAt))
       .limit(pageSize)
       .offset(offset);
 
@@ -187,12 +195,7 @@ export const blogRepository = {
           eq(blogPostCategories.categoryId, blogCategories.id),
         )
         .innerJoin(blogPosts, eq(blogPosts.id, blogPostCategories.postId))
-        .where(
-          and(
-            eq(blogPosts.status, "published"),
-            lte(blogPosts.publishedAt, now),
-          ),
-        )
+        .where(publiclyVisibleCondition(now))
         .groupBy(blogCategories.id, blogCategories.slug, blogCategories.name)
         .orderBy(asc(blogCategories.position), asc(blogCategories.name)),
       db
@@ -204,12 +207,7 @@ export const blogRepository = {
         .from(blogTags)
         .innerJoin(blogPostTags, eq(blogPostTags.tagId, blogTags.id))
         .innerJoin(blogPosts, eq(blogPosts.id, blogPostTags.postId))
-        .where(
-          and(
-            eq(blogPosts.status, "published"),
-            lte(blogPosts.publishedAt, now),
-          ),
-        )
+        .where(publiclyVisibleCondition(now))
         .groupBy(blogTags.id, blogTags.slug, blogTags.name)
         .orderBy(asc(blogTags.name)),
     ]);
@@ -239,13 +237,7 @@ export const blogRepository = {
     const [post] = await db
       .select()
       .from(blogPosts)
-      .where(
-        and(
-          eq(blogPosts.slug, slug),
-          eq(blogPosts.status, "published"),
-          lte(blogPosts.publishedAt, now),
-        ),
-      )
+      .where(and(eq(blogPosts.slug, slug), publiclyVisibleCondition(now)))
       .limit(1);
 
     return post ?? null;
@@ -258,10 +250,8 @@ export const blogRepository = {
     const rows = await db
       .select({ slug: blogPosts.slug })
       .from(blogPosts)
-      .where(
-        and(eq(blogPosts.status, "published"), lte(blogPosts.publishedAt, now)),
-      )
-      .orderBy(desc(blogPosts.publishedAt), desc(blogPosts.updatedAt))
+      .where(publiclyVisibleCondition(now))
+      .orderBy(desc(publicSortDate), desc(blogPosts.updatedAt))
       .limit(limit);
 
     return rows.map((row) => row.slug);
@@ -274,14 +264,12 @@ export const blogRepository = {
     return db
       .select({
         slug: blogPosts.slug,
-        publishedAt: blogPosts.publishedAt,
+        publishedAt: sql<Date>`${publicSortDate}`,
         updatedAt: blogPosts.updatedAt,
       })
       .from(blogPosts)
-      .where(
-        and(eq(blogPosts.status, "published"), lte(blogPosts.publishedAt, now)),
-      )
-      .orderBy(desc(blogPosts.publishedAt), desc(blogPosts.updatedAt))
+      .where(publiclyVisibleCondition(now))
+      .orderBy(desc(publicSortDate), desc(blogPosts.updatedAt))
       .limit(limit);
   },
 
@@ -295,18 +283,6 @@ export const blogRepository = {
         updatedAt: new Date(),
       })
       .where(eq(blogPosts.id, postId));
-  },
-
-  async publishDuePosts(now = new Date()) {
-    const db = getDb();
-
-    return db
-      .update(blogPosts)
-      .set({ status: "published", publishedAt: now, updatedAt: now })
-      .where(
-        and(eq(blogPosts.status, "scheduled"), lte(blogPosts.scheduledAt, now)),
-      )
-      .returning({ id: blogPosts.id, slug: blogPosts.slug });
   },
 
   async listForAdmin(limit = 25) {
@@ -747,12 +723,11 @@ export const blogRepository = {
         .from(blogPosts)
         .where(
           and(
-            eq(blogPosts.status, "published"),
-            lte(blogPosts.publishedAt, now),
+            publiclyVisibleCondition(now),
             sql`${blogPosts.id} <> ${postId}`,
           ),
         )
-        .orderBy(desc(blogPosts.publishedAt), desc(blogPosts.createdAt))
+        .orderBy(desc(publicSortDate), desc(blogPosts.createdAt))
         .limit(limit);
     }
 
@@ -771,11 +746,7 @@ export const blogRepository = {
       })
       .from(blogPosts)
       .where(
-        and(
-          eq(blogPosts.status, "published"),
-          lte(blogPosts.publishedAt, now),
-          inArray(blogPosts.id, candidateIds),
-        ),
+        and(publiclyVisibleCondition(now), inArray(blogPosts.id, candidateIds)),
       );
 
     return relatedRows
@@ -829,12 +800,11 @@ export const blogRepository = {
       .from(blogPosts)
       .where(
         and(
-          eq(blogPosts.status, "published"),
-          lte(blogPosts.publishedAt, now),
+          publiclyVisibleCondition(now),
           sql`${documentExpr} @@ ${queryExpr}`,
         ),
       )
-      .orderBy(desc(rankExpr), desc(blogPosts.publishedAt), desc(blogPosts.id))
+      .orderBy(desc(rankExpr), desc(publicSortDate), desc(blogPosts.id))
       .limit(limit);
 
     return rows.map((row) => ({

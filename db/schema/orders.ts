@@ -130,6 +130,7 @@ export const orderItems = pgTable(
     quantity: integer("quantity").notNull(),
     unitPrice: integer("unit_price").notNull(),
     totalPrice: integer("total_price").notNull(),
+    frameSnapshot: jsonb("frame_snapshot"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

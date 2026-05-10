@@ -23,6 +23,13 @@ export class SupabaseStorageProvider implements StorageProvider {
     return this._client;
   }
 
+  private get projectUrl() {
+    if (!publicEnv.NEXT_PUBLIC_SUPABASE_URL) {
+      throw new Error("NEXT_PUBLIC_SUPABASE_URL is not configured.");
+    }
+    return publicEnv.NEXT_PUBLIC_SUPABASE_URL.replace(/\/+$/, "");
+  }
+
   async upload(
     bucket: string,
     path: string,
@@ -69,8 +76,11 @@ export class SupabaseStorageProvider implements StorageProvider {
   }
 
   getPublicUrl(bucket: string, path: string): string {
-    const { data } = this.client.storage.from(bucket).getPublicUrl(path);
-    return data.publicUrl;
+    const encodedPath = path
+      .split("/")
+      .map((segment) => encodeURIComponent(segment))
+      .join("/");
+    return `${this.projectUrl}/storage/v1/object/public/${bucket}/${encodedPath}`;
   }
 
   async createSignedUrl(

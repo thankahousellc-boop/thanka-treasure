@@ -1,8 +1,10 @@
 import {
+  boolean,
   index,
   integer,
   jsonb,
   pgTable,
+  real,
   text,
   timestamp,
   uniqueIndex,
@@ -153,6 +155,60 @@ export const collectionProducts = pgTable(
       table.collectionId,
       table.productId,
     ),
+  ],
+);
+
+export const frames = pgTable(
+  "frames",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    description: text("description"),
+    priceDelta: integer("price_delta").notNull().default(0),
+    imageBucket: text("image_bucket"),
+    imagePath: text("image_path"),
+    cutoutX: real("cutout_x").notNull().default(20),
+    cutoutY: real("cutout_y").notNull().default(20),
+    cutoutWidth: real("cutout_width").notNull().default(60),
+    cutoutHeight: real("cutout_height").notNull().default(60),
+    position: integer("position").notNull().default(0),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("frames_slug_unique").on(table.slug),
+    index("frames_active_idx").on(table.isActive),
+  ],
+);
+
+export const productFrames = pgTable(
+  "product_frames",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    frameId: uuid("frame_id")
+      .notNull()
+      .references(() => frames.id, { onDelete: "cascade" }),
+    isDefault: boolean("is_default").notNull().default(false),
+    position: integer("position").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("product_frames_unique").on(table.productId, table.frameId),
+    index("product_frames_product_id_idx").on(table.productId),
   ],
 );
 

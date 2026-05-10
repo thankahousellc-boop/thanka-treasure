@@ -1,19 +1,28 @@
-import Link from "next/link";
-
+import {
+  Badge,
+  ButtonLink,
+  Card,
+  CardHeader,
+  EmptyState,
+  Icon,
+} from "@/components/admin/ui";
 import { productRepository } from "@/lib/repositories/product-repository";
 
-import { archiveProductAction } from "./actions";
+import { ProductRowMenu } from "./product-row-menu";
 
-function getStatusClasses(status: string) {
-  if (status === "active") {
-    return "bg-emerald-100 text-emerald-700";
-  }
+type ProductStatus = "draft" | "active" | "archived";
 
-  if (status === "archived") {
-    return "bg-zinc-200 text-zinc-700";
-  }
+type StatusTone = "success" | "muted" | "warning";
 
-  return "bg-amber-100 text-amber-700";
+function statusTone(status: string): StatusTone {
+  if (status === "active") return "success";
+  if (status === "archived") return "muted";
+  return "warning";
+}
+
+function toProductStatus(status: string): ProductStatus {
+  if (status === "active" || status === "archived") return status;
+  return "draft";
 }
 
 async function loadProductsForAdmin() {
@@ -27,105 +36,177 @@ async function loadProductsForAdmin() {
 export default async function AdminProductsPage() {
   const products = await loadProductsForAdmin();
 
+  const activeCount = products.filter((p) => p.status === "active").length;
+  const draftCount = products.filter((p) => p.status === "draft").length;
+  const archivedCount = products.filter(
+    (p) => p.status === "archived",
+  ).length;
+
   return (
     <section className="space-y-5">
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="text-2xl font-semibold text-zinc-900">
-          Manage products
-        </h2>
-        <div className="flex items-center gap-2">
-          <Link
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2
+            className="admin-display text-2xl font-semibold"
+            style={{ color: "var(--admin-text)" }}
+          >
+            Manage products
+          </h2>
+          <p
+            className="mt-1 text-sm"
+            style={{ color: "var(--admin-text-soft)" }}
+          >
+            Create, publish, and organize the catalog.
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+            <span style={{ color: "var(--admin-text-mute)" }}>
+              {products.length} {products.length === 1 ? "product" : "products"}
+            </span>
+            {activeCount > 0 ? (
+              <Badge tone="success">{activeCount} active</Badge>
+            ) : null}
+            {draftCount > 0 ? (
+              <Badge tone="warning">{draftCount} draft</Badge>
+            ) : null}
+            {archivedCount > 0 ? (
+              <Badge tone="muted">{archivedCount} archived</Badge>
+            ) : null}
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <ButtonLink
             href="/admin/products/inventory"
-            className="inline-flex h-10 items-center rounded border border-zinc-300 px-4 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
+            variant="secondary"
+            size="md"
           >
-            Manage inventory
-          </Link>
-          <Link
-            href="/admin/products/categories"
-            className="inline-flex h-10 items-center rounded border border-zinc-300 px-4 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
+            <Icon.Layers />
+            <span>Manage inventory</span>
+          </ButtonLink>
+          <ButtonLink
+            href="/admin/products/import"
+            variant="secondary"
+            size="md"
           >
-            Manage taxonomy
-          </Link>
-          <Link
-            href="/admin/products/new"
-            className="inline-flex h-10 items-center rounded bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-700"
-          >
-            Add product
-          </Link>
+            <Icon.Upload />
+            <span>Bulk import</span>
+          </ButtonLink>
+          <ButtonLink href="/admin/products/new" variant="primary" size="md">
+            <Icon.Plus />
+            <span>Add product</span>
+          </ButtonLink>
         </div>
-      </div>
+      </header>
 
-      {products.length > 0 ? (
-        <div className="overflow-x-auto rounded border border-zinc-200 bg-white">
-          <table className="min-w-full divide-y divide-zinc-200 text-sm">
-            <caption className="sr-only">
-              Products with status, creation date, and management actions.
-            </caption>
-            <thead className="bg-zinc-50">
-              <tr className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
-                <th scope="col" className="px-4 py-3">
-                  Title
-                </th>
-                <th scope="col" className="px-4 py-3">
-                  Status
-                </th>
-                <th scope="col" className="px-4 py-3">
-                  Created
-                </th>
-                <th scope="col" className="px-4 py-3">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100 text-zinc-700">
-              {products.map((product) => (
-                <tr key={product.id}>
-                  <th scope="row" className="px-4 py-3 text-left">
-                    <p className="font-medium text-zinc-900">{product.title}</p>
-                    <p className="text-xs text-zinc-500">/{product.slug}</p>
+      <Card>
+        <CardHeader
+          title="All products"
+          description="Use the row menu to publish, move to draft, or archive."
+        />
+        {products.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table
+              className="min-w-full text-sm"
+              style={{ color: "var(--admin-text)" }}
+            >
+              <caption className="sr-only">
+                Products with status, creation date, and management actions.
+              </caption>
+              <thead>
+                <tr
+                  className="text-left text-[11px] font-semibold uppercase tracking-[0.08em]"
+                  style={{
+                    color: "var(--admin-text-mute)",
+                    borderBottom: "1px solid var(--admin-border)",
+                    background: "var(--admin-surface-2)",
+                  }}
+                >
+                  <th scope="col" className="px-5 py-3">
+                    Title
                   </th>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`rounded px-2 py-1 text-xs uppercase tracking-[0.06em] ${getStatusClasses(product.status)}`}
-                    >
-                      {product.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-zinc-600">
-                    {product.createdAt.toLocaleDateString("en-US")}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <Link
-                        href={`/admin/products/${product.id}`}
-                        className="text-sm font-medium text-zinc-900 hover:text-zinc-700"
-                      >
-                        Open
-                      </Link>
-
-                      {product.status !== "archived" ? (
-                        <form action={archiveProductAction}>
-                          <input type="hidden" name="id" value={product.id} />
-                          <button
-                            type="submit"
-                            className="text-xs font-medium uppercase tracking-[0.06em] text-zinc-600 hover:text-zinc-900"
-                          >
-                            Archive
-                          </button>
-                        </form>
-                      ) : null}
-                    </div>
-                  </td>
+                  <th scope="col" className="px-5 py-3">
+                    Status
+                  </th>
+                  <th scope="col" className="px-5 py-3">
+                    Created
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-5 py-3 text-right"
+                    aria-label="Actions"
+                  />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="rounded border border-zinc-200 bg-white p-6 text-sm text-zinc-600">
-          No products found. Add your first product to get started.
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {products.map((product, index) => (
+                  <tr
+                    key={product.id}
+                    style={{
+                      borderTop:
+                        index === 0
+                          ? undefined
+                          : "1px solid var(--admin-border)",
+                    }}
+                  >
+                    <th scope="row" className="px-5 py-4 text-left">
+                      <p
+                        className="font-medium"
+                        style={{ color: "var(--admin-text)" }}
+                      >
+                        {product.title}
+                      </p>
+                      <p
+                        className="mt-0.5 text-[11px]"
+                        style={{ color: "var(--admin-text-mute)" }}
+                      >
+                        /{product.slug}
+                      </p>
+                    </th>
+                    <td className="px-5 py-4 align-middle">
+                      <Badge tone={statusTone(product.status)}>
+                        {product.status}
+                      </Badge>
+                    </td>
+                    <td
+                      className="px-5 py-4 align-middle text-xs"
+                      style={{ color: "var(--admin-text-soft)" }}
+                    >
+                      {product.createdAt.toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </td>
+                    <td className="px-5 py-4 align-middle text-right">
+                      <ProductRowMenu
+                        productId={product.id}
+                        productTitle={product.title}
+                        status={toProductStatus(product.status)}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="px-5 py-5">
+            <EmptyState
+              icon={<Icon.Box width={28} height={28} />}
+              title="No products yet."
+              description="Add your first product to populate the storefront."
+              action={
+                <ButtonLink
+                  href="/admin/products/new"
+                  variant="primary"
+                  size="sm"
+                >
+                  Create product
+                </ButtonLink>
+              }
+            />
+          </div>
+        )}
+      </Card>
     </section>
   );
 }

@@ -22,6 +22,13 @@ export const checkoutSchema = z.object({
         variantId: z.string().uuid(),
         quantity: z.number().int().positive(),
         image: z.string().url().optional(),
+        frame: z
+          .object({
+            id: z.string().uuid(),
+            name: z.string().max(160).optional(),
+            imageUrl: z.string().url().optional(),
+          })
+          .optional(),
       }),
     )
     .min(1),

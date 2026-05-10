@@ -1,0 +1,120 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+
+import { Icon } from "@/components/admin/ui/icons";
+
+type UserMenuProps = {
+  email: string;
+  signOutAction: () => Promise<void>;
+};
+
+export function UserMenu({ email, signOutAction }: UserMenuProps) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function onClick(event: MouseEvent) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+      }
+    }
+
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+
+    window.addEventListener("mousedown", onClick);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", onClick);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const initial = email.charAt(0).toUpperCase();
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition hover:opacity-90"
+        style={{
+          background: "var(--admin-surface)",
+          border: "1px solid var(--admin-border-strong)",
+          color: "var(--admin-text-soft)",
+        }}
+      >
+        <span
+          className="grid h-7 w-7 place-items-center rounded-full text-[11px] font-semibold"
+          style={{
+            backgroundColor: "var(--admin-accent)",
+            color: "#ffffff",
+          }}
+        >
+          {initial}
+        </span>
+        <span className="hidden max-w-[14ch] truncate sm:inline">{email}</span>
+        <Icon.ChevronDown
+          width={14}
+          height={14}
+          style={{ color: "var(--admin-text-mute)" }}
+        />
+      </button>
+
+      {open ? (
+        <div
+          role="menu"
+          className="absolute right-0 z-30 mt-2 w-60 overflow-hidden rounded-lg"
+          style={{
+            background: "var(--admin-surface)",
+            border: "1px solid var(--admin-border)",
+            boxShadow: "var(--admin-shadow-lg)",
+          }}
+        >
+          <div
+            className="px-3 py-3"
+            style={{ borderBottom: "1px solid var(--admin-border)" }}
+          >
+            <p
+              className="text-[10px] font-semibold uppercase tracking-[0.16em]"
+              style={{ color: "var(--admin-text-mute)" }}
+            >
+              Signed in
+            </p>
+            <p
+              className="mt-0.5 truncate text-sm"
+              style={{ color: "var(--admin-text)" }}
+            >
+              {email}
+            </p>
+          </div>
+          <a
+            href="/"
+            className="flex items-center gap-2 px-3 py-2.5 text-sm transition hover:opacity-90"
+            style={{ color: "var(--admin-text-soft)" }}
+          >
+            <Icon.Layers width={14} height={14} /> View storefront
+          </a>
+          <form action={signOutAction}>
+            <button
+              type="submit"
+              className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm transition hover:opacity-90"
+              style={{ color: "#b3261e" }}
+            >
+              <Icon.Logout width={14} height={14} /> Sign out
+            </button>
+          </form>
+        </div>
+      ) : null}
+    </div>
+  );
+}

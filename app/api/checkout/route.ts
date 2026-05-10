@@ -5,8 +5,10 @@ import { convertUsdToCurrency, getExchangeRates } from "@/lib/currency/context";
 import { publicEnv, serverEnv } from "@/lib/env";
 import { monitor } from "@/lib/monitoring/logger";
 import { discountRepository } from "@/lib/repositories/discount-repository";
+import { frameRepository } from "@/lib/repositories/frame-repository";
 import { inventoryRepository } from "@/lib/repositories/inventory-repository";
 import { productRepository } from "@/lib/repositories/product-repository";
+import { resolveUrl } from "@/lib/storage/resolve-url";
 import { stripe } from "@/lib/stripe/client";
 import { toStripeLineItems } from "@/lib/stripe/helpers";
 import { checkoutSchema } from "@/lib/utils/validators";
@@ -39,6 +41,12 @@ type ResolvedCheckoutItem = {
   unitAmount: number;
   quantity: number;
   image?: string;
+  frame?: {
+    id: string;
+    name: string;
+    imageUrl?: string | null;
+    priceDelta: number;
+  } | null;
 };
 
 class CheckoutResolutionError extends Error {
@@ -283,19 +291,29 @@ async function resolveCheckoutItems(
   inputItems: ReturnType<typeof checkoutSchema.parse>["items"],
   currency: string,
 ) {
-  const aggregatedItems = new Map<
-    string,
-    { productId: string; quantity: number; image?: string }
-  >();
+  // Aggregate by variantId + frameId so distinct frame choices stay distinct lines.
+  type AggregatedItem = {
+    productId: string;
+    variantId: string;
+    quantity: number;
+    image?: string;
+    frameId: string | null;
+  };
+
+  const aggregatedItems = new Map<string, AggregatedItem>();
 
   for (const item of inputItems) {
-    const existing = aggregatedItems.get(item.variantId);
+    const frameId = item.frame?.id ?? null;
+    const key = `${item.variantId}::${frameId ?? "no-frame"}`;
+    const existing = aggregatedItems.get(key);
 
     if (!existing) {
-      aggregatedItems.set(item.variantId, {
+      aggregatedItems.set(key, {
         productId: item.productId,
+        variantId: item.variantId,
         quantity: item.quantity,
         image: item.image,
+        frameId,
       });
       continue;
     }
@@ -311,19 +329,32 @@ async function resolveCheckoutItems(
     existing.image = existing.image ?? item.image;
   }
 
-  const [variantRows, rates] = await Promise.all([
-    productRepository.listCheckoutVariantsByIds([...aggregatedItems.keys()]),
+  const variantIds = Array.from(
+    new Set(Array.from(aggregatedItems.values()).map((row) => row.variantId)),
+  );
+  const frameIds = Array.from(
+    new Set(
+      Array.from(aggregatedItems.values())
+        .map((row) => row.frameId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  );
+
+  const [variantRows, frameRows, rates] = await Promise.all([
+    productRepository.listCheckoutVariantsByIds(variantIds),
+    frameRepository.findByIds(frameIds),
     getExchangeRates(),
   ]);
 
   const variantsById = new Map(
     variantRows.map((variant) => [variant.variantId, variant]),
   );
+  const framesById = new Map(frameRows.map((frame) => [frame.id, frame]));
 
   const resolvedItems: ResolvedCheckoutItem[] = [];
 
-  for (const [variantId, requestedItem] of aggregatedItems) {
-    const variant = variantsById.get(variantId);
+  for (const requestedItem of aggregatedItems.values()) {
+    const variant = variantsById.get(requestedItem.variantId);
 
     if (!variant) {
       throw new CheckoutResolutionError(
@@ -346,15 +377,46 @@ async function resolveCheckoutItems(
       );
     }
 
+    let frameSnapshot: ResolvedCheckoutItem["frame"] = null;
+    let frameDeltaUsd = 0;
+
+    if (requestedItem.frameId) {
+      const frame = framesById.get(requestedItem.frameId);
+      if (!frame || !frame.isActive) {
+        throw new CheckoutResolutionError(
+          "The selected frame is no longer available.",
+          409,
+        );
+      }
+      frameDeltaUsd = frame.priceDelta;
+      const frameImageUrl =
+        frame.imageBucket && frame.imagePath
+          ? resolveUrl({ bucket: frame.imageBucket, path: frame.imagePath })
+          : null;
+      frameSnapshot = {
+        id: frame.id,
+        name: frame.name,
+        imageUrl: frameImageUrl,
+        priceDelta: convertUsdToCurrency(frame.priceDelta, currency, rates),
+      };
+    }
+
+    const unitAmount = convertUsdToCurrency(
+      variant.price + frameDeltaUsd,
+      currency,
+      rates,
+    );
+
     resolvedItems.push({
       productId: variant.productId,
       variantId: variant.variantId,
       productTitle: variant.productTitle,
       variantTitle: variant.variantTitle,
       sku: variant.sku,
-      unitAmount: convertUsdToCurrency(variant.price, currency, rates),
+      unitAmount,
       quantity: requestedItem.quantity,
       image: requestedItem.image,
+      frame: frameSnapshot,
     });
   }
 

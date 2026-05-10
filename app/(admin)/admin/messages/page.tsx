@@ -1,225 +1,465 @@
+import Link from "next/link";
+import { formatDistanceToNow } from "date-fns";
+
+import {
+  Badge,
+  Button,
+  ButtonLink,
+  Card,
+  EmptyState,
+  Icon,
+  PageHeader,
+  StatCard,
+} from "@/components/admin/ui";
+import { contactRepository } from "@/lib/repositories/contact-repository";
+import { formatDate } from "@/lib/utils/formatters";
+
 import {
   updateContactSubmissionNotes,
   updateContactSubmissionStatus,
 } from "./actions";
 
-import { contactRepository } from "@/lib/repositories/contact-repository";
-import { formatDate } from "@/lib/utils/formatters";
+export const dynamic = "force-dynamic";
 
-function statusClasses(status: string) {
-  if (status === "new") {
-    return "bg-blue-100 text-blue-700";
-  }
+const STATUS_FILTERS = ["all", "new", "read", "replied", "archived"] as const;
+type StatusFilter = (typeof STATUS_FILTERS)[number];
+type SubmissionStatus = "new" | "read" | "replied" | "archived";
 
-  if (status === "replied") {
-    return "bg-emerald-100 text-emerald-700";
-  }
+const STATUS_LABEL: Record<SubmissionStatus, string> = {
+  new: "New",
+  read: "Read",
+  replied: "Replied",
+  archived: "Archived",
+};
 
-  return "bg-zinc-100 text-zinc-700";
+const STATUS_TONE: Record<
+  SubmissionStatus,
+  "info" | "warning" | "success" | "muted"
+> = {
+  new: "info",
+  read: "warning",
+  replied: "success",
+  archived: "muted",
+};
+
+function isStatusFilter(value: string | undefined): value is StatusFilter {
+  return STATUS_FILTERS.includes(value as StatusFilter);
 }
 
-async function loadMessagesPageData() {
+function readSingle(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function getInitials(name: string) {
+  const parts = name.trim().split(/\s+/).slice(0, 2);
+  const initials = parts.map((p) => p[0]?.toUpperCase() ?? "").join("");
+  return initials || "?";
+}
+
+function buildHref(status: StatusFilter, query: string) {
+  const params = new URLSearchParams();
+  if (status !== "all") params.set("status", status);
+  if (query) params.set("q", query);
+  const qs = params.toString();
+  return qs ? `/admin/messages?${qs}` : "/admin/messages";
+}
+
+type SearchParams = {
+  status?: string | string[];
+  q?: string | string[];
+};
+
+async function loadData() {
   try {
     const [stats, submissions] = await Promise.all([
       contactRepository.getAdminStats(),
       contactRepository.listForAdmin(100),
     ]);
-
-    return {
-      stats,
-      submissions,
-    };
+    return { stats, submissions };
   } catch {
     return {
-      stats: {
-        total: 0,
-        newCount: 0,
-        repliedCount: 0,
-      },
+      stats: { total: 0, newCount: 0, repliedCount: 0 },
       submissions: [],
     };
   }
 }
 
-export default async function AdminMessagesPage() {
-  const { stats, submissions } = await loadMessagesPageData();
+export default async function AdminMessagesPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const resolved = await searchParams;
+  const statusParam = readSingle(resolved.status);
+  const status: StatusFilter = isStatusFilter(statusParam)
+    ? statusParam
+    : "all";
+  const queryRaw = readSingle(resolved.q)?.trim() ?? "";
+  const query = queryRaw.toLowerCase();
+
+  const { stats, submissions } = await loadData();
+
+  const counts: Record<StatusFilter, number> = {
+    all: submissions.length,
+    new: submissions.filter((s) => s.status === "new").length,
+    read: submissions.filter((s) => s.status === "read").length,
+    replied: submissions.filter((s) => s.status === "replied").length,
+    archived: submissions.filter((s) => s.status === "archived").length,
+  };
+
+  const filtered = submissions.filter((s) => {
+    if (status !== "all" && s.status !== status) return false;
+    if (query.length > 0) {
+      const haystack =
+        `${s.name} ${s.email} ${s.phone ?? ""} ${s.message}`.toLowerCase();
+      if (!haystack.includes(query)) return false;
+    }
+    return true;
+  });
+
+  const filtersActive = status !== "all" || queryRaw.length > 0;
 
   return (
-    <section className="space-y-5">
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="text-2xl font-semibold text-zinc-900">
-          Contact submissions
-        </h2>
-        <p className="text-sm text-zinc-500">Latest 100 entries</p>
-      </div>
+    <>
+      <PageHeader
+        eyebrow="Inbox"
+        title="Customer messages"
+        description="Replies and inquiries from the contact form. Triage, take notes, and follow up by email."
+      />
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded border border-zinc-200 bg-white p-4">
-          <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">
-            Total
-          </p>
-          <p className="mt-2 text-2xl font-semibold text-zinc-900">
-            {stats.total}
-          </p>
-        </div>
-        <div className="rounded border border-zinc-200 bg-white p-4">
-          <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">
-            New
-          </p>
-          <p className="mt-2 text-2xl font-semibold text-zinc-900">
-            {stats.newCount}
-          </p>
-        </div>
-        <div className="rounded border border-zinc-200 bg-white p-4">
-          <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">
-            Replied
-          </p>
-          <p className="mt-2 text-2xl font-semibold text-zinc-900">
-            {stats.repliedCount}
-          </p>
-        </div>
-      </div>
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="Total received"
+          value={stats.total}
+          icon={<Icon.Mail />}
+          hint="lifetime submissions"
+        />
+        <StatCard
+          label="Awaiting reply"
+          value={stats.newCount}
+          icon={<Icon.Bell />}
+          hint="status: new"
+        />
+        <StatCard
+          label="Replied"
+          value={stats.repliedCount}
+          icon={<Icon.Check />}
+          hint="resolved"
+        />
+        <StatCard
+          label="Archived"
+          value={counts.archived}
+          icon={<Icon.Archive />}
+          hint="hidden by default"
+        />
+      </section>
 
-      {submissions.length > 0 ? (
-        <div className="overflow-x-auto rounded border border-zinc-200 bg-white">
-          <table className="min-w-full divide-y divide-zinc-200 text-sm">
-            <caption className="sr-only">
-              Contact submissions with sender details, message content, workflow
-              controls, and received date.
-            </caption>
-            <thead className="bg-zinc-50">
-              <tr className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
-                <th scope="col" className="px-4 py-3">
-                  Sender
-                </th>
-                <th scope="col" className="px-4 py-3">
-                  Message
-                </th>
-                <th scope="col" className="px-4 py-3">
-                  Workflow
-                </th>
-                <th scope="col" className="px-4 py-3">
-                  Received
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100 text-zinc-700">
-              {submissions.map((submission) => {
-                const statusFieldId = `submission-status-${submission.id}`;
-                const notesFieldId = `submission-notes-${submission.id}`;
+      <Card>
+        <div className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+          <nav className="flex flex-wrap items-center gap-1.5">
+            {STATUS_FILTERS.map((s) => {
+              const active = s === status;
+              const label = s === "all" ? "All" : STATUS_LABEL[s];
+              return (
+                <Link
+                  key={s}
+                  href={buildHref(s, queryRaw)}
+                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition"
+                  style={
+                    active
+                      ? {
+                          backgroundColor: "var(--admin-accent)",
+                          color: "#ffffff",
+                        }
+                      : {
+                          backgroundColor: "var(--admin-surface)",
+                          color: "var(--admin-text-soft)",
+                          border: "1px solid var(--admin-border)",
+                        }
+                  }
+                >
+                  {label}
+                  <span
+                    className="rounded-full px-1.5 text-[10px] font-semibold"
+                    style={
+                      active
+                        ? {
+                            backgroundColor: "rgba(255,255,255,0.2)",
+                            color: "#ffffff",
+                          }
+                        : {
+                            backgroundColor: "var(--admin-surface-2)",
+                            color: "var(--admin-text-mute)",
+                          }
+                    }
+                  >
+                    {counts[s]}
+                  </span>
+                </Link>
+              );
+            })}
+          </nav>
 
-                return (
-                  <tr key={submission.id}>
-                    <th scope="row" className="px-4 py-3 text-left align-top">
-                      <p className="font-medium text-zinc-900">
-                        {submission.name}
-                      </p>
-                      <a
-                        href={`mailto:${submission.email}`}
-                        className="text-xs text-zinc-500 hover:text-zinc-700"
-                      >
-                        {submission.email}
-                      </a>
-                      {submission.phone ? (
-                        <p className="text-xs text-zinc-500">
-                          {submission.phone}
-                        </p>
-                      ) : null}
-                    </th>
-                    <td className="px-4 py-3 align-top text-zinc-600">
-                      <p className="max-w-xl whitespace-pre-wrap wrap-break-word">
-                        {submission.message}
-                      </p>
-                    </td>
-                    <td className="px-4 py-3 align-top">
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`rounded px-2 py-1 text-xs uppercase tracking-[0.06em] ${statusClasses(submission.status)}`}
-                          >
-                            {submission.status}
-                          </span>
-                          {submission.repliedAt ? (
-                            <span className="text-xs text-zinc-500">
-                              Replied {formatDate(submission.repliedAt)}
-                            </span>
-                          ) : null}
+          <form
+            action="/admin/messages"
+            className="flex items-center gap-2"
+            role="search"
+          >
+            {status !== "all" ? (
+              <input type="hidden" name="status" value={status} />
+            ) : null}
+            <label
+              className="flex h-9 items-center gap-2 rounded-md px-3"
+              style={{
+                backgroundColor: "var(--admin-surface)",
+                border: "1px solid var(--admin-border-strong)",
+                color: "var(--admin-text-mute)",
+              }}
+            >
+              <Icon.Search width={14} height={14} />
+              <span className="sr-only">Search messages</span>
+              <input
+                type="search"
+                name="q"
+                defaultValue={queryRaw}
+                placeholder="Search name, email, message…"
+                className="h-full w-56 bg-transparent text-sm focus:outline-none"
+                style={{ color: "var(--admin-text)" }}
+              />
+            </label>
+            <Button type="submit" size="sm" variant="secondary">
+              Search
+            </Button>
+            {filtersActive ? (
+              <ButtonLink
+                href="/admin/messages"
+                size="sm"
+                variant="ghost"
+              >
+                Reset
+              </ButtonLink>
+            ) : null}
+          </form>
+        </div>
+      </Card>
+
+      {filtered.length > 0 ? (
+        <ul className="space-y-3">
+          {filtered.map((submission) => {
+            const initials = getInitials(submission.name);
+            const currentStatus = submission.status as SubmissionStatus;
+            const tone = STATUS_TONE[currentStatus] ?? "muted";
+            const otherStatuses = (
+              ["new", "read", "replied", "archived"] as const
+            ).filter((s) => s !== currentStatus);
+            const notesId = `note-${submission.id}`;
+            const replySubject = encodeURIComponent(
+              `Re: your message to Thanka Treasure`,
+            );
+            const replyBody = encodeURIComponent(
+              `\n\n--- On ${formatDate(submission.createdAt)} you wrote: ---\n${submission.message}`,
+            );
+
+            return (
+              <li key={submission.id}>
+                <Card>
+                  <div className="grid gap-5 px-5 py-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+                    <div className="min-w-0 space-y-4">
+                      <div className="flex items-start gap-3">
+                        <div
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
+                          style={{
+                            backgroundColor: "var(--admin-surface-2)",
+                            color: "var(--admin-text-soft)",
+                            border: "1px solid var(--admin-border)",
+                          }}
+                          aria-hidden
+                        >
+                          {initials}
                         </div>
-
-                        <form
-                          action={updateContactSubmissionStatus}
-                          className="space-y-2"
-                        >
-                          <input
-                            type="hidden"
-                            name="id"
-                            value={submission.id}
-                          />
-                          <label htmlFor={statusFieldId} className="sr-only">
-                            Update status for {submission.email}
-                          </label>
-                          <select
-                            id={statusFieldId}
-                            name="status"
-                            defaultValue={submission.status}
-                            className="h-9 w-full min-w-36 rounded border border-zinc-300 bg-white px-2 text-xs uppercase tracking-[0.06em] text-zinc-700"
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p
+                              className="text-sm font-semibold"
+                              style={{ color: "var(--admin-text)" }}
+                            >
+                              {submission.name}
+                            </p>
+                            <Badge tone={tone}>
+                              {STATUS_LABEL[currentStatus] ?? currentStatus}
+                            </Badge>
+                          </div>
+                          <div
+                            className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs"
+                            style={{ color: "var(--admin-text-mute)" }}
                           >
-                            <option value="new">New</option>
-                            <option value="read">Read</option>
-                            <option value="replied">Replied</option>
-                            <option value="archived">Archived</option>
-                          </select>
-                          <button
-                            type="submit"
-                            className="inline-flex h-8 items-center rounded bg-zinc-900 px-3 text-xs font-medium uppercase tracking-[0.06em] text-white hover:bg-zinc-700"
-                          >
-                            Update status
-                          </button>
-                        </form>
-
-                        <form
-                          action={updateContactSubmissionNotes}
-                          className="space-y-2"
-                        >
-                          <input
-                            type="hidden"
-                            name="id"
-                            value={submission.id}
-                          />
-                          <label htmlFor={notesFieldId} className="sr-only">
-                            Internal notes for {submission.email}
-                          </label>
-                          <textarea
-                            id={notesFieldId}
-                            name="notes"
-                            defaultValue={submission.adminNotes ?? ""}
-                            rows={3}
-                            placeholder="Internal notes"
-                            className="w-full min-w-36 rounded border border-zinc-300 bg-white px-2 py-1.5 text-xs text-zinc-700"
-                          />
-                          <button
-                            type="submit"
-                            className="inline-flex h-8 items-center rounded border border-zinc-300 px-3 text-xs font-medium uppercase tracking-[0.06em] text-zinc-700 hover:bg-zinc-100"
-                          >
-                            Save note
-                          </button>
-                        </form>
+                            <a
+                              href={`mailto:${submission.email}`}
+                              className="hover:underline"
+                            >
+                              {submission.email}
+                            </a>
+                            {submission.phone ? (
+                              <>
+                                <span aria-hidden>·</span>
+                                <a
+                                  href={`tel:${submission.phone}`}
+                                  className="hover:underline"
+                                >
+                                  {submission.phone}
+                                </a>
+                              </>
+                            ) : null}
+                            <span aria-hidden>·</span>
+                            <time
+                              dateTime={new Date(
+                                submission.createdAt,
+                              ).toISOString()}
+                              title={formatDate(submission.createdAt)}
+                            >
+                              {formatDistanceToNow(submission.createdAt, {
+                                addSuffix: true,
+                              })}
+                            </time>
+                            {submission.repliedAt ? (
+                              <>
+                                <span aria-hidden>·</span>
+                                <span style={{ color: "var(--admin-text-soft)" }}>
+                                  Replied {formatDate(submission.repliedAt)}
+                                </span>
+                              </>
+                            ) : null}
+                          </div>
+                        </div>
                       </div>
-                    </td>
-                    <td className="px-4 py-3 align-top text-zinc-600">
-                      {formatDate(submission.createdAt)}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+
+                      <blockquote
+                        className="rounded-lg px-4 py-3 text-sm leading-relaxed"
+                        style={{
+                          backgroundColor: "var(--admin-surface-2)",
+                          color: "var(--admin-text)",
+                          borderLeft: "3px solid var(--admin-accent)",
+                        }}
+                      >
+                        <p className="whitespace-pre-wrap wrap-break-word">
+                          {submission.message}
+                        </p>
+                      </blockquote>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <ButtonLink
+                          href={`mailto:${submission.email}?subject=${replySubject}&body=${replyBody}`}
+                          size="sm"
+                        >
+                          <Icon.Mail width={14} height={14} /> Reply by email
+                        </ButtonLink>
+                        {otherStatuses.map((s) => (
+                          <form
+                            key={s}
+                            action={updateContactSubmissionStatus}
+                            className="inline-flex"
+                          >
+                            <input
+                              type="hidden"
+                              name="id"
+                              value={submission.id}
+                            />
+                            <input type="hidden" name="status" value={s} />
+                            <button
+                              type="submit"
+                              className="inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium transition hover:brightness-95"
+                              style={{
+                                backgroundColor: "var(--admin-surface)",
+                                color: "var(--admin-text-soft)",
+                                border: "1px solid var(--admin-border-strong)",
+                              }}
+                            >
+                              {s === "replied" ? (
+                                <Icon.Check width={14} height={14} />
+                              ) : null}
+                              {s === "archived" ? (
+                                <Icon.Archive width={14} height={14} />
+                              ) : null}
+                              {s === "read" ? (
+                                <Icon.Eye width={14} height={14} />
+                              ) : null}
+                              {s === "new" ? (
+                                <Icon.Bell width={14} height={14} />
+                              ) : null}
+                              Mark {STATUS_LABEL[s].toLowerCase()}
+                            </button>
+                          </form>
+                        ))}
+                      </div>
+                    </div>
+
+                    <form
+                      action={updateContactSubmissionNotes}
+                      className="flex flex-col gap-2 rounded-lg p-3"
+                      style={{
+                        backgroundColor: "var(--admin-surface-2)",
+                        border: "1px dashed var(--admin-border-strong)",
+                      }}
+                    >
+                      <input type="hidden" name="id" value={submission.id} />
+                      <label
+                        htmlFor={notesId}
+                        className="text-[11px] font-semibold uppercase tracking-[0.12em]"
+                        style={{ color: "var(--admin-text-mute)" }}
+                      >
+                        Internal notes
+                      </label>
+                      <textarea
+                        id={notesId}
+                        name="notes"
+                        defaultValue={submission.adminNotes ?? ""}
+                        rows={4}
+                        placeholder="Only visible to your team — context, follow-up dates, links…"
+                        className="min-h-24 flex-1 rounded-md px-3 py-2 text-sm focus:outline-none"
+                        style={{
+                          backgroundColor: "var(--admin-surface)",
+                          border: "1px solid var(--admin-border-strong)",
+                          color: "var(--admin-text)",
+                        }}
+                      />
+                      <div className="flex justify-end">
+                        <Button type="submit" size="sm" variant="secondary">
+                          Save note
+                        </Button>
+                      </div>
+                    </form>
+                  </div>
+                </Card>
+              </li>
+            );
+          })}
+        </ul>
       ) : (
-        <div className="rounded border border-zinc-200 bg-white p-6 text-sm text-zinc-600">
-          No submissions yet. Messages from the contact form will appear here.
-        </div>
+        <EmptyState
+          icon={<Icon.Mail width={28} height={28} />}
+          title={
+            filtersActive
+              ? "No messages match your filters"
+              : "No messages yet"
+          }
+          description={
+            filtersActive
+              ? "Try clearing the search or switching to All to see every submission."
+              : "Replies from the contact form will appear here."
+          }
+          action={
+            filtersActive ? (
+              <ButtonLink
+                href="/admin/messages"
+                variant="secondary"
+                size="sm"
+              >
+                Clear filters
+              </ButtonLink>
+            ) : null
+          }
+        />
       )}
-    </section>
+    </>
   );
 }

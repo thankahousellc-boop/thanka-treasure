@@ -17,34 +17,37 @@ export function BlogCard({
   image,
 }: BlogCardData) {
   return (
-    <article className="group border border-border-light bg-white">
-      <Link href={`/blogs/${slug}`} className="block">
-        <div className="relative aspect-video overflow-hidden bg-bg-secondary">
-          <Image
-            src={image}
-            alt={title}
-            fill
-            sizes="(max-width: 1024px) 100vw, 50vw"
-            className="object-cover transition duration-300 group-hover:opacity-90 group-focus-within:opacity-90"
-          />
-        </div>
+    <article className="group flex flex-col gap-4">
+      <Link
+        href={`/blogs/${slug}`}
+        className="relative block aspect-video overflow-hidden rounded-md bg-paper-3"
+      >
+        <Image
+          src={image}
+          alt={title}
+          fill
+          sizes="(max-width: 1024px) 100vw, 50vw"
+          className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+        />
       </Link>
 
-      <div className="space-y-3 p-5">
-        <p className="text-xs uppercase tracking-[0.08em] text-warm-gray-500">
+      <div className="space-y-2.5">
+        <p className="text-[11px] uppercase tracking-[0.18em] text-saffron">
           {publishedAt}
         </p>
-        <h3 className="font-serif text-2xl text-maroon-900">
-          <Link href={`/blogs/${slug}`} className="hover:text-maroon-700">
+        <h3 className="font-serif text-2xl leading-tight font-medium text-ink">
+          <Link href={`/blogs/${slug}`} className="hover:text-ink-soft">
             {title}
           </Link>
         </h3>
-        <p className="line-clamp-3 text-sm text-warm-gray-700">{excerpt}</p>
+        <p className="line-clamp-3 text-[14.5px] leading-[1.65] text-ink-soft">
+          {excerpt}
+        </p>
         <Link
           href={`/blogs/${slug}`}
-          className="text-sm font-medium text-maroon-700 hover:text-maroon-600"
+          className="inline-flex border-b border-ink-mute pb-1 text-[12px] uppercase tracking-[0.16em] text-ink-soft hover:border-ink hover:text-ink"
         >
-          Read article
+          Read article →
         </Link>
       </div>
     </article>

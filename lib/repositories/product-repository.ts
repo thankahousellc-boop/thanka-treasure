@@ -971,4 +971,21 @@ export const productRepository = {
 
     return updatedRows.length > 0;
   },
+
+  async setStatusForAdmin(id: string, status: AdminProductStatus) {
+    await requireAdminSession();
+
+    const db = getDb();
+
+    const updatedRows = await db
+      .update(products)
+      .set({
+        status,
+        updatedAt: new Date(),
+      })
+      .where(eq(products.id, id))
+      .returning({ id: products.id, slug: products.slug });
+
+    return updatedRows[0] ?? null;
+  },
 };

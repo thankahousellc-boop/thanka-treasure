@@ -64,6 +64,13 @@ export function CheckoutEmbedded() {
           variantId: item.variantId,
           quantity: item.quantity,
           image: item.imageUrl,
+          frame: item.frame
+            ? {
+                id: item.frame.id,
+                name: item.frame.name,
+                imageUrl: item.frame.imageUrl,
+              }
+            : undefined,
         })),
       }),
     });

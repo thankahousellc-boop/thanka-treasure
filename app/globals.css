@@ -1,41 +1,65 @@
 @import "tailwindcss";
 
 @theme {
-  --color-maroon-950: #1a0505;
-  --color-maroon-900: #4a0e0e;
-  --color-maroon-800: #6b1414;
-  --color-maroon-700: #8b1a1a;
-  --color-maroon-600: #a52222;
-  --color-maroon-500: #b83030;
-  --color-maroon-400: #d05050;
-  --color-maroon-100: #f5e6e6;
-  --color-maroon-50: #faf2f2;
+  /* Ink scale (legacy: maroon-*) — retuned to the Thanka Treasure palette */
+  --color-maroon-950: #2a0a12;
+  --color-maroon-900: #3d1018;
+  --color-maroon-800: #5c1f2a; /* ink — primary brand */
+  --color-maroon-700: #7a2e3a; /* ink-soft */
+  --color-maroon-600: #8b3a47;
+  --color-maroon-500: #a07880; /* ink-mute */
+  --color-maroon-400: #b8888f; /* rose */
+  --color-maroon-100: #f5edeb; /* paper-2 */
+  --color-maroon-50: #fcfaf8;  /* paper */
 
-  --color-white: #ffffff;
-  --color-cream: #fdf8f4;
-  --color-warm-gray-100: #f5f0eb;
-  --color-warm-gray-300: #d4cbc2;
-  --color-warm-gray-500: #8c8278;
-  --color-warm-gray-700: #534b43;
-  --color-warm-gray-900: #2c2520;
+  /* Warm neutrals (legacy: warm-gray-*) — mapped to ink + paper family */
+  --color-white: #fcfaf8;
+  --color-cream: #f5edeb;
+  --color-warm-gray-100: #f5edeb;
+  --color-warm-gray-300: #e8d8d5;
+  --color-warm-gray-500: #a07880;
+  --color-warm-gray-700: #7a2e3a;
+  --color-warm-gray-900: #5c1f2a;
 
-  --color-bg-primary: #ffffff;
-  --color-bg-secondary: #fdf8f4;
-  --color-bg-accent: #6b1414;
-  --color-text-primary: #2c2520;
-  --color-text-secondary: #8c8278;
-  --color-text-on-accent: #ffffff;
-  --color-border-light: #d4cbc2;
-  --color-link: #a52222;
-  --color-link-hover: #8b1a1a;
+  /* Semantic tokens (consumed via bg-bg-primary, text-text-primary, etc.) */
+  --color-bg-primary: #fcfaf8;
+  --color-bg-secondary: #f5edeb;
+  --color-bg-accent: #5c1f2a;
+  --color-text-primary: #5c1f2a;
+  --color-text-secondary: #7a2e3a;
+  --color-text-on-accent: #fcfaf8;
+  --color-border-light: #e8d8d5;
+  --color-link: #7a2e3a;
+  --color-link-hover: #5c1f2a;
+
+  /* New named palette — use these for new design work */
+  --color-paper: #fcfaf8;
+  --color-paper-2: #f5edeb;
+  --color-paper-3: #e8d8d5;
+  --color-ink: #5c1f2a;
+  --color-ink-soft: #7a2e3a;
+  --color-ink-mute: #a07880;
+  --color-saffron: #c9772d;
+  --color-saffron-deep: #a85e22;
+  --color-rose: #b8888f;
+  --color-rose-light: #d4adb2;
+  --color-gold: #b58a4a;
+  --color-gold-light: #e6b97a;
 
   --font-sans: var(--font-inter);
-  --font-serif: var(--font-playfair);
-  --font-reading: var(--font-lora);
+  --font-serif: var(--font-cormorant);
 }
 
 :root {
   color-scheme: light;
+
+  /* rgba lines + signature shadows from the mockups */
+  --line: rgba(92, 31, 42, 0.14);
+  --line-soft: rgba(92, 31, 42, 0.08);
+  --shadow-1: 0 1px 2px rgba(92, 31, 42, 0.06),
+    0 8px 24px -12px rgba(92, 31, 42, 0.18);
+  --shadow-2: 0 2px 6px rgba(92, 31, 42, 0.08),
+    0 30px 60px -30px rgba(92, 31, 42, 0.3);
 }
 
 * {
@@ -89,11 +113,101 @@ a:hover {
 .container-page {
   width: min(100%, 1280px);
   margin-inline: auto;
-  padding-inline: 1rem;
+  padding-inline: 1.25rem;
+}
+
+/* Admin shell — scoped so the storefront is unaffected. */
+.admin-app {
+  --admin-bg: #f6f1ec;
+  --admin-surface: #ffffff;
+  --admin-surface-2: #faf6f1;
+  --admin-border: rgba(92, 31, 42, 0.10);
+  --admin-border-strong: rgba(92, 31, 42, 0.18);
+  --admin-text: #2b1318;
+  --admin-text-soft: #6e4751;
+  --admin-text-mute: #9d7c83;
+  --admin-accent: var(--color-ink, #5c1f2a);
+  --admin-accent-soft: rgba(92, 31, 42, 0.08);
+  --admin-accent-strong: var(--color-ink-soft, #7a2e3a);
+  --admin-saffron: var(--color-saffron, #c9772d);
+  --admin-shadow:
+    0 1px 2px rgba(43, 19, 24, 0.04),
+    0 8px 24px -12px rgba(43, 19, 24, 0.10);
+  --admin-shadow-lg:
+    0 4px 8px rgba(43, 19, 24, 0.06),
+    0 20px 40px -20px rgba(43, 19, 24, 0.18);
+
+  background-color: var(--admin-bg);
+  color: var(--admin-text);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+.admin-app a {
+  color: inherit;
+}
+
+.admin-display {
+  font-family: var(--font-serif), Georgia, serif;
+  letter-spacing: -0.01em;
+}
+
+/* Tiptap rich-text editor content */
+.tiptap-content {
+  line-height: 1.55;
+}
+.tiptap-content:focus { outline: none; }
+.tiptap-content > * + * { margin-top: 0.6em; }
+.tiptap-content h1 { font-size: 1.5rem; font-weight: 600; line-height: 1.25; }
+.tiptap-content h2 { font-size: 1.25rem; font-weight: 600; line-height: 1.3; }
+.tiptap-content h3 { font-size: 1.1rem; font-weight: 600; line-height: 1.35; }
+.tiptap-content p { color: var(--admin-text); }
+.tiptap-content ul { list-style: disc; padding-left: 1.4rem; }
+.tiptap-content ol { list-style: decimal; padding-left: 1.4rem; }
+.tiptap-content li > p { margin: 0; }
+.tiptap-content blockquote {
+  border-left: 3px solid var(--admin-border-strong);
+  padding-left: 0.9rem;
+  color: var(--admin-text-soft);
+  font-style: italic;
+}
+.tiptap-content code {
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.tiptap-content pre {
+  background: #2b1318;
+  color: #f6f1ec;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+}
+.tiptap-content pre code { background: transparent; color: inherit; padding: 0; }
+.tiptap-content hr {
+  border: 0;
+  border-top: 1px solid var(--admin-border-strong);
+  margin: 1.2em 0;
+}
+.tiptap-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+.tiptap-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--admin-text-mute);
+  pointer-events: none;
+  height: 0;
+  float: left;
 }
 
 @media (min-width: 768px) {
   .container-page {
-    padding-inline: 1.5rem;
+    padding-inline: 2rem;
   }
 }

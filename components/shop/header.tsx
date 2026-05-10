@@ -1,81 +1,174 @@
+import Image from "next/image";
 import Link from "next/link";
 
+import { CartTrigger } from "@/components/shop/cart-trigger";
 import { CurrencySelector } from "@/components/shop/currency-selector";
+import { getBranding } from "@/lib/branding";
 
-const primaryLinks = [
-  { href: "/", label: "Home" },
-  { href: "/products", label: "All Products" },
-  { href: "/search", label: "Search" },
-  { href: "/blogs", label: "Blogs" },
+const leftLinks = [
+  { href: "/products", label: "Shop" },
+  { href: "/blogs", label: "Journal" },
   { href: "/newsletter", label: "Newsletter" },
-  { href: "/contact", label: "Contact" },
 ];
+
+const rightLinks = [{ href: "/contact", label: "Contact" }];
+
+const mobileLinks = [...leftLinks, ...rightLinks];
 
 type ShopHeaderProps = {
   currency: string;
 };
 
-export function ShopHeader({ currency }: ShopHeaderProps) {
+export async function ShopHeader({ currency }: ShopHeaderProps) {
+  const branding = await getBranding();
   return (
-    <header className="sticky top-0 z-40 border-b border-border-light bg-bg-primary/95 backdrop-blur">
-      <div className="container-page flex h-16 items-center justify-between gap-4">
-        <Link
-          href="/"
-          className="font-serif text-lg font-semibold uppercase tracking-[0.08em] text-maroon-900"
-        >
-          Thangka Treasure
-        </Link>
-
+    <header className="sticky top-0 z-40 border-b border-(--line-soft) bg-paper/85 backdrop-blur-md">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-6 px-8 py-4 max-md:grid-cols-[auto_1fr_auto] max-md:gap-3 max-md:px-5">
+        {/* Left links */}
         <nav
           aria-label="Primary"
-          className="hidden items-center gap-6 text-sm tracking-[0.05em] text-warm-gray-900 md:flex"
+          className="hidden items-center gap-7 md:flex"
         >
-          {primaryLinks.map((link) => (
+          {leftLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="hover:text-maroon-700"
+              className="text-[13px] uppercase tracking-[0.08em] text-ink-soft transition-colors hover:text-ink"
             >
               {link.label}
             </Link>
           ))}
         </nav>
+        <div className="md:hidden">
+          <button
+            type="button"
+            aria-label="Open menu"
+            className="grid h-9 w-9 place-items-center rounded-full text-ink-soft hover:bg-paper-2 hover:text-ink"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            >
+              <path d="M4 7h16M4 12h16M4 17h16" />
+            </svg>
+          </button>
+        </div>
 
-        <nav
-          aria-label="User"
-          className="flex items-center gap-4 text-xs uppercase tracking-[0.08em] md:text-sm"
-        >
+        {/* Centered brand */}
+        <Link href="/" className="flex flex-col items-center leading-none">
+          {branding.logoLightUrl ? (
+            <Image
+              src={branding.logoLightUrl}
+              alt={branding.brandName}
+              width={160}
+              height={48}
+              sizes="160px"
+              className="max-h-10 w-auto object-contain"
+              priority
+            />
+          ) : (
+            <span className="font-serif text-[22px] uppercase tracking-[0.22em] text-ink max-md:text-[18px] max-md:tracking-[0.18em]">
+              {branding.brandName}
+            </span>
+          )}
+          {branding.brandTagline ? (
+            <span className="mt-1 text-[10px] uppercase tracking-[0.32em] text-ink-mute max-md:hidden">
+              {branding.brandTagline}
+            </span>
+          ) : null}
+        </Link>
+
+        {/* Right links + icons */}
+        <div className="flex items-center justify-end gap-4">
+          <nav
+            aria-label="Secondary"
+            className="hidden items-center gap-7 md:flex"
+          >
+            {rightLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="text-[13px] uppercase tracking-[0.08em] text-ink-soft transition-colors hover:text-ink"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+
           <CurrencySelector
             selectedCurrency={currency}
-            className="hidden items-center gap-2 text-[11px] uppercase tracking-[0.08em] md:inline-flex"
+            className="hidden items-center gap-2 text-[11px] uppercase tracking-[0.08em] text-ink-soft md:inline-flex"
+            labelClassName="text-ink-mute"
+            selectClassName="h-7 border-0 bg-transparent text-[12px] tracking-[0.06em] text-ink"
           />
-          <Link href="/account" className="hover:text-maroon-700">
-            Account
+
+          <Link
+            href="/search"
+            aria-label="Search"
+            className="grid h-9 w-9 place-items-center rounded-full text-ink-soft transition-colors hover:bg-paper-2 hover:text-ink"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" />
+            </svg>
           </Link>
-          <Link href="/cart" className="hover:text-maroon-700">
-            Cart
+
+          <Link
+            href="/account"
+            aria-label="Account"
+            className="grid h-9 w-9 place-items-center rounded-full text-ink-soft transition-colors hover:bg-paper-2 hover:text-ink max-md:hidden"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            >
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 21c0-4 4-7 8-7s8 3 8 7" />
+            </svg>
           </Link>
-        </nav>
+
+          <CartTrigger />
+        </div>
       </div>
 
+      {/* Mobile horizontal link rail */}
       <nav
         aria-label="Primary mobile"
-        className="border-t border-border-light md:hidden"
+        className="border-t border-(--line-soft) md:hidden"
       >
-        <div className="container-page flex items-center gap-4 overflow-x-auto py-2 text-xs uppercase tracking-[0.08em] text-warm-gray-900">
-          {primaryLinks.map((link) => (
+        <div className="flex items-center gap-5 overflow-x-auto px-5 py-2 text-[12px] uppercase tracking-[0.1em] text-ink-soft">
+          {mobileLinks.map((link) => (
             <Link
               key={`mobile-${link.href}`}
               href={link.href}
-              className="shrink-0 hover:text-maroon-700"
+              className="shrink-0 hover:text-ink"
             >
               {link.label}
             </Link>
           ))}
-
           <CurrencySelector
             selectedCurrency={currency}
-            className="shrink-0 text-[11px] uppercase tracking-[0.08em]"
+            className="ml-auto shrink-0 text-[11px] uppercase tracking-[0.08em] text-ink-soft"
+            labelClassName="text-ink-mute"
+            selectClassName="h-6 border-0 bg-transparent text-[11px] tracking-[0.06em] text-ink"
           />
         </div>
       </nav>

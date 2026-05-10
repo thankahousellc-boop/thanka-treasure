@@ -1,21 +1,23 @@
 import type { Metadata } from "next";
-import { Inter, Lora, Playfair_Display } from "next/font/google";
+import { Cormorant_Garamond, Inter } from "next/font/google";
+
+import { brandingToCssVariables, getBranding } from "@/lib/branding";
 import { getSiteUrl } from "@/lib/seo";
 import "./globals.css";
 
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  display: "swap",
 });
 
-const lora = Lora({
-  variable: "--font-lora",
+const cormorant = Cormorant_Garamond({
+  variable: "--font-cormorant",
   subsets: ["latin"],
-});
-
-const playfair = Playfair_Display({
-  variable: "--font-playfair",
-  subsets: ["latin"],
+  weight: ["400", "600"],
+  style: ["normal", "italic"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -43,16 +45,23 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const branding = await getBranding();
+  const cssVariables = brandingToCssVariables(branding);
+
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${lora.variable} ${playfair.variable} antialiased`}
+      className={`${inter.variable} ${cormorant.variable} antialiased`}
     >
+      <head>
+        {/* Branding overrides — applied last so they win over the @theme defaults. */}
+        <style>{`:root{${cssVariables}}`}</style>
+      </head>
       <body className="min-h-screen bg-bg-primary text-text-primary">
         <a href="#main-content" className="skip-link">
           Skip to main content

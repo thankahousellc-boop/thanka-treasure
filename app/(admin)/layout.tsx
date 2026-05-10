@@ -1,3 +1,5 @@
+import { Toaster } from "sonner";
+
 import { AdminSidebar } from "@/components/admin/sidebar";
 import { AdminTopbar } from "@/components/admin/topbar";
 
@@ -7,14 +9,19 @@ export default function AdminLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <div className="flex min-h-screen bg-zinc-100 text-zinc-900">
+    <div className="admin-app flex min-h-screen">
       <AdminSidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <AdminTopbar />
-        <main id="main-content" tabIndex={-1} className="p-4 md:p-6">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="mx-auto w-full max-w-7xl flex-1 space-y-7 px-5 py-7 md:px-8 md:py-9"
+        >
           {children}
         </main>
       </div>
+      <Toaster richColors position="top-right" closeButton />
     </div>
   );
 }

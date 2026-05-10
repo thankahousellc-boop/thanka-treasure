@@ -148,19 +148,32 @@ export class SupabaseAuthProvider implements AuthProvider {
 
   async getSession(): Promise<Session> {
     const client = await this.createServerAuthClient();
-    const { data, error } = await client.auth.getSession();
 
-    if (error) {
-      throw error;
+    // Validate the user against the auth server (not just the cookie).
+    const { data: userData, error: userError } = await client.auth.getUser();
+
+    if (userError) {
+      // Auth server says the cookie is bad — treat as unauthenticated.
+      return { user: null, expiresAt: null };
     }
 
-    const session = data.session;
-    return toSession(
-      session?.user ?? null,
-      session?.expires_at
-        ? new Date(session.expires_at * 1000).toISOString()
-        : null,
-    );
+    if (!userData.user) {
+      return { user: null, expiresAt: null };
+    }
+
+    // getSession() is only used for the expiry timestamp here — the user
+    // identity above is already verified.
+    let expiresAt: string | null = null;
+    try {
+      const { data: sessionData } = await client.auth.getSession();
+      expiresAt = sessionData.session?.expires_at
+        ? new Date(sessionData.session.expires_at * 1000).toISOString()
+        : null;
+    } catch {
+      expiresAt = null;
+    }
+
+    return toSession(userData.user, expiresAt);
   }
 
   async getUser(): Promise<Session["user"]> {
@@ -230,20 +243,24 @@ export class SupabaseAuthProvider implements AuthProvider {
       },
     });
 
-    const { data, error } = await client.auth.getSession();
+    const { data: userData, error: userError } = await client.auth.getUser();
 
-    if (error) {
+    if (userError || !userData.user) {
       return { session: { user: null, expiresAt: null } as Session, response };
     }
 
-    const session = data.session;
+    let expiresAt: string | null = null;
+    try {
+      const { data: sessionData } = await client.auth.getSession();
+      expiresAt = sessionData.session?.expires_at
+        ? new Date(sessionData.session.expires_at * 1000).toISOString()
+        : null;
+    } catch {
+      expiresAt = null;
+    }
+
     return {
-      session: toSession(
-        session?.user ?? null,
-        session?.expires_at
-          ? new Date(session.expires_at * 1000).toISOString()
-          : null,
-      ),
+      session: toSession(userData.user, expiresAt),
       response,
     };
   }

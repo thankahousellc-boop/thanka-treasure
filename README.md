@@ -64,8 +64,8 @@ Use `pnpm ops:verify:supabase -- --skip-db` if you only want env/URL validation 
 
 ### Monitoring and Health
 
-- `CRON_SECRET`: secures cron-only routes (`/api/cron/*`) and detailed `/api/health` output.
-- `ALERT_WEBHOOK_URL`: optional outbound webhook for degraded scheduled health-check alerts.
+- `CRON_SECRET`: when set, gates detailed per-check output from `/api/health` (callers must pass `Authorization: Bearer $CRON_SECRET`). Point an external uptime monitor at `/api/health` to be alerted on non-200 responses.
+- `ALERT_WEBHOOK_URL`: optional outbound webhook for alerts emitted via `lib/monitoring/alerts.ts`.
 - `RESEND_FROM_EMAIL`: sender used for transactional and campaign emails.
 
 ## Database Workflow (Drizzle)

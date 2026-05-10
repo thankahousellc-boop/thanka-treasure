@@ -1,6 +1,19 @@
 import Image from "next/image";
 
-import { BlogContentEditor } from "./blog-content-editor";
+import {
+  Badge,
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Field,
+  Input,
+  RichTextEditor,
+  Select,
+  Textarea,
+} from "@/components/admin/ui";
+
+type BlogPostStatus = "draft" | "published" | "scheduled";
 
 type BlogPostFormValues = {
   title: string;
@@ -9,7 +22,7 @@ type BlogPostFormValues = {
   content: string;
   featuredImageAlt: string;
   featuredImageUrl: string;
-  status: "draft" | "published" | "scheduled";
+  status: BlogPostStatus;
   scheduledAt: string;
   categoryIds: string[];
   tagIds: string[];
@@ -31,6 +44,12 @@ type BlogPostFormProps = {
   action: (formData: FormData) => Promise<void>;
 };
 
+function statusTone(status: BlogPostStatus): "success" | "warning" | "info" {
+  if (status === "published") return "success";
+  if (status === "scheduled") return "info";
+  return "warning";
+}
+
 export function BlogPostForm({
   title,
   description,
@@ -41,244 +60,243 @@ export function BlogPostForm({
   action,
 }: BlogPostFormProps) {
   return (
-    <section className="space-y-5">
-      <div>
-        <h2 className="text-2xl font-semibold text-zinc-900">{title}</h2>
-        <p className="mt-1 text-sm text-zinc-600">{description}</p>
-      </div>
-
-      <form
-        action={action}
-        className="space-y-4 rounded border border-zinc-200 bg-white p-5"
-      >
-        <div className="space-y-1">
-          <label htmlFor="title" className="text-sm font-medium text-zinc-700">
-            Title
-          </label>
-          <input
-            id="title"
-            name="title"
-            required
-            defaultValue={values.title}
-            className="h-10 w-full rounded border border-zinc-300 px-3 text-sm text-zinc-900"
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label htmlFor="slug" className="text-sm font-medium text-zinc-700">
-            Slug
-          </label>
-          <input
-            id="slug"
-            name="slug"
-            defaultValue={values.slug}
-            className="h-10 w-full rounded border border-zinc-300 px-3 text-sm text-zinc-900"
-          />
-          <p className="text-xs text-zinc-500">
-            Leave blank to generate from title.
+    <form action={action} className="space-y-5">
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2
+              className="admin-display text-2xl font-semibold"
+              style={{ color: "var(--admin-text)" }}
+            >
+              {title}
+            </h2>
+            <Badge tone={statusTone(values.status)}>{values.status}</Badge>
+          </div>
+          <p
+            className="mt-1 text-sm"
+            style={{ color: "var(--admin-text-soft)" }}
+          >
+            {description}
           </p>
         </div>
-
-        <div className="space-y-1">
-          <label
-            htmlFor="excerpt"
-            className="text-sm font-medium text-zinc-700"
-          >
-            Excerpt
-          </label>
-          <textarea
-            id="excerpt"
-            name="excerpt"
-            defaultValue={values.excerpt}
-            rows={3}
-            className="w-full rounded border border-zinc-300 px-3 py-2 text-sm text-zinc-900"
-          />
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="submit" variant="primary" size="md">
+            {submitLabel}
+          </Button>
         </div>
+      </header>
 
-        <div className="space-y-1">
-          <label
-            htmlFor="content"
-            className="text-sm font-medium text-zinc-700"
-          >
-            Content
-          </label>
-          <BlogContentEditor name="content" initialValue={values.content} />
-        </div>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="space-y-4 min-w-0">
+          <Card>
+            <CardHeader
+              title="Basics"
+              description="Title, slug, and excerpt shown on the storefront."
+            />
+            <CardBody className="space-y-3">
+              <div className="grid gap-3 md:grid-cols-3">
+                <Field
+                  className="md:col-span-2"
+                  label="Title"
+                  hint="Shown to readers and used to build the URL slug."
+                >
+                  <Input
+                    name="title"
+                    required
+                    defaultValue={values.title}
+                    placeholder="A guide to choosing your first thangka"
+                  />
+                </Field>
+                <Field label="Slug" hint="Leave blank to auto-generate.">
+                  <Input
+                    name="slug"
+                    defaultValue={values.slug}
+                    placeholder="choosing-your-first-thangka"
+                  />
+                </Field>
+              </div>
 
-        <div className="space-y-2 rounded border border-zinc-200 bg-zinc-50 p-4">
-          <h3 className="text-sm font-semibold uppercase tracking-[0.08em] text-zinc-700">
-            Featured Image
-          </h3>
+              <Field
+                label="Excerpt"
+                hint="Optional short summary used in cards and SEO previews."
+              >
+                <Textarea
+                  name="excerpt"
+                  rows={2}
+                  defaultValue={values.excerpt}
+                  placeholder="A short blurb that appears alongside this post."
+                />
+              </Field>
+            </CardBody>
+          </Card>
 
-          {values.featuredImageUrl ? (
-            <div className="relative h-56 w-full overflow-hidden rounded border border-zinc-200 bg-zinc-100">
-              <Image
-                src={values.featuredImageUrl}
-                alt={values.featuredImageAlt || "Featured image preview"}
-                fill
-                sizes="(max-width: 768px) 100vw, 768px"
-                className="object-cover"
+          <Card>
+            <CardHeader
+              title="Content"
+              description="Format with the toolbar — headings, lists, quotes, code, and inline images are supported."
+            />
+            <CardBody>
+              <RichTextEditor
+                name="content"
+                initialValue={values.content}
+                upload={{ bucket: "blog-images", target: "blog-inline" }}
               />
-            </div>
-          ) : (
-            <p className="text-xs text-zinc-500">No featured image selected.</p>
-          )}
-
-          <div className="space-y-1">
-            <label
-              htmlFor="featuredImage"
-              className="text-sm font-medium text-zinc-700"
-            >
-              Upload image
-            </label>
-            <input
-              id="featuredImage"
-              name="featuredImage"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="block w-full text-sm text-zinc-700"
-            />
-            <p className="text-xs text-zinc-500">
-              JPEG, PNG, or WEBP. Maximum file size 5MB.
-            </p>
-          </div>
-
-          <div className="space-y-1">
-            <label
-              htmlFor="featuredImageAlt"
-              className="text-sm font-medium text-zinc-700"
-            >
-              Alt text
-            </label>
-            <input
-              id="featuredImageAlt"
-              name="featuredImageAlt"
-              defaultValue={values.featuredImageAlt}
-              className="h-10 w-full rounded border border-zinc-300 px-3 text-sm text-zinc-900"
-            />
-          </div>
-
-          {values.featuredImageUrl ? (
-            <label className="inline-flex items-center gap-2 text-sm text-zinc-700">
-              <input
-                type="checkbox"
-                name="removeFeaturedImage"
-                value="1"
-                className="h-4 w-4 rounded border-zinc-300"
-              />
-              Remove existing featured image
-            </label>
-          ) : null}
+            </CardBody>
+          </Card>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-1">
-            <label
-              htmlFor="status"
-              className="text-sm font-medium text-zinc-700"
-            >
-              Status
-            </label>
-            <select
-              id="status"
-              name="status"
-              defaultValue={values.status}
-              className="h-10 w-full rounded border border-zinc-300 px-3 text-sm text-zinc-900"
-            >
-              <option value="draft">Draft</option>
-              <option value="published">Published</option>
-              <option value="scheduled">Scheduled</option>
-            </select>
-          </div>
+        <aside className="space-y-4">
+          <Card>
+            <CardHeader title="Publishing" />
+            <CardBody className="space-y-3">
+              <Field label="Status">
+                <Select name="status" defaultValue={values.status}>
+                  <option value="draft">Draft</option>
+                  <option value="published">Published</option>
+                  <option value="scheduled">Scheduled</option>
+                </Select>
+              </Field>
+              <Field
+                label="Scheduled at"
+                hint="Required when status is Scheduled."
+              >
+                <Input
+                  name="scheduledAt"
+                  type="datetime-local"
+                  defaultValue={values.scheduledAt}
+                />
+              </Field>
+            </CardBody>
+          </Card>
 
-          <div className="space-y-1">
-            <label
-              htmlFor="scheduledAt"
-              className="text-sm font-medium text-zinc-700"
-            >
-              Scheduled At
-            </label>
-            <input
-              id="scheduledAt"
-              name="scheduledAt"
-              type="datetime-local"
-              defaultValue={values.scheduledAt}
-              className="h-10 w-full rounded border border-zinc-300 px-3 text-sm text-zinc-900"
-            />
-          </div>
+          <Card>
+            <CardHeader title="Featured image" />
+            <CardBody className="space-y-3">
+              {values.featuredImageUrl ? (
+                <div
+                  className="relative h-32 w-full overflow-hidden rounded-md"
+                  style={{
+                    border: "1px solid var(--admin-border)",
+                    backgroundColor: "var(--admin-surface-2)",
+                  }}
+                >
+                  <Image
+                    src={values.featuredImageUrl}
+                    alt={values.featuredImageAlt || "Featured image preview"}
+                    fill
+                    sizes="320px"
+                    className="object-cover"
+                  />
+                </div>
+              ) : null}
+
+              <Field
+                label="Upload"
+                hint="JPEG, PNG, or WEBP. Max 5MB."
+              >
+                <input
+                  name="featuredImage"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="block w-full text-xs"
+                  style={{ color: "var(--admin-text-soft)" }}
+                />
+              </Field>
+
+              <Field label="Alt text">
+                <Input
+                  name="featuredImageAlt"
+                  defaultValue={values.featuredImageAlt}
+                  placeholder="Describe the image"
+                />
+              </Field>
+
+              {values.featuredImageUrl ? (
+                <label
+                  className="inline-flex items-center gap-2 text-xs"
+                  style={{ color: "var(--admin-text-soft)" }}
+                >
+                  <input
+                    type="checkbox"
+                    name="removeFeaturedImage"
+                    value="1"
+                    className="h-4 w-4 rounded"
+                    style={{ borderColor: "var(--admin-border-strong)" }}
+                  />
+                  Remove existing image
+                </label>
+              ) : null}
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader title="Organization" />
+            <CardBody className="space-y-3">
+              <Field
+                label="Categories"
+                hint="Cmd/Ctrl-click for multiple."
+              >
+                <Select
+                  name="categoryIds"
+                  multiple
+                  defaultValue={values.categoryIds}
+                  className="min-h-24 py-1.5"
+                >
+                  {categories.length > 0 ? (
+                    categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))
+                  ) : (
+                    <option disabled value="">
+                      No categories
+                    </option>
+                  )}
+                </Select>
+              </Field>
+              <Field label="Tags">
+                <Select
+                  name="tagIds"
+                  multiple
+                  defaultValue={values.tagIds}
+                  className="min-h-24 py-1.5"
+                >
+                  {tags.length > 0 ? (
+                    tags.map((tag) => (
+                      <option key={tag.id} value={tag.id}>
+                        {tag.name}
+                      </option>
+                    ))
+                  ) : (
+                    <option disabled value="">
+                      No tags
+                    </option>
+                  )}
+                </Select>
+              </Field>
+            </CardBody>
+          </Card>
+        </aside>
+      </div>
+
+      <div
+        className="sticky bottom-3 grid items-center gap-4 rounded-md px-4 py-3 lg:grid-cols-[minmax(0,1fr)_320px]"
+        style={{
+          background: "var(--admin-surface)",
+          border: "1px solid var(--admin-border)",
+          boxShadow: "var(--admin-shadow-lg)",
+        }}
+      >
+        <span className="text-xs" style={{ color: "var(--admin-text-mute)" }}>
+          The URL slug is generated from the title when left blank.
+        </span>
+        <div className="flex justify-end">
+          <Button type="submit" variant="primary" size="md">
+            {submitLabel}
+          </Button>
         </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-1">
-            <label
-              htmlFor="categoryIds"
-              className="text-sm font-medium text-zinc-700"
-            >
-              Categories
-            </label>
-            <select
-              id="categoryIds"
-              name="categoryIds"
-              multiple
-              defaultValue={values.categoryIds}
-              className="min-h-32 w-full rounded border border-zinc-300 px-3 py-2 text-sm text-zinc-900"
-            >
-              {categories.length > 0 ? (
-                categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))
-              ) : (
-                <option disabled value="">
-                  No categories available
-                </option>
-              )}
-            </select>
-            <p className="text-xs text-zinc-500">
-              Hold Cmd/Ctrl to select multiple categories.
-            </p>
-          </div>
-
-          <div className="space-y-1">
-            <label
-              htmlFor="tagIds"
-              className="text-sm font-medium text-zinc-700"
-            >
-              Tags
-            </label>
-            <select
-              id="tagIds"
-              name="tagIds"
-              multiple
-              defaultValue={values.tagIds}
-              className="min-h-32 w-full rounded border border-zinc-300 px-3 py-2 text-sm text-zinc-900"
-            >
-              {tags.length > 0 ? (
-                tags.map((tag) => (
-                  <option key={tag.id} value={tag.id}>
-                    {tag.name}
-                  </option>
-                ))
-              ) : (
-                <option disabled value="">
-                  No tags available
-                </option>
-              )}
-            </select>
-            <p className="text-xs text-zinc-500">
-              Create new tags from taxonomy management if needed.
-            </p>
-          </div>
-        </div>
-
-        <button
-          type="submit"
-          className="inline-flex h-10 items-center rounded bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-700"
-        >
-          {submitLabel}
-        </button>
-      </form>
-    </section>
+      </div>
+    </form>
   );
 }
