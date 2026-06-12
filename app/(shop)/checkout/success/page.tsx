@@ -13,10 +13,10 @@ export default async function CheckoutSuccessPage({
   if (!sessionId) {
     return (
       <section className="container-page py-14 md:py-20">
-        <h1 className="font-serif text-4xl text-maroon-900 md:text-5xl">
+        <h1 className="font-serif text-4xl text-ink md:text-5xl">
           Order Confirmed
         </h1>
-        <p className="mt-4 max-w-2xl text-base text-warm-gray-700">
+        <p className="mt-4 max-w-2xl text-base text-ink-soft">
           Payment was completed. Your order details will appear shortly.
         </p>
       </section>

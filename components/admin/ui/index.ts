@@ -7,3 +7,4 @@ export { PageHeader } from "./page-header";
 export { EmptyState } from "./empty-state";
 export { Icon } from "./icons";
 export { RichTextEditor } from "./rich-text-editor";
+export { DataTable, type ColumnDef } from "./data-table";

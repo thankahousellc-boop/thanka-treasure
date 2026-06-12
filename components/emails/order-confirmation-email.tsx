@@ -5,6 +5,7 @@ import {
   Heading,
   Hr,
   Html,
+  Img,
   Link,
   Preview,
   Section,
@@ -23,6 +24,7 @@ type OrderItem = {
 
 type OrderConfirmationEmailProps = {
   shopName: string;
+  logoUrl: string | null;
   orderNumber: string;
   orderDate: string;
   currency: string;
@@ -38,6 +40,7 @@ type OrderConfirmationEmailProps = {
 
 export function OrderConfirmationEmail({
   shopName,
+  logoUrl,
   orderNumber,
   orderDate,
   currency,
@@ -56,6 +59,13 @@ export function OrderConfirmationEmail({
       <Preview>Order {orderNumber} confirmed</Preview>
       <Body style={body}>
         <Container style={container}>
+          {logoUrl ? (
+            <Section style={logoWrap}>
+              <Img src={logoUrl} alt={shopName} height={48} style={logoStyle} />
+            </Section>
+          ) : (
+            <Text style={brandWordmark}>{shopName}</Text>
+          )}
           <Heading style={heading}>Your order is confirmed</Heading>
           <Text style={paragraph}>Thank you for shopping with {shopName}.</Text>
           <Text style={paragraph}>Order: {orderNumber}</Text>
@@ -142,6 +152,25 @@ const container = {
   margin: "0 auto",
   maxWidth: "620px",
   padding: "24px",
+};
+
+const logoWrap = {
+  margin: "0 0 16px",
+};
+
+const logoStyle = {
+  height: "48px",
+  width: "auto",
+  display: "block",
+};
+
+const brandWordmark = {
+  color: "#111827",
+  fontSize: "16px",
+  fontWeight: "700" as const,
+  letterSpacing: "0.06em",
+  textTransform: "uppercase" as const,
+  margin: "0 0 16px",
 };
 
 const heading = {

@@ -475,6 +475,34 @@ export const blogRepository = {
     return post ?? null;
   },
 
+  async slugExistsForAdmin(slug: string, excludePostId?: string) {
+    await requireAdminSession();
+
+    const db = getDb();
+
+    const [row] = await db
+      .select({ id: blogPosts.id })
+      .from(blogPosts)
+      .where(eq(blogPosts.slug, slug))
+      .limit(1);
+
+    if (!row) return false;
+    return excludePostId ? row.id !== excludePostId : true;
+  },
+
+  async deleteForAdmin(id: string) {
+    await requireAdminSession();
+
+    const db = getDb();
+
+    const [deleted] = await db
+      .delete(blogPosts)
+      .where(eq(blogPosts.id, id))
+      .returning({ id: blogPosts.id, slug: blogPosts.slug });
+
+    return deleted ?? null;
+  },
+
   async findByIdWithTaxonomyForAdmin(id: string) {
     const db = getDb();
 

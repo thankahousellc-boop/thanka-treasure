@@ -17,7 +17,7 @@ Supabase is the backend today (Postgres, Auth, Storage), but **no app code impor
 | --------------------- | ---------------------------------- | ------------------------------- | ----------------------------------------------------------------------------- |
 | **Database queries**  | Drizzle ORM + Repository functions | `postgres.js` → Supabase pooler | Neon, Railway, RDS, Fly Postgres, self-hosted — change connection string only |
 | **Auth**              | `AuthProvider` interface           | `SupabaseAuthProvider`          | Better Auth, Auth.js, Clerk — write new provider class                        |
-| **Storage**           | `StorageProvider` interface        | `SupabaseStorageProvider`       | R2, S3, GCS, B2 — write new provider class                                    |
+| **Storage**           | `StorageProvider` interface        | `SupabaseStorageProvider` (dev) → **Cloudflare R2 (production)** | R2 is the planned production target — zero egress fees, S3-compatible API. S3, GCS, B2 remain viable alternatives. |
 | **Realtime** (future) | `RealtimeProvider` interface       | (not in MVP)                    | Pusher, Ably, self-hosted                                                     |
 
 ### The non-negotiable rules
@@ -1070,7 +1070,8 @@ Branching: `main` → production, `develop` → preview, feature branches off `d
 | Service                 | Free Tier                    | Paid Estimate           |
 | ----------------------- | ---------------------------- | ----------------------- |
 | Vercel                  | Hobby (free)                 | Pro: $20/mo             |
-| Supabase                | Free (500MB DB, 1GB storage) | Pro: $25/mo             |
+| Supabase (DB + Auth)    | Free (500MB DB)              | Pro: $25/mo             |
+| Cloudflare R2 (storage) | 10 GB storage free, **egress always free** | $0.015/GB stored, $0 egress |
 | Stripe                  | No monthly fee               | 2.9% + $0.30/txn        |
 | Stripe Tax              | N/A                          | +0.5%/txn               |
 | Sentry                  | Free (5K events/mo)          | $0 initially            |
@@ -1078,6 +1079,8 @@ Branching: `main` → production, `develop` → preview, feature branches off `d
 | Exchange Rate API       | Free (1500 req/mo)           | $0 initially            |
 | Domain                  | N/A                          | ~$12/year               |
 | **Total (pre-revenue)** |                              | **~$45–50/mo + domain** |
+
+> **Storage choice:** Cloudflare R2 is the planned production storage provider (not Supabase Storage). R2 is S3-compatible, ~30% cheaper per GB stored, and charges **$0 egress** vs. Supabase/S3's $0.09/GB. For an image-heavy Thangka catalog this is the dominant cost line at scale — savings reach hundreds of $/month once egress crosses ~1 TB/mo. Dev environments may continue using `SupabaseStorageProvider`; production swaps to `R2StorageProvider` per Appendix E.3.
 
 ---
 
@@ -1138,15 +1141,17 @@ The whole point of the abstraction work. Each migration is scoped to a small num
 
 **Estimated effort:** 1–2 days including user migration and testing.
 
-### E.3 Swap Storage provider (Supabase Storage → R2 / S3 / GCS / B2)
+### E.3 Swap Storage provider (Supabase Storage → **Cloudflare R2** / S3 / GCS / B2)
+
+**Cloudflare R2 is the planned production target.** R2 exposes the S3 API, so the same provider class works against AWS S3 with only endpoint/credential changes.
 
 **Files to change:**
 
-1. Create `src/lib/storage/providers/r2.ts` (or `gcs.ts`) implementing `StorageProvider`
+1. Create `src/lib/storage/providers/r2.ts` (uses `@aws-sdk/client-s3` against R2's S3-compatible endpoint) implementing `StorageProvider`
 2. Change one line in `src/lib/storage/index.ts`
 3. Migrate files: `rclone` or `aws s3 sync` from Supabase Storage to the new bucket, **preserving paths exactly** (Rule #5 — DB rows reference these paths)
-4. Update storage env vars (new endpoint, credentials)
-5. Update `next.config.js` `remotePatterns` to include the new domain
+4. Update storage env vars: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL` (custom domain or `pub-*.r2.dev`)
+5. Update `next.config.js` `remotePatterns` to include the R2 public domain
 6. (Inline blog images only) Run a one-time `UPDATE blog_posts SET content = REPLACE(content, 'old-domain', 'new-domain')` for legacy inline image URLs
 
 **Files NOT touched:** every upload handler, every component that displays an image, every repository. They all use `storage` from `@/lib/storage` and `resolveUrl()`.

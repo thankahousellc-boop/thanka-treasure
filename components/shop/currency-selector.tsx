@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 
 import { SUPPORTED_CURRENCIES } from "@/lib/currency/config";
 import { CURRENCY_COOKIE_NAME } from "@/lib/currency/constants";
@@ -21,24 +21,10 @@ export function CurrencySelector({
 }: CurrencySelectorProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [value, setValue] = useState(selectedCurrency);
+  const [optimisticValue, setOptimisticValue] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
-  const didMountRef = useRef(false);
 
-  useEffect(() => {
-    setValue(selectedCurrency);
-
-    if (!didMountRef.current) {
-      didMountRef.current = true;
-      return;
-    }
-
-    setStatusMessage(
-      `Display currency updated to ${selectedCurrency.toUpperCase()}.`,
-    );
-    const clearTimer = window.setTimeout(() => setStatusMessage(""), 1500);
-    return () => window.clearTimeout(clearTimer);
-  }, [selectedCurrency]);
+  const value = optimisticValue ?? selectedCurrency;
 
   return (
     <>
@@ -55,8 +41,10 @@ export function CurrencySelector({
           value={value}
           onChange={(event) => {
             const nextCurrency = event.target.value.toUpperCase();
-            setValue(nextCurrency);
-            setStatusMessage(`Updating display currency to ${nextCurrency}.`);
+            setOptimisticValue(nextCurrency);
+            setStatusMessage(
+              `Display currency updated to ${nextCurrency}.`,
+            );
 
             document.cookie = `${CURRENCY_COOKIE_NAME}=${nextCurrency}; Path=/; Max-Age=31536000; SameSite=Lax`;
             startTransition(() => {

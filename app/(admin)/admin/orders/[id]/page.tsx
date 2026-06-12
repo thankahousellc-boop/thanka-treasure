@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import {
@@ -8,6 +7,7 @@ import {
   updateOrderStatusAction,
 } from "../actions";
 
+import { Button, ButtonLink } from "@/components/admin/ui";
 import { auth } from "@/lib/auth";
 import { orderRepository } from "@/lib/repositories/order-repository";
 import { formatCurrency, formatDate } from "@/lib/utils/formatters";
@@ -102,12 +102,9 @@ export default async function AdminOrderDetailPage({
             Created {formatDate(order.createdAt)}
           </p>
         </div>
-        <Link
-          href="/admin/orders"
-          className="inline-flex h-9 items-center rounded border border-zinc-300 px-3 text-xs font-medium uppercase tracking-[0.06em] text-zinc-700 hover:bg-zinc-100"
-        >
+        <ButtonLink href="/admin/orders" variant="secondary" size="sm">
           Back to orders
-        </Link>
+        </ButtonLink>
       </div>
 
       <div className="grid gap-3 md:grid-cols-3">
@@ -292,12 +289,9 @@ export default async function AdminOrderDetailPage({
                 <option value="cancelled">Cancelled</option>
               </select>
             </label>
-            <button
-              type="submit"
-              className="inline-flex h-9 items-center rounded bg-zinc-900 px-3 text-xs font-medium uppercase tracking-[0.06em] text-white hover:bg-zinc-700"
-            >
+            <Button type="submit" size="sm">
               Update status
-            </button>
+            </Button>
           </form>
 
           <form
@@ -320,12 +314,9 @@ export default async function AdminOrderDetailPage({
                 <option value="restocked">Restocked</option>
               </select>
             </label>
-            <button
-              type="submit"
-              className="inline-flex h-9 items-center rounded border border-zinc-300 px-3 text-xs font-medium uppercase tracking-[0.06em] text-zinc-700 hover:bg-zinc-100"
-            >
+            <Button type="submit" size="sm" variant="secondary">
               Update fulfillment
-            </button>
+            </Button>
           </form>
 
           <form
@@ -345,12 +336,9 @@ export default async function AdminOrderDetailPage({
                 placeholder="Internal order notes visible to admins only"
               />
             </label>
-            <button
-              type="submit"
-              className="inline-flex h-9 items-center rounded border border-zinc-300 px-3 text-xs font-medium uppercase tracking-[0.06em] text-zinc-700 hover:bg-zinc-100"
-            >
+            <Button type="submit" size="sm" variant="secondary">
               Save notes
-            </button>
+            </Button>
           </form>
 
           <form
@@ -405,15 +393,17 @@ export default async function AdminOrderDetailPage({
               </select>
             </label>
 
-            <button
+            <Button
               type="submit"
-              className="inline-flex h-9 items-center rounded bg-zinc-900 px-3 text-xs font-medium uppercase tracking-[0.06em] text-white hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+              size="sm"
+              variant="danger"
               disabled={
                 !order.stripePaymentIntentId || order.paymentStatus !== "paid"
               }
+              className="disabled:cursor-not-allowed disabled:opacity-50"
             >
               Request refund
-            </button>
+            </Button>
 
             {!order.stripePaymentIntentId ? (
               <p className="text-xs text-zinc-500">

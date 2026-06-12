@@ -9,25 +9,25 @@ type PageHeaderProps = {
 
 export function PageHeader({ title, description, actions, eyebrow }: PageHeaderProps) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="min-w-0">
         {eyebrow ? (
           <p
-            className="mb-1 text-[10.5px] font-semibold uppercase tracking-[0.16em]"
+            className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]"
             style={{ color: "var(--admin-saffron)" }}
           >
             {eyebrow}
           </p>
         ) : null}
         <h1
-          className="admin-display text-[28px] font-medium leading-tight md:text-[32px]"
+          className="text-[18px] font-semibold leading-tight"
           style={{ color: "var(--admin-text)" }}
         >
           {title}
         </h1>
         {description ? (
           <p
-            className="mt-1.5 max-w-2xl text-sm"
+            className="mt-0.5 max-w-2xl text-[12.5px]"
             style={{ color: "var(--admin-text-soft)" }}
           >
             {description}

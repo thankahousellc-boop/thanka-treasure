@@ -5,12 +5,15 @@ import {
   Head,
   Heading,
   Html,
+  Img,
   Preview,
   Section,
   Text,
 } from "@react-email/components";
 
 type NewsletterCampaignEmailProps = {
+  brandName: string;
+  logoUrl: string | null;
   heading: string;
   body: string;
   ctaLabel: string | null;
@@ -18,6 +21,8 @@ type NewsletterCampaignEmailProps = {
 };
 
 export function NewsletterCampaignEmail({
+  brandName,
+  logoUrl,
   heading,
   body,
   ctaLabel,
@@ -29,6 +34,18 @@ export function NewsletterCampaignEmail({
       <Preview>{heading}</Preview>
       <Body style={bodyStyle}>
         <Container style={containerStyle}>
+          {logoUrl ? (
+            <Section style={logoWrap}>
+              <Img
+                src={logoUrl}
+                alt={brandName}
+                height={48}
+                style={logoStyle}
+              />
+            </Section>
+          ) : (
+            <Text style={brandWordmark}>{brandName}</Text>
+          )}
           <Heading style={headingStyle}>{heading}</Heading>
           <Section>
             {body
@@ -48,8 +65,8 @@ export function NewsletterCampaignEmail({
             </Section>
           ) : null}
           <Text style={footerStyle}>
-            You are receiving this email because you subscribed to Tibetan
-            Thanka Treasure updates.
+            You are receiving this email because you subscribed to {brandName}{" "}
+            updates.
           </Text>
         </Container>
       </Body>
@@ -71,6 +88,25 @@ const containerStyle = {
   margin: "0 auto",
   maxWidth: "620px",
   padding: "24px",
+};
+
+const logoWrap = {
+  margin: "0 0 16px",
+};
+
+const logoStyle = {
+  height: "48px",
+  width: "auto",
+  display: "block",
+};
+
+const brandWordmark = {
+  color: "#111827",
+  fontSize: "16px",
+  fontWeight: "700" as const,
+  letterSpacing: "0.06em",
+  textTransform: "uppercase" as const,
+  margin: "0 0 16px",
 };
 
 const headingStyle = {

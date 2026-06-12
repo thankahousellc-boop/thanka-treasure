@@ -191,11 +191,11 @@ export function CartDrawer({ displayCurrency, exchangeRates }: CartDrawerProps) 
                                 `${item.title} quantity updated to ${next}.`,
                               );
                             }}
-                            className="grid h-8 w-8 place-items-center text-ink-soft hover:bg-paper-2 hover:text-ink"
+                            className="grid h-10 w-10 place-items-center text-ink-soft transition-colors hover:bg-paper-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-saffron"
                           >
                             −
                           </button>
-                          <span className="grid h-8 min-w-8 place-items-center px-2 text-sm tabular-nums text-ink">
+                          <span className="grid h-10 min-w-10 place-items-center px-2 text-sm tabular-nums text-ink">
                             {item.quantity}
                           </span>
                           <button
@@ -208,7 +208,7 @@ export function CartDrawer({ displayCurrency, exchangeRates }: CartDrawerProps) 
                                 `${item.title} quantity updated to ${next}.`,
                               );
                             }}
-                            className="grid h-8 w-8 place-items-center text-ink-soft hover:bg-paper-2 hover:text-ink"
+                            className="grid h-10 w-10 place-items-center text-ink-soft transition-colors hover:bg-paper-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-saffron"
                           >
                             +
                           </button>

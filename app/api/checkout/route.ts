@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import type Stripe from "stripe";
 
 import { convertUsdToCurrency, getExchangeRates } from "@/lib/currency/context";
 import { publicEnv, serverEnv } from "@/lib/env";
@@ -112,9 +111,7 @@ function resolveDestinationCountry(request: Request) {
   return "US";
 }
 
-function buildDefaultShippingOptions(
-  currency: string,
-): CarrierShippingOption[] {
+function buildDefaultShippingOptions(): CarrierShippingOption[] {
   return [
     {
       displayName: "Free International Shipping",
@@ -273,7 +270,7 @@ async function buildShippingOptions(input: {
   return {
     source: "fallback",
     options: toStripeShippingOptions(
-      buildDefaultShippingOptions(input.currency),
+      buildDefaultShippingOptions(),
       input.currency,
     ),
   };

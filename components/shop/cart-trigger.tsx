@@ -11,7 +11,7 @@ export function CartTrigger() {
       type="button"
       onClick={open}
       aria-label="Open cart"
-      className="relative grid h-9 w-9 place-items-center rounded-full text-ink-soft transition-colors hover:bg-paper-2 hover:text-ink"
+      className="relative grid h-11 w-11 place-items-center rounded-full text-ink-soft transition-colors hover:bg-paper-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
     >
       <svg
         width="18"

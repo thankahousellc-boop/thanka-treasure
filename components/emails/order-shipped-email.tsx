@@ -5,6 +5,7 @@ import {
   Heading,
   Hr,
   Html,
+  Img,
   Link,
   Preview,
   Section,
@@ -22,6 +23,7 @@ type OrderItem = {
 
 type OrderShippedEmailProps = {
   shopName: string;
+  logoUrl: string | null;
   orderNumber: string;
   currency: string;
   grandTotal: number;
@@ -32,6 +34,7 @@ type OrderShippedEmailProps = {
 
 export function OrderShippedEmail({
   shopName,
+  logoUrl,
   orderNumber,
   currency,
   grandTotal,
@@ -45,6 +48,13 @@ export function OrderShippedEmail({
       <Preview>Order {orderNumber} has shipped</Preview>
       <Body style={body}>
         <Container style={container}>
+          {logoUrl ? (
+            <Section style={logoWrap}>
+              <Img src={logoUrl} alt={shopName} height={48} style={logoStyle} />
+            </Section>
+          ) : (
+            <Text style={brandWordmark}>{shopName}</Text>
+          )}
           <Heading style={heading}>Your order is on the way</Heading>
           <Text style={paragraph}>
             Great news from {shopName}: order {orderNumber} was marked as
@@ -103,6 +113,25 @@ const container = {
   margin: "0 auto",
   maxWidth: "620px",
   padding: "24px",
+};
+
+const logoWrap = {
+  margin: "0 0 16px",
+};
+
+const logoStyle = {
+  height: "48px",
+  width: "auto",
+  display: "block",
+};
+
+const brandWordmark = {
+  color: "#111827",
+  fontSize: "16px",
+  fontWeight: "700" as const,
+  letterSpacing: "0.06em",
+  textTransform: "uppercase" as const,
+  margin: "0 0 16px",
 };
 
 const heading = {

@@ -26,6 +26,10 @@ const blogFormSchema = z.object({
 const blogImageMimeTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const blogImageSizeLimitBytes = 5 * 1024 * 1024;
 
+export type BlogPostActionState = {
+  error?: string | null;
+} | null;
+
 function getString(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
@@ -103,12 +107,14 @@ function parseBlogForm(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error("Invalid blog post form payload.");
+    const first = parsed.error.issues[0];
+    const path = first?.path?.join(".") ?? "form";
+    throw new Error(`Invalid form: ${path} — ${first?.message ?? "unknown"}`);
   }
 
   const slug = normalizeSlug(parsed.data.slug, parsed.data.title);
   if (!slug) {
-    throw new Error("Unable to generate a valid slug.");
+    throw new Error("Unable to generate a valid slug from the title.");
   }
 
   if (countContentCharacters(parsed.data.content) < 10) {
@@ -180,6 +186,7 @@ async function filterExistingTaxonomyIds(
 function revalidateBlogPaths(slugs: string[]) {
   revalidatePath("/admin/blog");
   revalidatePath("/admin/blog/categories");
+  revalidatePath("/");
   revalidatePath("/blogs");
 
   for (const slug of slugs) {
@@ -187,9 +194,16 @@ function revalidateBlogPaths(slugs: string[]) {
   }
 }
 
-export async function createBlogPostAction(formData: FormData) {
+async function performCreate(formData: FormData) {
   const session = await assertAdmin();
   const payload = parseBlogForm(formData);
+
+  if (await blogRepository.slugExistsForAdmin(payload.slug)) {
+    throw new Error(
+      `The slug "${payload.slug}" is already in use. Choose another or edit the existing post.`,
+    );
+  }
+
   const featuredImageFile = formData.get("featuredImage");
 
   const uploadedFeaturedImage =
@@ -230,10 +244,10 @@ export async function createBlogPostAction(formData: FormData) {
   const publishedSlugs = payload.status === "published" ? [created.slug] : [];
   revalidateBlogPaths(publishedSlugs);
 
-  redirect(`/admin/blog/${created.id}`);
+  return created;
 }
 
-export async function updateBlogPostAction(postId: string, formData: FormData) {
+async function performUpdate(postId: string, formData: FormData) {
   await assertAdmin();
 
   const existing = await blogRepository.findByIdForAdmin(postId);
@@ -242,6 +256,16 @@ export async function updateBlogPostAction(postId: string, formData: FormData) {
   }
 
   const payload = parseBlogForm(formData);
+
+  if (
+    payload.slug !== existing.slug &&
+    (await blogRepository.slugExistsForAdmin(payload.slug, postId))
+  ) {
+    throw new Error(
+      `The slug "${payload.slug}" is already used by another post.`,
+    );
+  }
+
   const featuredImageFile = formData.get("featuredImage");
   const uploadedFeaturedImage =
     featuredImageFile instanceof File && featuredImageFile.size > 0
@@ -295,5 +319,49 @@ export async function updateBlogPostAction(postId: string, formData: FormData) {
 
   revalidateBlogPaths(uniqueIds(publishedSlugs));
 
+  return updated;
+}
+
+export async function createBlogPostAction(
+  _prevState: BlogPostActionState,
+  formData: FormData,
+): Promise<BlogPostActionState> {
+  let created: Awaited<ReturnType<typeof performCreate>>;
+  try {
+    created = await performCreate(formData);
+  } catch (error) {
+    return { error: (error as Error).message };
+  }
+  // redirect() throws a special error — keep it outside the try/catch.
+  redirect(`/admin/blog/${created.id}`);
+}
+
+export async function updateBlogPostAction(
+  postId: string,
+  _prevState: BlogPostActionState,
+  formData: FormData,
+): Promise<BlogPostActionState> {
+  let updated: Awaited<ReturnType<typeof performUpdate>>;
+  try {
+    updated = await performUpdate(postId, formData);
+  } catch (error) {
+    return { error: (error as Error).message };
+  }
   redirect(`/admin/blog/${updated.id}`);
+}
+
+export async function deleteBlogPostAction(formData: FormData) {
+  await assertAdmin();
+  const postId = getString(formData, "postId");
+  if (!postId) {
+    throw new Error("Missing post id.");
+  }
+
+  const deleted = await blogRepository.deleteForAdmin(postId);
+  if (!deleted) {
+    throw new Error("Blog post not found or already deleted.");
+  }
+
+  revalidateBlogPaths([deleted.slug]);
+  redirect("/admin/blog");
 }

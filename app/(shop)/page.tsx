@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { BlogCard } from "@/components/shop/blog-card";
@@ -72,6 +73,8 @@ export const revalidate = 3600;
 export default async function HomePage() {
   const { currency, rates } = await getCurrencyContext();
   const { featuredProducts, blogPosts } = await loadHomeData(currency, rates);
+  const heroProduct = featuredProducts[0] ?? null;
+  const craftProduct = featuredProducts[1] ?? featuredProducts[0] ?? null;
 
   return (
     <div>
@@ -111,68 +114,33 @@ export default async function HomePage() {
           </div>
 
           <div className="relative">
-            <div className="relative aspect-[4/5] overflow-hidden rounded-md bg-gradient-to-br from-ink via-ink-soft to-paper-3 shadow-(--shadow-2)">
-              <svg
-                viewBox="0 0 400 500"
-                preserveAspectRatio="xMidYMid slice"
-                className="h-full w-full"
-                aria-hidden="true"
-              >
-                <defs>
-                  <radialGradient id="hero-bg" cx="50%" cy="42%" r="70%">
-                    <stop offset="0%" stopColor="#5C1F2A" />
-                    <stop offset="100%" stopColor="#3D1018" />
-                  </radialGradient>
-                  <radialGradient id="hero-halo" cx="50%" cy="48%" r="50%">
-                    <stop
-                      offset="0%"
-                      stopColor="#E6B97A"
-                      stopOpacity="0.55"
-                    />
-                    <stop offset="100%" stopColor="#E6B97A" stopOpacity="0" />
-                  </radialGradient>
-                </defs>
-                <rect width="400" height="500" fill="url(#hero-bg)" />
-                <rect
-                  x="14"
-                  y="14"
-                  width="372"
-                  height="472"
-                  fill="none"
-                  stroke="#B58A4A"
-                  strokeWidth="1"
-                  opacity="0.45"
+            <Link
+              href={heroProduct ? `/products/${heroProduct.slug}` : "/products"}
+              aria-label={
+                heroProduct
+                  ? `View ${heroProduct.title}`
+                  : "Browse featured Thangkas"
+              }
+              className="group relative block aspect-4/5 overflow-hidden rounded-md bg-ink shadow-(--shadow-2) outline-none focus-visible:ring-2 focus-visible:ring-saffron focus-visible:ring-offset-2"
+            >
+              {heroProduct ? (
+                <Image
+                  src={heroProduct.primaryImage}
+                  alt={heroProduct.title}
+                  fill
+                  priority
+                  sizes="(max-width: 768px) 100vw, 45vw"
+                  className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
                 />
-                <circle cx="200" cy="240" r="180" fill="url(#hero-halo)" />
-                <g transform="translate(200 360)" fill="#C9772D" opacity="0.95">
-                  <path d="M0 0 q-60 -30 -90 -8 q-20 14 -8 26 q26 18 98 -2z" />
-                  <path d="M0 0 q60 -30 90 -8 q20 14 8 26 q-26 18 -98 -2z" />
-                  <path d="M0 4 q-40 -10 -50 14 q-4 12 8 16 q22 6 42 -16z" />
-                  <path d="M0 4 q40 -10 50 14 q4 12 -8 16 q-22 6 -42 -16z" />
-                </g>
-                <g transform="translate(200 240)">
-                  <ellipse
-                    cx="0"
-                    cy="20"
-                    rx="78"
-                    ry="92"
-                    fill="#C9772D"
-                    opacity="0.85"
-                  />
-                  <ellipse cx="0" cy="-44" rx="22" ry="28" fill="#E6B97A" />
-                  <path
-                    d="M-9 -70 Q0 -85 9 -70 Q0 -76 -9 -70Z"
-                    fill="#E6B97A"
-                  />
-                  <path
-                    d="M-46 52 Q-30 24 0 28 Q30 24 46 52 Q30 66 0 66 Q-30 66 -46 52Z"
-                    fill="#E6B97A"
-                    opacity="0.75"
-                  />
-                </g>
-              </svg>
-            </div>
-            <div className="absolute -bottom-6 -left-6 hidden rounded-md bg-paper p-5 shadow-(--shadow-1) md:block">
+              ) : (
+                <div className="absolute inset-0 bg-linear-to-br from-ink via-ink-soft to-paper-3" />
+              )}
+              <div
+                className="pointer-events-none absolute inset-3.5 border border-gold/40"
+                aria-hidden="true"
+              />
+            </Link>
+            <div className="absolute -bottom-6 -left-6 hidden max-w-[18rem] rounded-md bg-paper p-5 shadow-(--shadow-1) md:block">
               <p className="font-serif text-[15px] italic text-ink-soft">
                 &ldquo;I do not paint a Buddha. I uncover the one already
                 waiting in the cloth.&rdquo;
@@ -223,49 +191,27 @@ export default async function HomePage() {
       {/* The Craft (story) */}
       <section className="border-b border-(--line-soft) bg-paper-2 py-20 md:py-24">
         <div className="container-page grid items-center gap-16 max-md:gap-9 md:grid-cols-[1fr_1.1fr]">
-          <div className="relative aspect-[5/6] overflow-hidden rounded-md bg-paper-3 shadow-(--shadow-1)">
-            <svg
-              viewBox="0 0 400 500"
-              preserveAspectRatio="xMidYMid slice"
-              className="h-full w-full"
-              aria-hidden="true"
+          {craftProduct ? (
+            <Link
+              href={`/products/${craftProduct.slug}`}
+              aria-label={`View ${craftProduct.title}`}
+              className="group relative block aspect-5/6 overflow-hidden rounded-md bg-paper-3 shadow-(--shadow-1) outline-none focus-visible:ring-2 focus-visible:ring-saffron focus-visible:ring-offset-2"
             >
-              <defs>
-                <radialGradient id="craft-bg" cx="50%" cy="42%" r="70%">
-                  <stop offset="0%" stopColor="#7A2E3A" />
-                  <stop offset="100%" stopColor="#3D1018" />
-                </radialGradient>
-              </defs>
-              <rect width="400" height="500" fill="url(#craft-bg)" />
-              <g
-                transform="translate(200 250)"
-                stroke="#E6B97A"
-                fill="none"
-                strokeWidth="0.7"
-                opacity="0.95"
-              >
-                <circle r="180" />
-                <circle r="150" />
-                <circle r="120" />
-                <circle r="90" />
-                <circle r="60" />
-                <circle r="30" />
-                {Array.from({ length: 24 }).map((_, i) => (
-                  <line
-                    key={i}
-                    x1="0"
-                    y1="0"
-                    x2={Math.cos((i * Math.PI) / 12) * 180}
-                    y2={Math.sin((i * Math.PI) / 12) * 180}
-                    strokeWidth="0.3"
-                  />
-                ))}
-              </g>
-              <g transform="translate(200 250)" fill="#C9772D">
-                <circle r="22" />
-              </g>
-            </svg>
-          </div>
+              <Image
+                src={craftProduct.primaryImage}
+                alt={craftProduct.title}
+                fill
+                sizes="(max-width: 768px) 100vw, 45vw"
+                className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+              />
+              <div
+                className="pointer-events-none absolute inset-3.5 border border-gold/30"
+                aria-hidden="true"
+              />
+            </Link>
+          ) : (
+            <div className="relative aspect-5/6 overflow-hidden rounded-md bg-linear-to-br from-ink-soft to-maroon-900 shadow-(--shadow-1)" />
+          )}
           <div>
             <p className="mb-4 text-[11.5px] font-medium uppercase tracking-[0.22em] text-saffron">
               The craft

@@ -63,7 +63,5 @@ Configure each variable in Vercel Project Settings -> Environment Variables.
    - `pnpm ops:verify:secrets`
 4. Verify health endpoint:
    - `GET /api/health` should return `ok: true`.
-5. Verify cron authorization:
-   - include `Authorization: Bearer <CRON_SECRET>` for cron routes.
-6. Verify alerting path:
-   - run `POST /api/cron/health-check` with auth in a staging environment.
+5. Verify detailed health output:
+   - `GET /api/health` with `Authorization: Bearer <CRON_SECRET>` should include per-check details. Configure your external uptime monitor (UptimeRobot / Better Stack / etc.) against this URL.

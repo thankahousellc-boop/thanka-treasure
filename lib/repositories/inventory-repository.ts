@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, ilike, isNull, or, sql } from "drizzle-orm";
+import { and, asc, eq, gte, ilike, isNull, or, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { inventory, products, productVariants } from "@/db/schema";

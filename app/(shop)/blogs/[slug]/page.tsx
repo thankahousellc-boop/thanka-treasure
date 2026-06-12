@@ -9,6 +9,8 @@ import { buildMetaDescription, getAbsoluteUrl, toPlainText } from "@/lib/seo";
 import { resolveUrl } from "@/lib/storage/resolve-url";
 import { formatDate } from "@/lib/utils/formatters";
 
+import { BlogViewTracker } from "./blog-view-tracker";
+
 type BlogDetailPageProps = {
   params: Promise<{ slug: string }>;
 };
@@ -156,6 +158,7 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
       />
+      <BlogViewTracker postId={post.id} />
       <article className="container-page py-14 md:py-20">
         <p className="text-xs uppercase tracking-[0.08em] text-warm-gray-500">
           {formatDate(post.publishedAt ?? post.createdAt)}

@@ -360,8 +360,8 @@ export default async function CollectionPage({
         </div>
       ) : null}
 
-      <form className="mt-8 grid gap-3 border border-border-light bg-white p-4 md:grid-cols-2 lg:grid-cols-5">
-        <label className="space-y-1 md:col-span-2">
+      <form className="mt-8 grid gap-3 border border-paper-3 bg-paper p-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        <label className="space-y-1 sm:col-span-2 md:col-span-3 lg:col-span-2">
           <span className="text-xs uppercase tracking-[0.08em] text-warm-gray-500">
             Search
           </span>

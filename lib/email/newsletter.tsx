@@ -1,4 +1,5 @@
 import { NewsletterCampaignEmail } from "@/components/emails/newsletter-campaign-email";
+import { getBranding } from "@/lib/branding";
 import { resend, resendFromEmail } from "@/lib/email/client";
 
 type NewsletterRecipient = {
@@ -57,6 +58,7 @@ export async function sendNewsletterCampaign(
 
   const resendClient = resend;
   const recipientChunks = chunkRecipients(input.recipients);
+  const branding = await getBranding();
 
   for (const chunk of recipientChunks) {
     const batchResults = await Promise.all(
@@ -68,6 +70,8 @@ export async function sendNewsletterCampaign(
             subject: input.subject,
             react: (
               <NewsletterCampaignEmail
+                brandName={branding.brandName}
+                logoUrl={branding.logoLightUrl}
                 heading={input.heading}
                 body={input.body}
                 ctaLabel={input.ctaLabel}

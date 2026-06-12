@@ -34,10 +34,10 @@ export default async function AccountAddressesPage() {
 
   return (
     <section className="container-page py-14 md:py-20">
-      <h1 className="font-serif text-4xl text-maroon-900 md:text-5xl">
+      <h1 className="font-serif text-4xl text-ink md:text-5xl">
         Address Book
       </h1>
-      <p className="mt-4 max-w-2xl text-base text-warm-gray-700">
+      <p className="mt-4 max-w-2xl text-base text-ink-soft">
         Your saved shipping and billing addresses.
       </p>
 
@@ -46,20 +46,20 @@ export default async function AccountAddressesPage() {
           {rows.map((address) => (
             <article
               key={address.id}
-              className="border border-border-light bg-white p-5 text-sm text-warm-gray-700"
+              className="border border-paper-3 bg-paper p-5 text-sm text-ink-soft"
             >
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs uppercase tracking-[0.08em] text-warm-gray-500">
+                <p className="text-xs uppercase tracking-[0.08em] text-ink-mute">
                   {address.type}
                 </p>
                 {address.isDefault ? (
-                  <span className="text-xs uppercase tracking-[0.08em] text-maroon-700">
+                  <span className="text-xs uppercase tracking-[0.08em] text-ink-soft">
                     Default
                   </span>
                 ) : null}
               </div>
 
-              <p className="mt-2 font-medium text-warm-gray-900">
+              <p className="mt-2 font-medium text-ink">
                 {[address.firstName, address.lastName]
                   .filter(Boolean)
                   .join(" ") || "Saved Address"}
@@ -77,7 +77,7 @@ export default async function AccountAddressesPage() {
               </p>
 
               {address.phone ? (
-                <p className="mt-1 text-xs text-warm-gray-500">
+                <p className="mt-1 text-xs text-ink-mute">
                   {address.phone}
                 </p>
               ) : null}
@@ -85,14 +85,14 @@ export default async function AccountAddressesPage() {
           ))}
         </div>
       ) : (
-        <div className="mt-8 border border-border-light bg-white p-6 text-sm text-warm-gray-600">
+        <div className="mt-8 border border-paper-3 bg-paper p-6 text-sm text-ink-mute">
           <p>No saved addresses yet.</p>
           <p className="mt-2">
             Addresses added during checkout will appear here.
           </p>
           <Link
             href="/products"
-            className="mt-3 inline-flex text-sm font-medium text-maroon-700 hover:text-maroon-600"
+            className="mt-3 inline-flex text-sm font-medium text-ink-soft hover:text-ink"
           >
             Continue shopping
           </Link>

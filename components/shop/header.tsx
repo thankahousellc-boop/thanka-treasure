@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { CartTrigger } from "@/components/shop/cart-trigger";
 import { CurrencySelector } from "@/components/shop/currency-selector";
+import { MobileMenu } from "@/components/shop/mobile-menu";
 import { getBranding } from "@/lib/branding";
 
 const leftLinks = [
@@ -40,23 +41,11 @@ export async function ShopHeader({ currency }: ShopHeaderProps) {
           ))}
         </nav>
         <div className="md:hidden">
-          <button
-            type="button"
-            aria-label="Open menu"
-            className="grid h-9 w-9 place-items-center rounded-full text-ink-soft hover:bg-paper-2 hover:text-ink"
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-            >
-              <path d="M4 7h16M4 12h16M4 17h16" />
-            </svg>
-          </button>
+          <MobileMenu
+            links={mobileLinks}
+            currency={currency}
+            brandName={branding.brandName}
+          />
         </div>
 
         {/* Centered brand */}
@@ -110,7 +99,7 @@ export async function ShopHeader({ currency }: ShopHeaderProps) {
           <Link
             href="/search"
             aria-label="Search"
-            className="grid h-9 w-9 place-items-center rounded-full text-ink-soft transition-colors hover:bg-paper-2 hover:text-ink"
+            className="grid h-11 w-11 place-items-center rounded-full text-ink-soft transition-colors hover:bg-paper-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
           >
             <svg
               width="18"
@@ -129,7 +118,7 @@ export async function ShopHeader({ currency }: ShopHeaderProps) {
           <Link
             href="/account"
             aria-label="Account"
-            className="grid h-9 w-9 place-items-center rounded-full text-ink-soft transition-colors hover:bg-paper-2 hover:text-ink max-md:hidden"
+            className="grid h-11 w-11 place-items-center rounded-full text-ink-soft transition-colors hover:bg-paper-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron focus-visible:ring-offset-2 focus-visible:ring-offset-paper max-md:hidden"
           >
             <svg
               width="18"
@@ -148,30 +137,6 @@ export async function ShopHeader({ currency }: ShopHeaderProps) {
           <CartTrigger />
         </div>
       </div>
-
-      {/* Mobile horizontal link rail */}
-      <nav
-        aria-label="Primary mobile"
-        className="border-t border-(--line-soft) md:hidden"
-      >
-        <div className="flex items-center gap-5 overflow-x-auto px-5 py-2 text-[12px] uppercase tracking-[0.1em] text-ink-soft">
-          {mobileLinks.map((link) => (
-            <Link
-              key={`mobile-${link.href}`}
-              href={link.href}
-              className="shrink-0 hover:text-ink"
-            >
-              {link.label}
-            </Link>
-          ))}
-          <CurrencySelector
-            selectedCurrency={currency}
-            className="ml-auto shrink-0 text-[11px] uppercase tracking-[0.08em] text-ink-soft"
-            labelClassName="text-ink-mute"
-            selectClassName="h-6 border-0 bg-transparent text-[11px] tracking-[0.06em] text-ink"
-          />
-        </div>
-      </nav>
     </header>
   );
 }

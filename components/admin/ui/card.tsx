@@ -8,7 +8,7 @@ type CardProps = {
 export function Card({ children, className = "" }: CardProps) {
   return (
     <div
-      className={`rounded-xl ${className}`}
+      className={`rounded-lg ${className}`}
       style={{
         background: "var(--admin-surface)",
         border: "1px solid var(--admin-border)",
@@ -35,19 +35,19 @@ export function CardHeader({
 }: CardHeaderProps) {
   return (
     <div
-      className={`flex items-start justify-between gap-4 px-5 py-4 ${className}`}
+      className={`flex items-start justify-between gap-4 px-4 py-2.5 ${className}`}
       style={{ borderBottom: "1px solid var(--admin-border)" }}
     >
       <div className="min-w-0">
         <h3
-          className="text-[13.5px] font-semibold"
+          className="text-[13px] font-semibold"
           style={{ color: "var(--admin-text)" }}
         >
           {title}
         </h3>
         {description ? (
           <p
-            className="mt-1 text-xs"
+            className="mt-0.5 text-[11.5px] leading-snug"
             style={{ color: "var(--admin-text-mute)" }}
           >
             {description}
@@ -66,7 +66,7 @@ export function CardBody({
   children: ReactNode;
   className?: string;
 }) {
-  return <div className={`px-5 py-5 ${className}`}>{children}</div>;
+  return <div className={`px-4 py-3.5 ${className}`}>{children}</div>;
 }
 
 export function CardFooter({
@@ -78,7 +78,7 @@ export function CardFooter({
 }) {
   return (
     <div
-      className={`px-5 py-3 text-xs ${className}`}
+      className={`px-4 py-2.5 text-xs ${className}`}
       style={{
         background: "var(--admin-surface-2)",
         borderTop: "1px solid var(--admin-border)",

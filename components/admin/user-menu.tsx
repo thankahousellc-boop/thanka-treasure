@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { Icon } from "@/components/admin/ui/icons";
@@ -97,13 +98,13 @@ export function UserMenu({ email, signOutAction }: UserMenuProps) {
               {email}
             </p>
           </div>
-          <a
+          <Link
             href="/"
             className="flex items-center gap-2 px-3 py-2.5 text-sm transition hover:opacity-90"
             style={{ color: "var(--admin-text-soft)" }}
           >
             <Icon.Layers width={14} height={14} /> View storefront
-          </a>
+          </Link>
           <form action={signOutAction}>
             <button
               type="submit"

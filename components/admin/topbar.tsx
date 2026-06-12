@@ -18,7 +18,7 @@ export async function AdminTopbar() {
 
   return (
     <header
-      className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 px-5 backdrop-blur md:px-8"
+      className="sticky top-0 z-30 flex h-11 items-center justify-between gap-3 px-4 backdrop-blur md:px-6"
       style={{
         background: "rgba(255, 255, 255, 0.85)",
         borderBottom: "1px solid var(--admin-border)",

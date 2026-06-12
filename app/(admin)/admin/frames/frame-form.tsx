@@ -10,7 +10,6 @@ import {
   ButtonLink,
   Card,
   CardBody,
-  CardHeader,
   Field,
   Icon,
   Input,
@@ -201,421 +200,445 @@ export function FrameForm({
     Boolean(frameId) && Boolean(existingUrl) && !pickedFile && !removeExistingImage;
 
   return (
-    <div className="grid gap-5 lg:grid-cols-3">
-      <form action={formAction} noValidate className="space-y-5 lg:col-span-2">
+    <div className="space-y-3">
+      <div
+        className="flex items-center justify-between gap-3 rounded-md px-3 py-2"
+        style={{
+          background: "var(--admin-surface)",
+          border: "1px solid var(--admin-border)",
+        }}
+      >
+        <p
+          className="truncate text-[12px]"
+          style={{ color: "var(--admin-text-mute)" }}
+        >
+          {pickedFile
+            ? "Unsaved image change"
+            : removeExistingImage
+              ? "Image will be removed on save"
+              : "All changes apply on save"}
+        </p>
+        <div className="flex items-center gap-2">
+          {deleteAction && frameId ? (
+            <DeleteFrameForm action={deleteAction} frameId={frameId} />
+          ) : null}
+          <ButtonLink href={cancelHref} variant="secondary" size="sm">
+            Cancel
+          </ButtonLink>
+          <Button
+            form="frame-form"
+            type="submit"
+            disabled={isPending}
+            size="sm"
+          >
+            {isPending ? submittingLabel : submitLabel}
+          </Button>
+        </div>
+      </div>
+
+      <form id="frame-form" action={formAction} noValidate>
         {frameId ? (
           <input type="hidden" name="frameId" value={frameId} />
         ) : null}
 
         <Card>
-          <CardHeader title="Frame details" />
-          <CardBody className="space-y-4">
-            <Field
-              label="Name"
-              hint="Shown on the product page (e.g. 'Brocade Silk · Maroon')."
-            >
-              <Input
-                name="name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                required
-                maxLength={120}
-              />
-            </Field>
-            <Field
-              label="Slug"
-              hint={
-                slugDisplay
-                  ? `Will be saved as “${slugDisplay}”.`
-                  : "Generated from the name when blank."
-              }
-            >
-              <Input
-                name="slug"
-                value={slug}
-                onChange={(event) => setSlug(event.target.value)}
-                maxLength={180}
-                placeholder={slugSuggestion || "frame-slug"}
-              />
-            </Field>
-            <Field
-              label="Description"
-              hint="Optional. Brief detail to help shoppers choose."
-            >
-              <Textarea
-                name="description"
-                rows={3}
-                defaultValue={values.description}
-                maxLength={2000}
-              />
-            </Field>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field
-                label="Price add-on (USD)"
-                hint="Set 0 if the frame is included."
-              >
-                <Input
-                  name="priceDelta"
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={priceDelta}
-                  onChange={(event) => setPriceDelta(event.target.value)}
-                />
-              </Field>
-              <div className="block space-y-1.5">
-                <span
-                  className="text-[12.5px] font-medium"
-                  style={{ color: "var(--admin-text-soft)" }}
+          <CardBody className="grid gap-5 lg:grid-cols-12">
+            <div className="space-y-4 lg:col-span-7">
+              <SubHeader title="Details" />
+              <div className="grid gap-3">
+                <Field
+                  label="Name"
+                  hint="Shown on the product page (e.g. 'Brocade Silk · Maroon')."
                 >
-                  Visibility
-                </span>
-                <label
-                  className="flex h-10 cursor-pointer items-center gap-2.5 rounded-md px-3 text-sm"
-                  style={{
-                    background: "var(--admin-surface)",
-                    border: "1px solid var(--admin-border-strong)",
-                    color: "var(--admin-text)",
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    name="isActive"
-                    value="on"
-                    checked={isActive}
-                    onChange={(event) => setIsActive(event.target.checked)}
-                    className="h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900"
+                  <Input
+                    name="name"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    required
+                    maxLength={120}
                   />
-                  <span>
-                    {isActive
-                      ? "Active — assignable to products"
-                      : "Hidden from product picker"}
-                  </span>
-                </label>
-                <span
-                  className="block text-[11px]"
-                  style={{ color: "var(--admin-text-mute)" }}
+                </Field>
+                <Field
+                  label="Slug"
+                  hint={
+                    slugDisplay
+                      ? `Will be saved as “${slugDisplay}”.`
+                      : "Generated from the name when blank."
+                  }
                 >
-                  Inactive frames stay in the catalog but won&apos;t appear
-                  on the storefront.
-                </span>
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader
-            title="Frame image"
-            description="Transparent PNG or SVG up to 5MB. The center must be transparent so the product image shows through."
-          />
-          <CardBody className="space-y-3">
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => fileInputRef.current?.click()}
-              onKeyDown={handleDropZoneKey}
-              onDragEnter={handleDragEnter}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              className="relative grid place-items-center overflow-hidden rounded-lg transition outline-none focus-visible:ring-2"
-              style={{
-                minHeight: 240,
-                cursor: "pointer",
-                border: isDragging
-                  ? "2px dashed var(--admin-accent)"
-                  : "1.5px dashed var(--admin-border-strong)",
-                background: isDragging
-                  ? "var(--admin-accent-soft)"
-                  : "var(--admin-surface-2)",
-              }}
-              aria-label={
-                previewUrl
-                  ? "Replace frame image"
-                  : "Upload frame image"
-              }
-            >
-              {previewUrl ? (
-                <>
-                  <Image
-                    src={previewUrl}
-                    alt={name || "Frame preview"}
-                    fill
-                    sizes="(max-width: 980px) 100vw, 600px"
-                    className="object-contain p-4"
-                    unoptimized
+                  <Input
+                    name="slug"
+                    value={slug}
+                    onChange={(event) => setSlug(event.target.value)}
+                    maxLength={180}
+                    placeholder={slugSuggestion || "frame-slug"}
                   />
-                  <div
-                    className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 px-3 py-2 text-[11px]"
-                    style={{
-                      background:
-                        "linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0))",
-                      color: "#ffffff",
-                    }}
+                </Field>
+                <Field
+                  label="Description"
+                  hint="Optional. Brief detail to help shoppers choose."
+                >
+                  <Textarea
+                    name="description"
+                    rows={2}
+                    defaultValue={values.description}
+                    maxLength={2000}
+                  />
+                </Field>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field
+                    label="Price add-on (USD)"
+                    hint="Set 0 if the frame is included."
                   >
-                    <span className="truncate">
-                      {pickedFile
-                        ? `New: ${pickedFile.name} · ${formatBytes(pickedFile.size)}`
-                        : "Current image"}
+                    <Input
+                      name="priceDelta"
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={priceDelta}
+                      onChange={(event) => setPriceDelta(event.target.value)}
+                    />
+                  </Field>
+                  <div className="block space-y-1">
+                    <span
+                      className="text-[12px] font-medium"
+                      style={{ color: "var(--admin-text-soft)" }}
+                    >
+                      Visibility
                     </span>
-                    <span className="inline-flex items-center gap-1">
-                      <Icon.Upload width={12} height={12} />
-                      {pickedFile ? "Change" : "Replace"}
+                    <label
+                      className="flex h-9 cursor-pointer items-center gap-2 rounded-md px-2.5 text-[13px]"
+                      style={{
+                        background: "var(--admin-surface)",
+                        border: "1px solid var(--admin-border-strong)",
+                        color: "var(--admin-text)",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        name="isActive"
+                        value="on"
+                        checked={isActive}
+                        onChange={(event) => setIsActive(event.target.checked)}
+                        className="h-3.5 w-3.5 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900"
+                      />
+                      <span className="truncate">
+                        {isActive ? "Active" : "Hidden"}
+                      </span>
+                    </label>
+                    <span
+                      className="block text-[10.5px] leading-snug"
+                      style={{ color: "var(--admin-text-mute)" }}
+                    >
+                      Inactive frames stay in the catalog but won&apos;t
+                      appear on the storefront.
                     </span>
                   </div>
-                </>
-              ) : (
-                <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
-                  <span style={{ color: "var(--admin-text-soft)" }}>
-                    <Icon.Upload width={26} height={26} />
-                  </span>
-                  <p
-                    className="text-sm font-medium"
-                    style={{ color: "var(--admin-text)" }}
-                  >
-                    {isDragging
-                      ? "Drop to upload"
-                      : "Drag image here or click to browse"}
-                  </p>
-                  <p
-                    className="text-[11px]"
-                    style={{ color: "var(--admin-text-mute)" }}
-                  >
-                    Transparent PNG or SVG · up to 5MB
-                  </p>
                 </div>
-              )}
+              </div>
 
-              <input
-                ref={fileInputRef}
-                type="file"
-                name="image"
-                accept="image/png,image/svg+xml"
-                onChange={handleInputChange}
-                className="sr-only"
-                tabIndex={-1}
+              <SubHeader
+                title="Image"
+                hint="Transparent PNG or SVG · up to 5MB · center must be transparent"
               />
-            </div>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => fileInputRef.current?.click()}
+                onKeyDown={handleDropZoneKey}
+                onDragEnter={handleDragEnter}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className="relative grid place-items-center overflow-hidden rounded-md transition outline-none focus-visible:ring-2"
+                style={{
+                  minHeight: 160,
+                  cursor: "pointer",
+                  border: isDragging
+                    ? "2px dashed var(--admin-accent)"
+                    : "1.5px dashed var(--admin-border-strong)",
+                  background: isDragging
+                    ? "var(--admin-accent-soft)"
+                    : "var(--admin-surface-2)",
+                }}
+                aria-label={
+                  previewUrl ? "Replace frame image" : "Upload frame image"
+                }
+              >
+                {previewUrl ? (
+                  <>
+                    <Image
+                      src={previewUrl}
+                      alt={name || "Frame preview"}
+                      fill
+                      sizes="(max-width: 980px) 100vw, 500px"
+                      className="object-contain p-3"
+                      unoptimized
+                    />
+                    <div
+                      className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 px-2.5 py-1.5 text-[10.5px]"
+                      style={{
+                        background:
+                          "linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0))",
+                        color: "#ffffff",
+                      }}
+                    >
+                      <span className="truncate">
+                        {pickedFile
+                          ? `New: ${pickedFile.name} · ${formatBytes(pickedFile.size)}`
+                          : "Current image"}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <Icon.Upload width={11} height={11} />
+                        {pickedFile ? "Change" : "Replace"}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center gap-1.5 px-4 py-6 text-center">
+                    <span style={{ color: "var(--admin-text-soft)" }}>
+                      <Icon.Upload width={20} height={20} />
+                    </span>
+                    <p
+                      className="text-[13px] font-medium"
+                      style={{ color: "var(--admin-text)" }}
+                    >
+                      {isDragging
+                        ? "Drop to upload"
+                        : "Drag image here or click to browse"}
+                    </p>
+                    <p
+                      className="text-[10.5px]"
+                      style={{ color: "var(--admin-text-mute)" }}
+                    >
+                      PNG or SVG · up to 5MB
+                    </p>
+                  </div>
+                )}
 
-            <div className="flex flex-wrap items-center gap-2">
-              {pickedFile ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={clearPicked}
-                >
-                  Cancel selection
-                </Button>
-              ) : null}
-              {showRemoveButton ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setRemoveExistingImage(true)}
-                >
-                  Remove current image
-                </Button>
-              ) : null}
-              {removeExistingImage ? (
-                <>
-                  <span className="text-xs" style={{ color: "#b3261e" }}>
-                    Will remove the current image on save.
-                  </span>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  name="image"
+                  accept="image/png,image/svg+xml"
+                  onChange={handleInputChange}
+                  className="sr-only"
+                  tabIndex={-1}
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {pickedFile ? (
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="secondary"
                     size="sm"
-                    onClick={() => setRemoveExistingImage(false)}
+                    onClick={clearPicked}
                   >
-                    Undo
+                    Cancel selection
                   </Button>
-                  <input type="hidden" name="removeImage" value="on" />
-                </>
-              ) : null}
-              {!pickedFile && !removeExistingImage && existingUrl ? (
-                <span
-                  className="text-[11px]"
-                  style={{ color: "var(--admin-text-mute)" }}
-                >
-                  Leave blank to keep the current image.
-                </span>
-              ) : null}
-            </div>
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader
-            title="Inner window"
-            description="Drag the rectangle to position where the product image will show through. Drag the corners to resize."
-          />
-          <CardBody className="space-y-3">
-            <CutoutEditor frameUrl={previewUrl} cutout={cutout} onChange={setCutout} />
-            <div className="grid gap-3 sm:grid-cols-4">
-              <Field label="X (%)">
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
-                  step="any"
-                  value={cutout.x.toFixed(1)}
-                  onChange={(e) =>
-                    setCutout((c) => clampCutout({ ...c, x: parseFloat(e.target.value) || 0 }))
-                  }
-                />
-              </Field>
-              <Field label="Y (%)">
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
-                  step="any"
-                  value={cutout.y.toFixed(1)}
-                  onChange={(e) =>
-                    setCutout((c) => clampCutout({ ...c, y: parseFloat(e.target.value) || 0 }))
-                  }
-                />
-              </Field>
-              <Field label="Width (%)">
-                <Input
-                  type="number"
-                  min={1}
-                  max={100}
-                  step="any"
-                  value={cutout.width.toFixed(1)}
-                  onChange={(e) =>
-                    setCutout((c) =>
-                      clampCutout({ ...c, width: parseFloat(e.target.value) || 1 }),
-                    )
-                  }
-                />
-              </Field>
-              <Field label="Height (%)">
-                <Input
-                  type="number"
-                  min={1}
-                  max={100}
-                  step="any"
-                  value={cutout.height.toFixed(1)}
-                  onChange={(e) =>
-                    setCutout((c) =>
-                      clampCutout({ ...c, height: parseFloat(e.target.value) || 1 }),
-                    )
-                  }
-                />
-              </Field>
-            </div>
-            <input type="hidden" name="cutoutX" value={cutout.x.toFixed(2)} />
-            <input type="hidden" name="cutoutY" value={cutout.y.toFixed(2)} />
-            <input type="hidden" name="cutoutWidth" value={cutout.width.toFixed(2)} />
-            <input type="hidden" name="cutoutHeight" value={cutout.height.toFixed(2)} />
-          </CardBody>
-        </Card>
-
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex gap-2">
-            <Button type="submit" disabled={isPending}>
-              {isPending ? submittingLabel : submitLabel}
-            </Button>
-            <ButtonLink href={cancelHref} variant="secondary">
-              Cancel
-            </ButtonLink>
-          </div>
-          {deleteAction && frameId ? (
-            <DeleteFrameForm action={deleteAction} frameId={frameId} />
-          ) : null}
-        </div>
-      </form>
-
-      <aside className="space-y-3">
-        <Card>
-          <CardHeader
-            title="Live preview"
-            description="Updates as you edit."
-          />
-          <CardBody className="space-y-3">
-            <div
-              className="relative grid aspect-square place-items-center overflow-hidden rounded-md"
-              style={{
-                background: "var(--admin-surface-2)",
-                border: "1px solid var(--admin-border)",
-              }}
-            >
-              {previewUrl ? (
-                <>
-                  <div
-                    className="absolute overflow-hidden"
-                    style={{
-                      left: `${cutout.x}%`,
-                      top: `${cutout.y}%`,
-                      width: `${cutout.width}%`,
-                      height: `${cutout.height}%`,
-                    }}
+                ) : null}
+                {showRemoveButton ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setRemoveExistingImage(true)}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={PLACEHOLDER_PRODUCT_IMAGE}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                  <Image
-                    src={previewUrl}
-                    alt={name || "Frame"}
-                    width={400}
-                    height={400}
-                    className="relative h-full w-full object-contain"
-                    unoptimized
-                  />
-                </>
-              ) : (
-                <div className="flex flex-col items-center gap-1.5">
-                  <span style={{ color: "var(--admin-text-mute)" }}>
-                    <Icon.Frame width={22} height={22} />
-                  </span>
+                    Remove current image
+                  </Button>
+                ) : null}
+                {removeExistingImage ? (
+                  <>
+                    <span className="text-[11px]" style={{ color: "#b3261e" }}>
+                      Will remove on save.
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setRemoveExistingImage(false)}
+                    >
+                      Undo
+                    </Button>
+                    <input type="hidden" name="removeImage" value="on" />
+                  </>
+                ) : null}
+                {!pickedFile && !removeExistingImage && existingUrl ? (
                   <span
-                    className="text-[11px]"
+                    className="text-[10.5px]"
                     style={{ color: "var(--admin-text-mute)" }}
                   >
-                    No image yet
+                    Leave blank to keep the current image.
                   </span>
-                </div>
-              )}
+                ) : null}
+              </div>
             </div>
-            <div>
-              <p
-                className="text-sm font-medium"
-                style={{ color: "var(--admin-text)" }}
+
+            <div className="space-y-3 lg:col-span-5">
+              <SubHeader
+                title="Live preview · drag to set inner window"
+                hint="Position where the product image shows through. Drag corners to resize."
+              />
+              <CutoutEditor
+                frameUrl={previewUrl}
+                cutout={cutout}
+                onChange={setCutout}
+              />
+              <div className="grid grid-cols-4 gap-2">
+                <Field label="X %">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step="any"
+                    value={cutout.x.toFixed(1)}
+                    onChange={(e) =>
+                      setCutout((c) =>
+                        clampCutout({
+                          ...c,
+                          x: parseFloat(e.target.value) || 0,
+                        }),
+                      )
+                    }
+                  />
+                </Field>
+                <Field label="Y %">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step="any"
+                    value={cutout.y.toFixed(1)}
+                    onChange={(e) =>
+                      setCutout((c) =>
+                        clampCutout({
+                          ...c,
+                          y: parseFloat(e.target.value) || 0,
+                        }),
+                      )
+                    }
+                  />
+                </Field>
+                <Field label="W %">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={100}
+                    step="any"
+                    value={cutout.width.toFixed(1)}
+                    onChange={(e) =>
+                      setCutout((c) =>
+                        clampCutout({
+                          ...c,
+                          width: parseFloat(e.target.value) || 1,
+                        }),
+                      )
+                    }
+                  />
+                </Field>
+                <Field label="H %">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={100}
+                    step="any"
+                    value={cutout.height.toFixed(1)}
+                    onChange={(e) =>
+                      setCutout((c) =>
+                        clampCutout({
+                          ...c,
+                          height: parseFloat(e.target.value) || 1,
+                        }),
+                      )
+                    }
+                  />
+                </Field>
+              </div>
+              <dl
+                className="grid grid-cols-2 gap-x-3 gap-y-1 rounded-md px-3 py-2 text-[11.5px]"
+                style={{
+                  background: "var(--admin-surface-2)",
+                  border: "1px solid var(--admin-border)",
+                }}
               >
-                {name || "Untitled frame"}
-              </p>
-              <p
-                className="text-[11px]"
-                style={{ color: "var(--admin-text-mute)" }}
-              >
-                {slugDisplay ? `/${slugDisplay}` : "Slug pending"}
-              </p>
-            </div>
-            <dl className="space-y-1 text-xs">
-              <div className="flex justify-between">
+                <dt style={{ color: "var(--admin-text-mute)" }}>Name</dt>
+                <dd
+                  className="truncate text-right"
+                  style={{ color: "var(--admin-text)" }}
+                >
+                  {name || "Untitled"}
+                </dd>
+                <dt style={{ color: "var(--admin-text-mute)" }}>Slug</dt>
+                <dd
+                  className="truncate text-right font-mono text-[11px]"
+                  style={{ color: "var(--admin-text-soft)" }}
+                >
+                  {slugDisplay ? `/${slugDisplay}` : "—"}
+                </dd>
                 <dt style={{ color: "var(--admin-text-mute)" }}>Status</dt>
-                <dd style={{ color: "var(--admin-text)" }}>
+                <dd
+                  className="text-right"
+                  style={{ color: "var(--admin-text)" }}
+                >
                   {isActive ? "Active" : "Hidden"}
                 </dd>
-              </div>
-              <div className="flex justify-between">
                 <dt style={{ color: "var(--admin-text-mute)" }}>Price add-on</dt>
-                <dd style={{ color: "var(--admin-text)" }}>
+                <dd
+                  className="text-right"
+                  style={{ color: "var(--admin-text)" }}
+                >
                   {formatPriceAddon(priceDelta)}
                 </dd>
-              </div>
-            </dl>
+              </dl>
+              <input
+                type="hidden"
+                name="cutoutX"
+                value={cutout.x.toFixed(2)}
+              />
+              <input
+                type="hidden"
+                name="cutoutY"
+                value={cutout.y.toFixed(2)}
+              />
+              <input
+                type="hidden"
+                name="cutoutWidth"
+                value={cutout.width.toFixed(2)}
+              />
+              <input
+                type="hidden"
+                name="cutoutHeight"
+                value={cutout.height.toFixed(2)}
+              />
+            </div>
           </CardBody>
         </Card>
-      </aside>
+      </form>
+    </div>
+  );
+}
+
+function SubHeader({ title, hint }: { title: string; hint?: string }) {
+  return (
+    <div
+      className="flex items-baseline justify-between gap-2 border-b pb-1"
+      style={{ borderColor: "var(--admin-border)" }}
+    >
+      <h3
+        className="text-[12px] font-semibold uppercase tracking-[0.08em]"
+        style={{ color: "var(--admin-text-soft)" }}
+      >
+        {title}
+      </h3>
+      {hint ? (
+        <span
+          className="truncate text-[10.5px]"
+          style={{ color: "var(--admin-text-mute)" }}
+        >
+          {hint}
+        </span>
+      ) : null}
     </div>
   );
 }

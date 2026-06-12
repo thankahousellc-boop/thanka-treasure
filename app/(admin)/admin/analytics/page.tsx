@@ -1,5 +1,14 @@
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  StatCard,
+} from "@/components/admin/ui";
 import { analyticsRepository } from "@/lib/repositories/analytics-repository";
-import { formatCurrency, formatDate } from "@/lib/utils/formatters";
+import { formatCurrency } from "@/lib/utils/formatters";
+
+import { TopPostsTable, TopProductsTable } from "./analytics-tables";
 
 type AnalyticsSearchParams = {
   days?: string | string[];
@@ -50,19 +59,44 @@ export default async function AdminAnalyticsPage({
   if (!analytics) {
     return (
       <section className="space-y-4">
-        <h2 className="text-2xl font-semibold text-zinc-900">Analytics</h2>
-        <div className="rounded border border-zinc-200 bg-white p-6 text-sm text-zinc-600">
-          Analytics are temporarily unavailable. Check database connectivity and
-          try again.
-        </div>
+        <h2
+          className="admin-display text-2xl font-semibold"
+          style={{ color: "var(--admin-text)" }}
+        >
+          Analytics
+        </h2>
+        <Card>
+          <CardBody>
+            <p
+              className="text-sm"
+              style={{ color: "var(--admin-text-soft)" }}
+            >
+              Analytics are temporarily unavailable. Check database
+              connectivity and try again.
+            </p>
+          </CardBody>
+        </Card>
       </section>
     );
   }
 
   return (
     <section className="space-y-5">
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="text-2xl font-semibold text-zinc-900">Analytics</h2>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2
+            className="admin-display text-2xl font-semibold"
+            style={{ color: "var(--admin-text)" }}
+          >
+            Analytics
+          </h2>
+          <p
+            className="mt-1 text-sm"
+            style={{ color: "var(--admin-text-soft)" }}
+          >
+            Revenue, fulfillment, and content performance.
+          </p>
+        </div>
 
         <form className="flex items-center gap-2">
           <label htmlFor="analytics-window" className="sr-only">
@@ -72,7 +106,12 @@ export default async function AdminAnalyticsPage({
             id="analytics-window"
             name="days"
             defaultValue={String(analytics.windowDays)}
-            className="h-10 rounded border border-zinc-300 bg-white px-3 text-sm text-zinc-900"
+            className="h-9 rounded-md px-3 text-sm"
+            style={{
+              background: "var(--admin-surface)",
+              border: "1px solid var(--admin-border-strong)",
+              color: "var(--admin-text)",
+            }}
           >
             {WINDOW_OPTIONS.map((days) => (
               <option key={days} value={days}>
@@ -80,246 +119,86 @@ export default async function AdminAnalyticsPage({
               </option>
             ))}
           </select>
-          <button
-            type="submit"
-            className="inline-flex h-10 items-center rounded bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-700"
-          >
-            Apply
-          </button>
+          <Button type="submit">Apply</Button>
         </form>
-      </div>
+      </header>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        <div className="rounded border border-zinc-200 bg-white p-4">
-          <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">
-            Paid revenue
-          </p>
-          <p className="mt-2 text-2xl font-semibold text-zinc-900">
-            {formatCurrency(analytics.revenue)}
-          </p>
-        </div>
-        <div className="rounded border border-zinc-200 bg-white p-4">
-          <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">
-            Paid orders
-          </p>
-          <p className="mt-2 text-2xl font-semibold text-zinc-900">
-            {analytics.orderCount}
-          </p>
-        </div>
-        <div className="rounded border border-zinc-200 bg-white p-4">
-          <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">
-            AOV
-          </p>
-          <p className="mt-2 text-2xl font-semibold text-zinc-900">
-            {formatCurrency(analytics.averageOrderValue)}
-          </p>
-        </div>
-        <div className="rounded border border-zinc-200 bg-white p-4">
-          <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">
-            Published posts
-          </p>
-          <p className="mt-2 text-2xl font-semibold text-zinc-900">
-            {analytics.publishedPostCount}
-          </p>
-        </div>
-        <div className="rounded border border-zinc-200 bg-white p-4">
-          <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">
-            Contact messages
-          </p>
-          <p className="mt-2 text-2xl font-semibold text-zinc-900">
-            {analytics.messageCount}
-          </p>
-        </div>
-        <div className="rounded border border-zinc-200 bg-white p-4">
-          <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">
-            Active subscribers
-          </p>
-          <p className="mt-2 text-2xl font-semibold text-zinc-900">
-            {analytics.activeSubscriberCount}
-          </p>
-        </div>
+        <StatCard label="Paid revenue" value={formatCurrency(analytics.revenue)} />
+        <StatCard label="Paid orders" value={analytics.orderCount} />
+        <StatCard
+          label="Average order value"
+          value={formatCurrency(analytics.averageOrderValue)}
+        />
+        <StatCard label="Published posts" value={analytics.publishedPostCount} />
+        <StatCard label="Contact messages" value={analytics.messageCount} />
+        <StatCard
+          label="Active subscribers"
+          value={analytics.activeSubscriberCount}
+        />
       </div>
 
-      <div className="rounded border border-zinc-200 bg-white p-4">
-        <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">
-          Low-stock variants
-        </p>
-        <p className="mt-2 text-2xl font-semibold text-zinc-900">
-          {analytics.lowStockVariantCount}
-        </p>
-      </div>
+      <StatCard
+        label="Low-stock variants"
+        value={analytics.lowStockVariantCount}
+      />
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded border border-zinc-200 bg-white p-4">
-          <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">
-            Checkout to paid
-          </p>
-          <p className="mt-2 text-2xl font-semibold text-zinc-900">
-            {formatPercent(analytics.conversion.checkoutToPaidRate)}
-          </p>
-          <p className="mt-1 text-xs text-zinc-500">
-            {analytics.conversion.paidOrderCount} of{" "}
-            {analytics.conversion.totalOrderCount} orders
-          </p>
-        </div>
-
-        <div className="rounded border border-zinc-200 bg-white p-4">
-          <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">
-            Paid to fulfilled
-          </p>
-          <p className="mt-2 text-2xl font-semibold text-zinc-900">
-            {formatPercent(analytics.conversion.paidToFulfilledRate)}
-          </p>
-          <p className="mt-1 text-xs text-zinc-500">
-            Fulfillment progression from paid orders
-          </p>
-        </div>
-
-        <div className="rounded border border-zinc-200 bg-white p-4">
-          <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">
-            Paid to delivered
-          </p>
-          <p className="mt-2 text-2xl font-semibold text-zinc-900">
-            {formatPercent(analytics.conversion.paidToDeliveredRate)}
-          </p>
-          <p className="mt-1 text-xs text-zinc-500">
-            Delivered completion from paid orders
-          </p>
-        </div>
-
-        <div className="rounded border border-zinc-200 bg-white p-4">
-          <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">
-            Paid to refunded
-          </p>
-          <p className="mt-2 text-2xl font-semibold text-zinc-900">
-            {formatPercent(analytics.conversion.paidToRefundedRate)}
-          </p>
-          <p className="mt-1 text-xs text-zinc-500">
-            Refund impact on paid orders
-          </p>
-        </div>
+        <StatCard
+          label="Checkout to paid"
+          value={formatPercent(analytics.conversion.checkoutToPaidRate)}
+          hint={`${analytics.conversion.paidOrderCount} of ${analytics.conversion.totalOrderCount} orders`}
+        />
+        <StatCard
+          label="Paid to fulfilled"
+          value={formatPercent(analytics.conversion.paidToFulfilledRate)}
+          hint="Fulfillment progression from paid orders"
+        />
+        <StatCard
+          label="Paid to delivered"
+          value={formatPercent(analytics.conversion.paidToDeliveredRate)}
+          hint="Delivered completion from paid orders"
+        />
+        <StatCard
+          label="Paid to refunded"
+          value={formatPercent(analytics.conversion.paidToRefundedRate)}
+          hint="Refund impact on paid orders"
+        />
       </div>
 
-      <div className="overflow-x-auto rounded border border-zinc-200 bg-white">
-        <table className="min-w-full divide-y divide-zinc-200 text-sm">
-          <caption className="sr-only">
-            Top products by paid revenue and units sold in the selected window
-          </caption>
-          <thead className="bg-zinc-50">
-            <tr className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
-              <th scope="col" className="px-4 py-3">
-                Top products
-              </th>
-              <th scope="col" className="px-4 py-3">
-                Units sold
-              </th>
-              <th scope="col" className="px-4 py-3">
-                Revenue
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-100 text-zinc-700">
-            {analytics.topProducts.length > 0 ? (
-              analytics.topProducts.map((row) => (
-                <tr key={row.title}>
-                  <th
-                    scope="row"
-                    className="px-4 py-3 text-left font-medium text-zinc-900"
-                  >
-                    {row.title}
-                  </th>
-                  <td className="px-4 py-3">{row.quantitySold}</td>
-                  <td className="px-4 py-3">{formatCurrency(row.revenue)}</td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td className="px-4 py-5 text-zinc-600" colSpan={3}>
-                  No paid order activity yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Card>
+        <CardHeader
+          title="Top products"
+          description="By paid revenue in the selected window."
+        />
+        <TopProductsTable rows={analytics.topProducts} />
+      </Card>
 
       <div className="grid gap-3 md:grid-cols-3">
-        <div className="rounded border border-zinc-200 bg-white p-4">
-          <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">
-            Total blog views
-          </p>
-          <p className="mt-2 text-2xl font-semibold text-zinc-900">
-            {analytics.blog.totalViews.toLocaleString("en-US")}
-          </p>
-        </div>
-        <div className="rounded border border-zinc-200 bg-white p-4">
-          <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">
-            Avg views per post
-          </p>
-          <p className="mt-2 text-2xl font-semibold text-zinc-900">
-            {analytics.blog.averageViewsPerPost.toLocaleString("en-US", {
-              maximumFractionDigits: 1,
-              minimumFractionDigits: 1,
-            })}
-          </p>
-        </div>
-        <div className="rounded border border-zinc-200 bg-white p-4">
-          <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">
-            Posts published in window
-          </p>
-          <p className="mt-2 text-2xl font-semibold text-zinc-900">
-            {analytics.blog.publishedInWindowCount}
-          </p>
-        </div>
+        <StatCard
+          label="Total blog views"
+          value={analytics.blog.totalViews.toLocaleString("en-US")}
+        />
+        <StatCard
+          label="Avg views per post"
+          value={analytics.blog.averageViewsPerPost.toLocaleString("en-US", {
+            maximumFractionDigits: 1,
+            minimumFractionDigits: 1,
+          })}
+        />
+        <StatCard
+          label="Posts published in window"
+          value={analytics.blog.publishedInWindowCount}
+        />
       </div>
 
-      <div className="overflow-x-auto rounded border border-zinc-200 bg-white">
-        <table className="min-w-full divide-y divide-zinc-200 text-sm">
-          <caption className="sr-only">
-            Popular blog posts ranked by total views
-          </caption>
-          <thead className="bg-zinc-50">
-            <tr className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
-              <th scope="col" className="px-4 py-3">
-                Popular blog posts
-              </th>
-              <th scope="col" className="px-4 py-3">
-                Published
-              </th>
-              <th scope="col" className="px-4 py-3">
-                Views
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-100 text-zinc-700">
-            {analytics.blog.topPosts.length > 0 ? (
-              analytics.blog.topPosts.map((post) => (
-                <tr key={post.slug}>
-                  <th
-                    scope="row"
-                    className="px-4 py-3 text-left font-medium text-zinc-900"
-                  >
-                    <div>{post.title}</div>
-                    <div className="text-xs text-zinc-500">/{post.slug}</div>
-                  </th>
-                  <td className="px-4 py-3">
-                    {post.publishedAt ? formatDate(post.publishedAt) : "-"}
-                  </td>
-                  <td className="px-4 py-3">
-                    {post.viewCount.toLocaleString("en-US")}
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td className="px-4 py-5 text-zinc-600" colSpan={3}>
-                  No published blog analytics yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Card>
+        <CardHeader
+          title="Popular blog posts"
+          description="Ranked by total views."
+        />
+        <TopPostsTable rows={analytics.blog.topPosts} />
+      </Card>
     </section>
   );
 }

@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 
+import { loadEnvFiles } from "./load-env.mjs";
+
+loadEnvFiles();
+
 const REQUIRED_SECRETS = [
   "NEXT_PUBLIC_APP_URL",
   "DATABASE_URL",

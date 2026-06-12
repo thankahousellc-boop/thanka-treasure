@@ -1,6 +1,6 @@
-import Link from "next/link";
-
 import { createDiscountAction } from "../actions";
+
+import { Button, ButtonLink } from "@/components/admin/ui";
 
 export default function AdminNewDiscountPage() {
   return (
@@ -9,12 +9,9 @@ export default function AdminNewDiscountPage() {
         <h2 className="text-2xl font-semibold text-zinc-900">
           Create discount
         </h2>
-        <Link
-          href="/admin/discounts"
-          className="inline-flex h-9 items-center rounded border border-zinc-300 px-3 text-xs font-medium uppercase tracking-[0.06em] text-zinc-700 hover:bg-zinc-100"
-        >
+        <ButtonLink href="/admin/discounts" variant="secondary" size="sm">
           Back to discounts
-        </Link>
+        </ButtonLink>
       </div>
 
       <form
@@ -159,12 +156,7 @@ export default function AdminNewDiscountPage() {
         </label>
 
         <div className="md:col-span-2">
-          <button
-            type="submit"
-            className="inline-flex h-10 items-center rounded bg-zinc-900 px-4 text-xs font-medium uppercase tracking-[0.06em] text-white hover:bg-zinc-700"
-          >
-            Create discount
-          </button>
+          <Button type="submit">Create discount</Button>
         </div>
       </form>
     </section>

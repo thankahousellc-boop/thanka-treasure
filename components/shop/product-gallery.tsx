@@ -107,7 +107,7 @@ export function ProductGallery({ images, badge }: ProductGalleryProps) {
             className="object-cover transition-transform duration-700 ease-out hover:scale-[1.04]"
           />
         )}
-        <span className="absolute right-3.5 bottom-3.5 z-10 inline-flex items-center gap-1.5 rounded-full bg-paper/90 px-3.5 py-2 text-[11px] uppercase tracking-[0.14em] text-ink-soft backdrop-blur-sm">
+        <span className="absolute right-3.5 bottom-3.5 z-10 hidden items-center gap-1.5 rounded-full bg-paper/90 px-3.5 py-2 text-[11px] uppercase tracking-[0.14em] text-ink-soft backdrop-blur-sm [@media(hover:hover)]:inline-flex">
           <svg
             width="11"
             height="11"

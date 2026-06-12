@@ -2,6 +2,10 @@
 
 import postgres from "postgres";
 
+import { loadEnvFiles } from "./load-env.mjs";
+
+loadEnvFiles();
+
 const REQUIRED_ENV_VARS = [
   "DATABASE_URL",
   "DIRECT_DATABASE_URL",

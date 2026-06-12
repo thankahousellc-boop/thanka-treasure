@@ -16,10 +16,12 @@ type MobileShellProps = {
 export function MobileShell({ badges, brandName }: MobileShellProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const [previousPathname, setPreviousPathname] = useState(pathname);
 
-  useEffect(() => {
+  if (previousPathname !== pathname) {
+    setPreviousPathname(pathname);
     setOpen(false);
-  }, [pathname]);
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -36,7 +38,7 @@ export function MobileShell({ badges, brandName }: MobileShellProps) {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Open admin navigation"
-        className="grid h-9 w-9 place-items-center rounded-md text-zinc-700 hover:bg-zinc-100 lg:hidden"
+        className="grid h-11 w-11 place-items-center rounded-md text-(--admin-text-soft) hover:bg-(--admin-accent-soft) hover:text-(--admin-text) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--admin-accent) lg:hidden"
       >
         <Icon.Menu />
       </button>
@@ -47,18 +49,18 @@ export function MobileShell({ badges, brandName }: MobileShellProps) {
             type="button"
             aria-label="Close admin navigation"
             onClick={() => setOpen(false)}
-            className="flex-1 bg-zinc-900/40 backdrop-blur-sm"
+            className="flex-1 bg-black/50 backdrop-blur-sm"
           />
-          <aside className="flex h-full w-72 max-w-[85vw] flex-col border-l border-zinc-200 bg-white">
-            <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
+          <aside className="admin-app flex h-full w-72 max-w-[85vw] flex-col border-l border-(--admin-border) bg-(--admin-surface)">
+            <div className="flex items-center justify-between border-b border-(--admin-border) px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-widest text-(--admin-text-mute)">
                 {brandName}
               </p>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Close"
-                className="grid h-8 w-8 place-items-center rounded-md text-zinc-500 hover:bg-zinc-100"
+                className="grid h-10 w-10 place-items-center rounded-md text-(--admin-text-soft) hover:bg-(--admin-accent-soft) hover:text-(--admin-text) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--admin-accent)"
               >
                 <Icon.Close />
               </button>

@@ -101,13 +101,15 @@ body {
   transform: translateY(0);
 }
 
-a {
-  color: var(--color-link);
-  transition: color 160ms ease;
-}
+@layer base {
+  a {
+    color: var(--color-link);
+    transition: color 160ms ease;
+  }
 
-a:hover {
-  color: var(--color-link-hover);
+  a:hover {
+    color: var(--color-link-hover);
+  }
 }
 
 .container-page {
@@ -130,6 +132,8 @@ a:hover {
   --admin-accent-soft: rgba(92, 31, 42, 0.08);
   --admin-accent-strong: var(--color-ink-soft, #7a2e3a);
   --admin-saffron: var(--color-saffron, #c9772d);
+  --admin-danger: #b3261e;
+  --admin-success: #1f7a3f;
   --admin-shadow:
     0 1px 2px rgba(43, 19, 24, 0.04),
     0 8px 24px -12px rgba(43, 19, 24, 0.10);
@@ -142,8 +146,10 @@ a:hover {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
-.admin-app a {
-  color: inherit;
+@layer base {
+  .admin-app a {
+    color: inherit;
+  }
 }
 
 .admin-display {

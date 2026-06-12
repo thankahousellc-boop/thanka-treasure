@@ -195,7 +195,7 @@ export function ProductBuyPanel({
                       : "border-(--line) bg-paper text-ink-soft hover:border-ink-mute"
                   }`}
                 >
-                  <span className="block text-[13.5px] font-medium text-ink">
+                  <span className="block text-[13.5px] font-medium text-ink hyphens-auto wrap-break-word">
                     {variant.title}
                   </span>
                   <span className="block text-xs text-ink-mute">

@@ -18,21 +18,21 @@ export default async function AccountOrdersPage() {
 
   return (
     <section className="container-page py-14 md:py-20">
-      <h1 className="font-serif text-4xl text-maroon-900 md:text-5xl">
+      <h1 className="font-serif text-4xl text-ink md:text-5xl">
         Order History
       </h1>
-      <p className="mt-4 max-w-2xl text-base text-warm-gray-700">
+      <p className="mt-4 max-w-2xl text-base text-ink-soft">
         Review your previous purchases and their current status.
       </p>
 
       {rows.length > 0 ? (
-        <div className="mt-8 overflow-x-auto border border-border-light bg-white">
-          <table className="w-full min-w-170 text-left text-sm text-warm-gray-700">
+        <div className="mt-8 overflow-x-auto border border-paper-3 bg-paper">
+          <table className="w-full min-w-170 text-left text-sm text-ink-soft">
             <caption className="sr-only">
               Order history including order number, date, status, payment,
               fulfillment, and total amount.
             </caption>
-            <thead className="border-b border-border-light text-xs uppercase tracking-[0.08em] text-warm-gray-500">
+            <thead className="border-b border-paper-3 text-xs uppercase tracking-[0.08em] text-ink-mute">
               <tr>
                 <th scope="col" className="px-4 py-3">
                   Order
@@ -58,11 +58,11 @@ export default async function AccountOrdersPage() {
               {rows.map((order) => (
                 <tr
                   key={order.id}
-                  className="border-b border-border-light last:border-0"
+                  className="border-b border-paper-3 last:border-0"
                 >
                   <th
                     scope="row"
-                    className="px-4 py-3 font-medium text-warm-gray-900"
+                    className="px-4 py-3 font-medium text-ink"
                   >
                     {order.orderNumber}
                   </th>
@@ -79,11 +79,11 @@ export default async function AccountOrdersPage() {
           </table>
         </div>
       ) : (
-        <div className="mt-8 border border-border-light bg-white p-6 text-sm text-warm-gray-600">
+        <div className="mt-8 border border-paper-3 bg-paper p-6 text-sm text-ink-mute">
           <p>You have no orders yet.</p>
           <Link
             href="/products"
-            className="mt-3 inline-flex text-sm font-medium text-maroon-700 hover:text-maroon-600"
+            className="mt-3 inline-flex text-sm font-medium text-ink-soft hover:text-ink"
           >
             Browse products
           </Link>

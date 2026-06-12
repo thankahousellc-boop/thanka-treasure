@@ -38,11 +38,11 @@ export function SidebarNav({ badges, onNavigate }: SidebarNavProps) {
   const activeHref = findActiveHref(pathname);
 
   return (
-    <nav aria-label="Admin sections" className="flex flex-col gap-5">
+    <nav aria-label="Admin sections" className="flex flex-col gap-3.5">
       {navGroups.map((group) => (
         <div key={group.label}>
           <p
-            className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em]"
+            className="px-2.5 pb-1 text-[9.5px] font-semibold uppercase tracking-[0.14em]"
             style={{ color: "var(--admin-text-mute)" }}
           >
             {group.label}
@@ -82,7 +82,7 @@ function NavLink({
         href={item.href}
         onClick={onNavigate}
         aria-current={active ? "page" : undefined}
-        className="group flex items-center gap-2.5 rounded-md px-3 py-2 text-[13.5px] transition-colors"
+        className="group flex items-center gap-2 rounded-md px-2.5 py-1.5 text-[12.5px] transition-colors"
         style={
           active
             ? {
@@ -95,8 +95,8 @@ function NavLink({
         }
       >
         <ItemIcon
-          width={16}
-          height={16}
+          width={14}
+          height={14}
           style={{
             color: active ? "#ffffff" : "var(--admin-text-mute)",
           }}

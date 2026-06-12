@@ -8,26 +8,11 @@ import {
 } from "@/components/admin/ui";
 import { productRepository } from "@/lib/repositories/product-repository";
 
-import { ProductRowMenu } from "./product-row-menu";
-
-type ProductStatus = "draft" | "active" | "archived";
-
-type StatusTone = "success" | "muted" | "warning";
-
-function statusTone(status: string): StatusTone {
-  if (status === "active") return "success";
-  if (status === "archived") return "muted";
-  return "warning";
-}
-
-function toProductStatus(status: string): ProductStatus {
-  if (status === "active" || status === "archived") return status;
-  return "draft";
-}
+import { ProductsTable } from "./products-table";
 
 async function loadProductsForAdmin() {
   try {
-    return await productRepository.listForAdmin(50);
+    return await productRepository.listForAdmin(200);
   } catch {
     return [];
   }
@@ -103,91 +88,7 @@ export default async function AdminProductsPage() {
           description="Use the row menu to publish, move to draft, or archive."
         />
         {products.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table
-              className="min-w-full text-sm"
-              style={{ color: "var(--admin-text)" }}
-            >
-              <caption className="sr-only">
-                Products with status, creation date, and management actions.
-              </caption>
-              <thead>
-                <tr
-                  className="text-left text-[11px] font-semibold uppercase tracking-[0.08em]"
-                  style={{
-                    color: "var(--admin-text-mute)",
-                    borderBottom: "1px solid var(--admin-border)",
-                    background: "var(--admin-surface-2)",
-                  }}
-                >
-                  <th scope="col" className="px-5 py-3">
-                    Title
-                  </th>
-                  <th scope="col" className="px-5 py-3">
-                    Status
-                  </th>
-                  <th scope="col" className="px-5 py-3">
-                    Created
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-5 py-3 text-right"
-                    aria-label="Actions"
-                  />
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((product, index) => (
-                  <tr
-                    key={product.id}
-                    style={{
-                      borderTop:
-                        index === 0
-                          ? undefined
-                          : "1px solid var(--admin-border)",
-                    }}
-                  >
-                    <th scope="row" className="px-5 py-4 text-left">
-                      <p
-                        className="font-medium"
-                        style={{ color: "var(--admin-text)" }}
-                      >
-                        {product.title}
-                      </p>
-                      <p
-                        className="mt-0.5 text-[11px]"
-                        style={{ color: "var(--admin-text-mute)" }}
-                      >
-                        /{product.slug}
-                      </p>
-                    </th>
-                    <td className="px-5 py-4 align-middle">
-                      <Badge tone={statusTone(product.status)}>
-                        {product.status}
-                      </Badge>
-                    </td>
-                    <td
-                      className="px-5 py-4 align-middle text-xs"
-                      style={{ color: "var(--admin-text-soft)" }}
-                    >
-                      {product.createdAt.toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </td>
-                    <td className="px-5 py-4 align-middle text-right">
-                      <ProductRowMenu
-                        productId={product.id}
-                        productTitle={product.title}
-                        status={toProductStatus(product.status)}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ProductsTable rows={products} />
         ) : (
           <div className="px-5 py-5">
             <EmptyState

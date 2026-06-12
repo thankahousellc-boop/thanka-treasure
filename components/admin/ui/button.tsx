@@ -5,12 +5,12 @@ type Variant = "primary" | "secondary" | "ghost" | "danger";
 type Size = "sm" | "md";
 
 const sizeClasses: Record<Size, string> = {
-  sm: "h-8 px-3 text-xs",
-  md: "h-10 px-4 text-sm",
+  sm: "h-7 px-2.5 text-xs",
+  md: "h-9 px-3.5 text-[13px]",
 };
 
 const baseClasses =
-  "inline-flex items-center justify-center gap-2 rounded-md font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1";
+  "inline-flex items-center justify-center gap-2 rounded-md font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-(--admin-accent) focus-visible:ring-offset-(--admin-bg) disabled:cursor-not-allowed disabled:opacity-50";
 
 type CommonProps = {
   variant?: Variant;
@@ -39,7 +39,7 @@ function variantStyle(variant: Variant): CSSProperties {
       };
     case "danger":
       return {
-        backgroundColor: "#b3261e",
+        backgroundColor: "var(--admin-danger)",
         color: "#ffffff",
       };
   }

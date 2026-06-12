@@ -2,6 +2,7 @@ import type { ReactElement } from "react";
 
 import { OrderConfirmationEmail } from "@/components/emails/order-confirmation-email";
 import { OrderShippedEmail } from "@/components/emails/order-shipped-email";
+import { getBranding } from "@/lib/branding";
 import { resend, resendFromEmail } from "@/lib/email/client";
 import { publicEnv } from "@/lib/env";
 import { formatDate } from "@/lib/utils/formatters";
@@ -124,13 +125,15 @@ export async function sendOrderConfirmationEmail(
 ) {
   const orderUrl = resolveOrderUrl();
   const currency = normalizeCurrency(payload.currency);
+  const branding = await getBranding();
 
   return dispatchTransactionalEmail({
     to: payload.email,
     subject: `Order confirmation ${payload.orderNumber}`,
     react: (
       <OrderConfirmationEmail
-        shopName="Tibetan Thanka Treasure"
+        shopName={branding.brandName}
+        logoUrl={branding.logoLightUrl}
         orderNumber={payload.orderNumber}
         orderDate={formatDate(payload.createdAt)}
         currency={currency}
@@ -150,13 +153,15 @@ export async function sendOrderConfirmationEmail(
 export async function sendOrderShippedEmail(payload: OrderShippedPayload) {
   const orderUrl = resolveOrderUrl();
   const currency = normalizeCurrency(payload.currency);
+  const branding = await getBranding();
 
   return dispatchTransactionalEmail({
     to: payload.email,
     subject: `Your order ${payload.orderNumber} has shipped`,
     react: (
       <OrderShippedEmail
-        shopName="Tibetan Thanka Treasure"
+        shopName={branding.brandName}
+        logoUrl={branding.logoLightUrl}
         orderNumber={payload.orderNumber}
         currency={currency}
         grandTotal={payload.grandTotal}

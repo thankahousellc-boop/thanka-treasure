@@ -261,7 +261,7 @@ export default async function ProductDetailPage({
 
             {product.description ? (
               <div
-                className="prose prose-stone mb-7 max-w-none font-serif text-[17px] leading-[1.65] text-ink-soft prose-p:italic prose-li:italic prose-p:my-3 prose-ul:my-3"
+                className="prose prose-stone mb-7 max-w-none font-serif text-[17px] leading-[1.65] text-ink-soft prose-p:my-3 prose-ul:my-3"
                 dangerouslySetInnerHTML={{ __html: product.description }}
               />
             ) : null}

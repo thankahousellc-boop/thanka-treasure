@@ -20,7 +20,13 @@ type StatCardProps = {
 
 export function StatCard({ label, value, hint, trend, href, icon }: StatCardProps) {
   const inner = (
-    <Card className={href ? "transition hover:-translate-y-0.5" : ""}>
+    <Card
+      className={
+        href
+          ? "h-full transition hover:-translate-y-0.5 hover:shadow-(--admin-shadow-lg) group-focus-visible:-translate-y-0.5 group-focus-visible:shadow-(--admin-shadow-lg)"
+          : "h-full"
+      }
+    >
       <div className="px-5 py-5">
         <div className="flex items-start justify-between">
           <p
@@ -45,7 +51,9 @@ export function StatCard({ label, value, hint, trend, href, icon }: StatCardProp
               className="font-medium"
               style={{
                 color:
-                  trend.direction === "down" ? "#b3261e" : "#1f7a3f",
+                  trend.direction === "down"
+                    ? "var(--admin-danger)"
+                    : "var(--admin-success)",
               }}
             >
               {trend.direction === "down" ? "▼" : "▲"} {trend.value}%
@@ -60,7 +68,10 @@ export function StatCard({ label, value, hint, trend, href, icon }: StatCardProp
   );
 
   return href ? (
-    <Link href={href} className="block focus:outline-none">
+    <Link
+      href={href}
+      className="group block rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-(--admin-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--admin-bg)"
+    >
       {inner}
     </Link>
   ) : (
