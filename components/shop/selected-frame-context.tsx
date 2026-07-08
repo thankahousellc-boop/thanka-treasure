@@ -30,8 +30,8 @@ export function SelectedFrameProvider({
   frames: FrameOption[];
   children: ReactNode;
 }) {
-  const initial = frames.find((f) => f.isDefault)?.id ?? frames[0]?.id ?? "";
-  const [selectedFrameId, setSelectedFrameId] = useState(initial);
+  // Default to no brocade — brocade is an optional add-on, not pre-selected.
+  const [selectedFrameId, setSelectedFrameId] = useState("");
   const selectedFrame =
     frames.find((f) => f.id === selectedFrameId) ?? null;
   return (

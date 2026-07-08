@@ -4,6 +4,7 @@ import { cache } from "react";
 import { PageShell } from "@/components/ui/page-shell";
 import { pagesRepository } from "@/lib/repositories/pages-repository";
 import { buildMetaDescription, getAbsoluteUrl, toPlainText } from "@/lib/seo";
+import { sanitizeRichText } from "@/lib/utils/sanitize-html";
 
 type StaticPageProps = {
   params: Promise<{ slug: string }>;
@@ -90,7 +91,10 @@ export default async function StaticPage({ params }: StaticPageProps) {
     );
   }
 
-  const htmlContent = page.content?.trim();
+  const trimmedContent = page.content?.trim();
+  const htmlContent = trimmedContent
+    ? sanitizeRichText(trimmedContent)
+    : undefined;
 
   return (
     <article className="container-page py-14 md:py-20">

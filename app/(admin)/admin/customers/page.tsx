@@ -85,7 +85,7 @@ export default async function AdminCustomersPage({
                 name="q"
                 defaultValue={query}
                 placeholder="Name or email"
-                className="h-9 w-full rounded-md px-3 text-sm focus:outline-none focus:ring-2"
+                className="h-9 w-full rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-(--admin-accent)"
                 style={{
                   background: "var(--admin-surface)",
                   border: "1px solid var(--admin-border-strong)",

@@ -3,19 +3,20 @@ import { NextResponse } from "next/server";
 import { convertUsdToCurrency, getExchangeRates } from "@/lib/currency/context";
 import { publicEnv, serverEnv } from "@/lib/env";
 import { monitor } from "@/lib/monitoring/logger";
+import { checkoutSessionRepository } from "@/lib/repositories/checkout-session-repository";
 import { discountRepository } from "@/lib/repositories/discount-repository";
 import { frameRepository } from "@/lib/repositories/frame-repository";
-import { inventoryRepository } from "@/lib/repositories/inventory-repository";
 import { productRepository } from "@/lib/repositories/product-repository";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { resolveUrl } from "@/lib/storage/resolve-url";
 import { stripe } from "@/lib/stripe/client";
 import { toStripeLineItems } from "@/lib/stripe/helpers";
 import { checkoutSchema } from "@/lib/utils/validators";
 
-type ReservedInventory = {
-  variantId: string;
-  quantity: number;
-};
+// How long a created Stripe Checkout session (and its inventory reservation)
+// stays valid. Stripe requires 30 min minimum; abandoned sessions release their
+// reservation via the `checkout.session.expired` webhook after this.
+const SESSION_TTL_MS = 30 * 60 * 1000;
 
 type StripeDeliveryUnit = "business_day" | "day" | "hour" | "month" | "week";
 
@@ -276,14 +277,6 @@ async function buildShippingOptions(input: {
   };
 }
 
-async function releaseReservations(items: ReservedInventory[]) {
-  await Promise.allSettled(
-    items.map((item) =>
-      inventoryRepository.release(item.variantId, item.quantity),
-    ),
-  );
-}
-
 async function resolveCheckoutItems(
   inputItems: ReturnType<typeof checkoutSchema.parse>["items"],
   currency: string,
@@ -421,6 +414,30 @@ async function resolveCheckoutItems(
 }
 
 export async function POST(request: Request) {
+  const limited = await enforceRateLimit("strict", request);
+  if (limited) return limited;
+
+  try {
+    return await handleCheckoutPost(request);
+  } catch (error) {
+    monitor.error("Checkout handler threw an unhandled error.", error, {
+      route: "/api/checkout",
+    });
+
+    return NextResponse.json(
+      {
+        error: "Unable to initialize checkout session.",
+        detail:
+          process.env.NODE_ENV === "production"
+            ? undefined
+            : ((error as Error)?.message ?? String(error)),
+      },
+      { status: 500 },
+    );
+  }
+}
+
+async function handleCheckoutPost(request: Request) {
   if (!stripe) {
     monitor.error("Checkout blocked: Stripe is not configured.", undefined, {
       route: "/api/checkout",
@@ -499,6 +516,65 @@ export async function POST(request: Request) {
     0,
   );
 
+  const discountCode = parsed.data.discountCode?.trim().toUpperCase() ?? null;
+
+  // Cart identity. A reload carrying the same signature reuses the existing
+  // Stripe session and its reservation instead of reserving stock again. Frame
+  // is included because it changes price/line items even at identical stock.
+  const cartSignature = checkoutSessionRepository.computeCartSignature({
+    currency,
+    discountCode,
+    items: resolvedItems.map((item) => ({
+      variantId: item.variantId,
+      quantity: item.quantity,
+      frameId: item.frame?.id ?? null,
+    })),
+  });
+
+  // Reuse path: same cart + a still-open session → return its client secret and
+  // reserve nothing. Any mismatch (cart changed), expiry, non-open session, or a
+  // failed retrieve releases the stale reservation and falls through to create a
+  // fresh session below.
+  const existingSessionId = parsed.data.existingSessionId;
+  if (existingSessionId) {
+    const pendingRow =
+      await checkoutSessionRepository.findOpenBySessionId(existingSessionId);
+
+    if (pendingRow) {
+      const stillValid =
+        pendingRow.cartSignature === cartSignature &&
+        pendingRow.expiresAt.getTime() > Date.now();
+
+      if (stillValid) {
+        try {
+          const existingSession =
+            await stripe.checkout.sessions.retrieve(existingSessionId);
+
+          if (
+            existingSession.status === "open" &&
+            existingSession.client_secret
+          ) {
+            return NextResponse.json({
+              clientSecret: existingSession.client_secret,
+              sessionId: existingSession.id,
+            });
+          }
+        } catch (error) {
+          monitor.warn(
+            "Checkout session reuse failed; creating a new session.",
+            {
+              route: "/api/checkout",
+              sessionId: existingSessionId,
+              error: (error as Error).message,
+            },
+          );
+        }
+      }
+
+      await checkoutSessionRepository.releaseByRow(pendingRow.id);
+    }
+  }
+
   const shipping = await buildShippingOptions({
     currency,
     destinationCountry,
@@ -506,9 +582,6 @@ export async function POST(request: Request) {
     items: resolvedItems,
   });
 
-  const reservedInventory: ReservedInventory[] = [];
-
-  const discountCode = parsed.data.discountCode?.trim().toUpperCase();
   const codeDiscount = discountCode
     ? await discountRepository.validateForCheckout(
         discountCode,
@@ -537,42 +610,6 @@ export async function POST(request: Request) {
     ? await discountRepository.findBestAutomaticForCheckout(subtotal)
     : null;
   const appliedDiscount = codeDiscount ?? automaticDiscount;
-
-  for (const item of resolvedItems) {
-    const inventoryRow = await inventoryRepository.findByVariantId(
-      item.variantId,
-    );
-
-    if (!inventoryRow) {
-      continue;
-    }
-
-    const reserved = await inventoryRepository.reserve(
-      item.variantId,
-      item.quantity,
-    );
-    if (!reserved) {
-      monitor.warn("Checkout blocked: insufficient inventory.", {
-        route: "/api/checkout",
-        variantId: item.variantId,
-        requestedQuantity: item.quantity,
-      });
-
-      await releaseReservations(reservedInventory);
-      return NextResponse.json(
-        {
-          error:
-            "One or more items are out of stock. Please review your cart and try again.",
-        },
-        { status: 409 },
-      );
-    }
-
-    reservedInventory.push({
-      variantId: item.variantId,
-      quantity: item.quantity,
-    });
-  }
 
   let stripeCouponId: string | undefined;
 
@@ -616,7 +653,6 @@ export async function POST(request: Request) {
         discountType: appliedDiscount.discount.type,
       });
 
-      await releaseReservations(reservedInventory);
       return NextResponse.json(
         { error: "Unable to apply discount code to checkout." },
         { status: 500 },
@@ -625,15 +661,20 @@ export async function POST(request: Request) {
   }
 
   let session;
+  const reservationExpiresAt = new Date(Date.now() + SESSION_TTL_MS);
+
   try {
     session = await stripe.checkout.sessions.create({
-      ui_mode: "embedded_page",
+      ui_mode: "elements",
       mode: "payment",
       currency: currency.toLowerCase(),
+      // Abandoned sessions expire here; the `checkout.session.expired` webhook
+      // then releases the reservation made below.
+      expires_at: Math.floor(reservationExpiresAt.getTime() / 1000),
       line_items: toStripeLineItems(resolvedItems, currency),
       discounts: stripeCouponId ? [{ coupon: stripeCouponId }] : undefined,
       automatic_tax: {
-        enabled: true,
+        enabled: serverEnv.STRIPE_AUTOMATIC_TAX,
       },
       billing_address_collection: "required",
       shipping_address_collection: {
@@ -655,13 +696,50 @@ export async function POST(request: Request) {
       route: "/api/checkout",
       currency,
       itemCount: parsed.data.items.length,
-      reservedCount: reservedInventory.length,
     });
 
-    await releaseReservations(reservedInventory);
     return NextResponse.json(
       { error: "Unable to initialize checkout session." },
       { status: 500 },
+    );
+  }
+
+  // Reserve stock and record the pending session atomically. Out of stock rolls
+  // the whole reservation back; we then expire the just-created Stripe session
+  // so it can't be paid for stock we don't have.
+  const reservation = await checkoutSessionRepository.createWithReservation({
+    stripeSessionId: session.id,
+    cartSignature,
+    currency,
+    expiresAt: reservationExpiresAt,
+    items: resolvedItems.map((item) => ({
+      variantId: item.variantId,
+      quantity: item.quantity,
+    })),
+  });
+
+  if (!reservation) {
+    monitor.warn("Checkout blocked: insufficient inventory.", {
+      route: "/api/checkout",
+      sessionId: session.id,
+    });
+
+    try {
+      await stripe.checkout.sessions.expire(session.id);
+    } catch (error) {
+      monitor.warn("Failed to expire over-reserved checkout session.", {
+        route: "/api/checkout",
+        sessionId: session.id,
+        error: (error as Error).message,
+      });
+    }
+
+    return NextResponse.json(
+      {
+        error:
+          "One or more items are out of stock. Please review your cart and try again.",
+      },
+      { status: 409 },
     );
   }
 

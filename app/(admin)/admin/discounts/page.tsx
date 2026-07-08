@@ -1,3 +1,4 @@
+import { FlashToast } from "@/components/admin/flash-toast";
 import {
   ButtonLink,
   Card,
@@ -18,6 +19,13 @@ export default async function AdminDiscountsPage() {
 
   return (
     <section className="space-y-5">
+      <FlashToast
+        messages={{
+          created: "Discount created.",
+          activated: "Discount activated.",
+          deactivated: "Discount deactivated.",
+        }}
+      />
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2

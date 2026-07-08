@@ -5,6 +5,7 @@ import {
   CardHeader,
   Icon,
 } from "@/components/admin/ui";
+import { FlashToast } from "@/components/admin/flash-toast";
 import { blogRepository } from "@/lib/repositories/blog-repository";
 
 import { BlogTable } from "./blog-table";
@@ -22,6 +23,7 @@ export default async function AdminBlogPage() {
 
   return (
     <section className="space-y-5">
+      <FlashToast messages={{ "post-deleted": "Post deleted." }} />
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2

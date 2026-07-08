@@ -6,7 +6,6 @@ import { useRef, useState } from "react";
 
 import {
   Badge,
-  Button,
   Card,
   CardBody,
   CardHeader,
@@ -15,6 +14,7 @@ import {
   Icon,
   Input,
   Select,
+  SubmitButton,
 } from "@/components/admin/ui";
 import { resolveUrl } from "@/lib/storage";
 
@@ -191,10 +191,10 @@ function UploadForm({ action, variants }: UploadFormProps) {
         ))}
       </Select>
 
-      <Button type="submit" variant="primary" size="sm">
+      <SubmitButton variant="primary" size="sm" pendingLabel="Uploading…">
         <Icon.Upload width={14} height={14} />
         <span>Upload</span>
-      </Button>
+      </SubmitButton>
 
       <span
         className="basis-full text-[11px]"
@@ -286,7 +286,7 @@ function Gallery({
                   className="absolute bottom-1 left-1 rounded px-1 text-[10px] font-medium"
                   style={{
                     background: "rgba(255,255,255,0.85)",
-                    color: "var(--admin-text)",
+                    color: "#2b1318",
                   }}
                 >
                   {index + 1}
@@ -398,9 +398,9 @@ function Gallery({
             </Select>
           </Field>
 
-          <Button type="submit" variant="primary" size="md">
+          <SubmitButton variant="primary" size="md">
             Save
-          </Button>
+          </SubmitButton>
         </form>
 
         <p className="text-[11px]" style={{ color: "var(--admin-text-mute)" }}>
@@ -430,7 +430,9 @@ function IconActionForm({
   tone = "default",
   confirmMessage,
 }: IconActionFormProps) {
-  const baseColor = tone === "danger" ? "#b3261e" : "var(--admin-text)";
+  // Floating control sits on a fixed white chip over the image, so its icon
+  // must stay dark in both themes (var(--admin-text) goes near-white in dark).
+  const baseColor = tone === "danger" ? "#b3261e" : "#2b1318";
   const baseBg = "rgba(255, 255, 255, 0.92)";
   const hoverBg =
     tone === "danger" ? "rgba(179, 38, 30, 0.12)" : "var(--admin-accent-soft)";

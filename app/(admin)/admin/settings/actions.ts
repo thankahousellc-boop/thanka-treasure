@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
@@ -95,6 +96,8 @@ export async function updateStoreContactAction(formData: FormData) {
   revalidateTag(STORE_CONTACT_CACHE_TAG, "max");
   revalidatePath("/", "layout");
   revalidatePath("/admin/settings");
+
+  redirect("/admin/settings?status=contact-saved");
 }
 
 export async function updateStorefrontAction(formData: FormData) {
@@ -126,4 +129,6 @@ export async function updateStorefrontAction(formData: FormData) {
   revalidateTag(STOREFRONT_CACHE_TAG, "max");
   revalidatePath("/", "layout");
   revalidatePath("/admin/settings");
+
+  redirect("/admin/settings?status=storefront-saved");
 }

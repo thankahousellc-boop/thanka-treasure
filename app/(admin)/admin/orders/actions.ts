@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
 import { sendOrderShippedEmail } from "@/lib/email/transactional";
@@ -144,6 +145,7 @@ export async function updateOrderStatusAction(formData: FormData) {
 
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${id}`);
+  redirect(`/admin/orders/${id}?status=status-updated`);
 }
 
 export async function updateFulfillmentStatusAction(formData: FormData) {
@@ -161,6 +163,7 @@ export async function updateFulfillmentStatusAction(formData: FormData) {
   await orderRepository.updateFulfillmentStatus(id, fulfillmentStatus);
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${id}`);
+  redirect(`/admin/orders/${id}?status=fulfillment-updated`);
 }
 
 export async function updateOrderNotesAction(formData: FormData) {
@@ -179,6 +182,7 @@ export async function updateOrderNotesAction(formData: FormData) {
   await orderRepository.updateAdminNotes(id, normalizedNotes);
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${id}`);
+  redirect(`/admin/orders/${id}?status=notes-saved`);
 }
 
 export async function requestOrderRefundAction(formData: FormData) {
@@ -238,4 +242,5 @@ export async function requestOrderRefundAction(formData: FormData) {
 
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${id}`);
+  redirect(`/admin/orders/${id}?status=refund-issued`);
 }

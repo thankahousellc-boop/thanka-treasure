@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 
+import { attributeDefinitions, productAttributeValues } from "./attributes";
 import {
   blogCategories,
   blogPostCategories,
@@ -16,6 +17,7 @@ import {
 } from "./orders";
 import { profiles } from "./profiles";
 import {
+  categories,
   collectionProducts,
   collections,
   frames,
@@ -31,12 +33,42 @@ export const profilesRelations = relations(profiles, ({ many }) => ({
   blogPosts: many(blogPosts),
 }));
 
-export const productsRelations = relations(products, ({ many }) => ({
+export const productsRelations = relations(products, ({ one, many }) => ({
+  category: one(categories, {
+    fields: [products.categoryId],
+    references: [categories.id],
+  }),
   variants: many(productVariants),
   images: many(productImages),
   collectionLinks: many(collectionProducts),
   frameLinks: many(productFrames),
+  attributeValues: many(productAttributeValues),
 }));
+
+export const categoriesRelations = relations(categories, ({ many }) => ({
+  products: many(products),
+}));
+
+export const attributeDefinitionsRelations = relations(
+  attributeDefinitions,
+  ({ many }) => ({
+    values: many(productAttributeValues),
+  }),
+);
+
+export const productAttributeValuesRelations = relations(
+  productAttributeValues,
+  ({ one }) => ({
+    product: one(products, {
+      fields: [productAttributeValues.productId],
+      references: [products.id],
+    }),
+    definition: one(attributeDefinitions, {
+      fields: [productAttributeValues.definitionId],
+      references: [attributeDefinitions.id],
+    }),
+  }),
+);
 
 export const framesRelations = relations(frames, ({ many }) => ({
   productLinks: many(productFrames),

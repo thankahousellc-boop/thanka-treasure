@@ -4,13 +4,15 @@ import Image from "next/image";
 import { useState } from "react";
 
 import {
-  Button,
   Card,
   CardBody,
   CardHeader,
+  DirtyForm,
   Field,
   Input,
   Select,
+  ShowWhenDirty,
+  SubmitButton,
 } from "@/components/admin/ui";
 
 const fontOptions = [
@@ -55,7 +57,7 @@ export function BrandingForm({ values, action }: BrandingFormProps) {
   const [colors, setColors] = useState(values.colors);
 
   return (
-    <form action={action} className="grid gap-5 lg:grid-cols-3">
+    <DirtyForm action={action} className="grid gap-5 lg:grid-cols-3">
       <div className="space-y-5 lg:col-span-2">
         <Card>
           <CardHeader title="Identity" />
@@ -108,7 +110,7 @@ export function BrandingForm({ values, action }: BrandingFormProps) {
                           [row.key]: event.target.value,
                         }))
                       }
-                      className="h-10 w-12 cursor-pointer rounded border border-zinc-300"
+                      className="h-10 w-12 cursor-pointer rounded border border-(--admin-border-strong)"
                     />
                     <Input
                       name={row.key}
@@ -154,9 +156,11 @@ export function BrandingForm({ values, action }: BrandingFormProps) {
           </CardBody>
         </Card>
 
-        <div className="flex justify-end">
-          <Button type="submit">Save branding</Button>
-        </div>
+        <ShowWhenDirty>
+          <div className="flex justify-end">
+            <SubmitButton>Save branding</SubmitButton>
+          </div>
+        </ShowWhenDirty>
       </div>
 
       <aside className="space-y-3">
@@ -203,7 +207,7 @@ export function BrandingForm({ values, action }: BrandingFormProps) {
           </CardBody>
         </Card>
       </aside>
-    </form>
+    </DirtyForm>
   );
 }
 
@@ -222,9 +226,9 @@ function LogoSlot({
 }) {
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium text-zinc-700">{label}</p>
+      <p className="text-sm font-medium text-(--admin-text-soft)">{label}</p>
       <div
-        className={`grid h-24 place-items-center rounded border border-zinc-200 ${previewBg}`}
+        className={`grid h-24 place-items-center rounded border border-(--admin-border) ${previewBg}`}
       >
         {currentUrl ? (
           <Image
@@ -236,22 +240,22 @@ function LogoSlot({
             unoptimized
           />
         ) : (
-          <span className="text-xs text-zinc-400">No logo uploaded</span>
+          <span className="text-xs text-(--admin-text-mute)">No logo uploaded</span>
         )}
       </div>
       <input
         type="file"
         name={name}
         accept="image/jpeg,image/png,image/webp,image/svg+xml"
-        className="block w-full text-xs text-zinc-600 file:mr-2 file:rounded file:border-0 file:bg-zinc-900 file:px-2 file:py-1.5 file:text-xs file:font-medium file:text-white"
+        className="block w-full text-xs text-(--admin-text-soft) file:mr-2 file:rounded file:border-0 file:bg-(--admin-accent) file:px-2 file:py-1.5 file:text-xs file:font-medium file:text-(--admin-on-accent)"
       />
       {currentUrl ? (
-        <label className="flex items-center gap-2 text-xs text-zinc-600">
+        <label className="flex items-center gap-2 text-xs text-(--admin-text-soft)">
           <input
             type="checkbox"
             name={removeName}
             value="on"
-            className="h-3.5 w-3.5 rounded border-zinc-300"
+            className="h-3.5 w-3.5 rounded border-(--admin-border-strong)"
           />
           Remove current logo
         </label>

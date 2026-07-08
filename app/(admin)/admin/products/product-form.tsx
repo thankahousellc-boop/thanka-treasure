@@ -1,20 +1,26 @@
 import {
   Badge,
-  Button,
   Card,
   CardBody,
   CardHeader,
   Field,
   Input,
   RichTextEditor,
+  Select,
+  ShowWhenDirty,
+  SubmitButton,
   Textarea,
 } from "@/components/admin/ui";
 
+import type { AttributeDefinition } from "@/lib/repositories/attribute-repository";
+
 import { quickSetProductStatusAction } from "./actions";
+import { ProductAttributesBuilder } from "./product-attributes-builder";
 import {
   ProductFramesPicker,
   type AvailableFrame,
 } from "./product-frames-picker";
+import { ProductStatusButton } from "./product-status-button";
 import {
   ProductVariantBuilder,
   type ProductVariantFormValue,
@@ -28,9 +34,15 @@ type ProductFormValues = {
   metaDescription: string;
   status: "draft" | "active" | "archived";
   productType: string;
+  categoryId: string;
   vendor: string;
   tags: string;
   variants: ProductVariantFormValue[];
+};
+
+type CategoryOption = {
+  id: string;
+  name: string;
 };
 
 type ProductStatus = "draft" | "active" | "archived";
@@ -41,6 +53,7 @@ type ProductFormProps = {
   submitLabel: string;
   values: ProductFormValues;
   action: (formData: FormData) => Promise<void>;
+  categories?: CategoryOption[];
   availableFrames?: AvailableFrame[];
   selectedFrameIds?: string[];
   defaultFrameId?: string | null;
@@ -48,6 +61,8 @@ type ProductFormProps = {
   hideFramesPicker?: boolean;
   hideSearchEngineCard?: boolean;
   productId?: string;
+  attributeDefinitions?: AttributeDefinition[];
+  attributeValues?: Record<string, string[]>;
 };
 
 function statusTone(status: ProductStatus): "success" | "warning" | "muted" {
@@ -62,6 +77,7 @@ export function ProductForm({
   submitLabel,
   values,
   action,
+  categories = [],
   availableFrames = [],
   selectedFrameIds = [],
   defaultFrameId = null,
@@ -69,6 +85,8 @@ export function ProductForm({
   hideFramesPicker = false,
   hideSearchEngineCard = false,
   productId,
+  attributeDefinitions = [],
+  attributeValues = {},
 }: ProductFormProps) {
   const currentStatus = values.status;
 
@@ -97,46 +115,32 @@ export function ProductForm({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {productId && currentStatus !== "draft" ? (
-            <button
-              type="submit"
+            <ProductStatusButton
               formAction={quickSetProductStatusAction.bind(
                 null,
                 productId,
                 "draft",
               )}
-              formNoValidate
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium transition hover:brightness-110"
-              style={{
-                backgroundColor: "var(--admin-surface)",
-                color: "var(--admin-text)",
-                border: "1px solid var(--admin-border-strong)",
-              }}
             >
               Move to draft
-            </button>
+            </ProductStatusButton>
           ) : null}
           {productId && currentStatus !== "active" ? (
-            <button
-              type="submit"
+            <ProductStatusButton
               formAction={quickSetProductStatusAction.bind(
                 null,
                 productId,
                 "active",
               )}
-              formNoValidate
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium transition hover:brightness-110"
-              style={{
-                backgroundColor: "var(--admin-surface)",
-                color: "var(--admin-text)",
-                border: "1px solid var(--admin-border-strong)",
-              }}
             >
               Publish
-            </button>
+            </ProductStatusButton>
           ) : null}
-          <Button type="submit" variant="primary" size="md">
-            {submitLabel}
-          </Button>
+          <ShowWhenDirty>
+            <SubmitButton variant="primary" size="md" pendingLabel="Saving…">
+              {submitLabel}
+            </SubmitButton>
+          </ShowWhenDirty>
         </div>
       </header>
 
@@ -184,7 +188,31 @@ export function ProductForm({
             description="Used in filters and on the storefront facets."
           />
           <CardBody className="grid gap-4 md:grid-cols-3">
-            <Field label="Product type">
+            <Field
+              label="Category"
+              hint={
+                categories.length === 0
+                  ? "No categories yet — create one under Categories."
+                  : "Drives the storefront category page and filters."
+              }
+            >
+              <Select
+                name="categoryId"
+                defaultValue={values.categoryId}
+                disabled={categories.length === 0}
+              >
+                <option value="">— None —</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field
+              label="Product type"
+              hint="Free-text descriptor (e.g. Thangka). Not the category."
+            >
               <Input
                 name="productType"
                 defaultValue={values.productType}
@@ -205,6 +233,19 @@ export function ProductForm({
                 placeholder="thangka, hand-painted, buddhist"
               />
             </Field>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Specifications"
+            description="Product qualities defined under Attributes — shown on the storefront and used for filters and barcodes."
+          />
+          <CardBody>
+            <ProductAttributesBuilder
+              definitions={attributeDefinitions}
+              selected={attributeValues}
+            />
           </CardBody>
         </Card>
 
@@ -238,21 +279,23 @@ export function ProductForm({
         )}
       </div>
 
-      <div
-        className="sticky bottom-3 flex items-center justify-end gap-2 rounded-md px-4 py-3"
-        style={{
-          background: "var(--admin-surface)",
-          border: "1px solid var(--admin-border)",
-          boxShadow: "var(--admin-shadow-lg)",
-        }}
-      >
-        <span className="mr-auto text-xs" style={{ color: "var(--admin-text-mute)" }}>
-          The URL slug is generated automatically from the title.
-        </span>
-        <Button type="submit" variant="primary" size="md">
-          {submitLabel}
-        </Button>
-      </div>
+      <ShowWhenDirty>
+        <div
+          className="sticky bottom-3 flex items-center justify-end gap-2 rounded-md px-4 py-3"
+          style={{
+            background: "var(--admin-surface)",
+            border: "1px solid var(--admin-border)",
+            boxShadow: "var(--admin-shadow-lg)",
+          }}
+        >
+          <span className="mr-auto text-xs" style={{ color: "var(--admin-text-mute)" }}>
+            Unsaved changes — the URL slug is generated automatically from the title.
+          </span>
+          <SubmitButton variant="primary" size="md" pendingLabel="Saving…">
+            {submitLabel}
+          </SubmitButton>
+        </div>
+      </ShowWhenDirty>
     </form>
   );
 }

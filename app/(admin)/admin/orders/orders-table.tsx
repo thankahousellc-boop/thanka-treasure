@@ -15,6 +15,7 @@ export type OrderRow = {
   fulfillmentStatus: string;
   currency: string;
   grandTotal: number;
+  source: string;
   createdAt: Date;
 };
 
@@ -49,12 +50,17 @@ export function OrdersTable({ rows }: { rows: OrderRow[] }) {
             >
               {row.original.orderNumber}
             </Link>
-            <p
-              className="mt-0.5 font-mono text-[11px]"
-              style={{ color: "var(--admin-text-mute)" }}
-            >
-              {row.original.id.slice(0, 8)}…
-            </p>
+            <div className="mt-0.5 flex items-center gap-2">
+              <p
+                className="font-mono text-[11px]"
+                style={{ color: "var(--admin-text-mute)" }}
+              >
+                {row.original.id.slice(0, 8)}…
+              </p>
+              {row.original.source === "in_store" ? (
+                <Badge tone="info">in-store</Badge>
+              ) : null}
+            </div>
           </div>
         ),
       },

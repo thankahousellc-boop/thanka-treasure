@@ -175,7 +175,7 @@ export async function createProductCategoryAction(formData: FormData) {
   }
 
   revalidateProductTaxonomyPaths();
-  redirect("/admin/products/categories");
+  redirect("/admin/products/categories?status=category-created");
 }
 
 export async function updateProductCategoryAction(formData: FormData) {
@@ -197,7 +197,7 @@ export async function updateProductCategoryAction(formData: FormData) {
   }
 
   revalidateProductTaxonomyPaths();
-  redirect("/admin/products/categories");
+  redirect("/admin/products/categories?status=category-saved");
 }
 
 export async function createProductCollectionAction(formData: FormData) {
@@ -216,7 +216,7 @@ export async function createProductCollectionAction(formData: FormData) {
   }
 
   revalidateProductTaxonomyPaths(payload.slug);
-  redirect("/admin/products/categories");
+  redirect("/admin/products/categories?status=collection-created");
 }
 
 export async function updateProductCollectionAction(formData: FormData) {
@@ -238,7 +238,7 @@ export async function updateProductCollectionAction(formData: FormData) {
   }
 
   revalidateProductTaxonomyPaths(updated.slug, payload.previousSlug);
-  redirect("/admin/products/categories");
+  redirect("/admin/products/categories?status=collection-saved");
 }
 
 export async function updateCollectionProductsAction(formData: FormData) {
@@ -255,5 +255,5 @@ export async function updateCollectionProductsAction(formData: FormData) {
   }
 
   revalidateProductTaxonomyPaths(payload.collectionSlug);
-  redirect("/admin/products/categories");
+  redirect("/admin/products/categories?status=collection-updated");
 }

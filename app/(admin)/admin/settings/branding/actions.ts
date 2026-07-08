@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
@@ -149,4 +150,6 @@ export async function updateBrandingAction(formData: FormData) {
   revalidateTag(BRANDING_CACHE_TAG, "max");
   revalidatePath("/", "layout");
   revalidatePath("/admin/settings/branding");
+
+  redirect("/admin/settings/branding?status=branding-saved");
 }

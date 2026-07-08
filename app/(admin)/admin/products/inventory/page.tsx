@@ -9,6 +9,13 @@ import {
 } from "@/components/admin/ui";
 import { inventoryRepository } from "@/lib/repositories/inventory-repository";
 
+const INVENTORY_TERMS: { term: string; definition: string }[] = [
+  { term: "On hand", definition: "Units physically in stock." },
+  { term: "Reserved", definition: "Held by open orders, not yet shipped." },
+  { term: "Available", definition: "On hand − reserved · sellable now." },
+  { term: "Threshold", definition: "Low-stock alert level." },
+];
+
 import { InventoryTable } from "./inventory-table";
 
 function toNumber(value: number) {
@@ -38,6 +45,7 @@ export default async function AdminProductInventoryPage() {
   const outOfStockCount = rows.filter(
     (row) => toNumber(row.availableQuantity) <= 0,
   ).length;
+  const productCount = new Set(rows.map((row) => row.productId)).size;
 
   return (
     <section className="space-y-5">
@@ -56,6 +64,10 @@ export default async function AdminProductInventoryPage() {
             Track per-variant stock, reserved units, and low-stock thresholds.
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
+            <span style={{ color: "var(--admin-text-mute)" }}>
+              {productCount} {productCount === 1 ? "product" : "products"}
+            </span>
+            <span style={{ color: "var(--admin-text-mute)" }}>·</span>
             <span style={{ color: "var(--admin-text-mute)" }}>
               {rows.length} {rows.length === 1 ? "variant" : "variants"}
             </span>
@@ -78,9 +90,22 @@ export default async function AdminProductInventoryPage() {
 
       <Card>
         <CardHeader
-          title="All variants"
-          description="Edit On hand and Threshold inline, then save the row."
+          title="Products"
+          description="One row per product. Click Edit to adjust On hand and Threshold for all of its variants in one panel, then save."
         />
+        <div
+          className="flex flex-wrap gap-x-5 gap-y-2 border-b px-4 py-3 text-[12px]"
+          style={{ borderColor: "var(--admin-border)" }}
+        >
+          {INVENTORY_TERMS.map(({ term, definition }) => (
+            <span key={term} className="inline-flex items-baseline gap-1.5">
+              <span className="font-semibold" style={{ color: "var(--admin-text)" }}>
+                {term}
+              </span>
+              <span style={{ color: "var(--admin-text-mute)" }}>{definition}</span>
+            </span>
+          ))}
+        </div>
         {rows.length > 0 ? (
           <InventoryTable rows={rows} />
         ) : (

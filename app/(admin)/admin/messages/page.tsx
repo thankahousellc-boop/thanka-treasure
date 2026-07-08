@@ -10,7 +10,9 @@ import {
   Icon,
   PageHeader,
   StatCard,
+  SubmitButton,
 } from "@/components/admin/ui";
+import { FlashToast } from "@/components/admin/flash-toast";
 import { contactRepository } from "@/lib/repositories/contact-repository";
 import { formatDate } from "@/lib/utils/formatters";
 
@@ -18,6 +20,7 @@ import {
   updateContactSubmissionNotes,
   updateContactSubmissionStatus,
 } from "./actions";
+import { StatusSubmitButton } from "./status-submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -121,6 +124,13 @@ export default async function AdminMessagesPage({
 
   return (
     <>
+      <FlashToast
+        param="flash"
+        messages={{
+          "message-updated": "Message status updated.",
+          "notes-saved": "Notes saved.",
+        }}
+      />
       <PageHeader
         eyebrow="Inbox"
         title="Customer messages"
@@ -169,7 +179,7 @@ export default async function AdminMessagesPage({
                     active
                       ? {
                           backgroundColor: "var(--admin-accent)",
-                          color: "#ffffff",
+                          color: "var(--admin-on-accent)",
                         }
                       : {
                           backgroundColor: "var(--admin-surface)",
@@ -184,8 +194,9 @@ export default async function AdminMessagesPage({
                     style={
                       active
                         ? {
-                            backgroundColor: "rgba(255,255,255,0.2)",
-                            color: "#ffffff",
+                            backgroundColor:
+                              "color-mix(in srgb, var(--admin-on-accent) 22%, transparent)",
+                            color: "var(--admin-on-accent)",
                           }
                         : {
                             backgroundColor: "var(--admin-surface-2)",
@@ -365,15 +376,7 @@ export default async function AdminMessagesPage({
                               value={submission.id}
                             />
                             <input type="hidden" name="status" value={s} />
-                            <button
-                              type="submit"
-                              className="inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium transition hover:brightness-95"
-                              style={{
-                                backgroundColor: "var(--admin-surface)",
-                                color: "var(--admin-text-soft)",
-                                border: "1px solid var(--admin-border-strong)",
-                              }}
-                            >
+                            <StatusSubmitButton>
                               {s === "replied" ? (
                                 <Icon.Check width={14} height={14} />
                               ) : null}
@@ -387,7 +390,7 @@ export default async function AdminMessagesPage({
                                 <Icon.Bell width={14} height={14} />
                               ) : null}
                               Mark {STATUS_LABEL[s].toLowerCase()}
-                            </button>
+                            </StatusSubmitButton>
                           </form>
                         ))}
                       </div>
@@ -423,9 +426,13 @@ export default async function AdminMessagesPage({
                         }}
                       />
                       <div className="flex justify-end">
-                        <Button type="submit" size="sm" variant="secondary">
+                        <SubmitButton
+                          size="sm"
+                          variant="secondary"
+                          pendingLabel="Saving…"
+                        >
                           Save note
-                        </Button>
+                        </SubmitButton>
                       </div>
                     </form>
                   </div>

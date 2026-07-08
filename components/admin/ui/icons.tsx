@@ -118,6 +118,50 @@ export const Icon = {
       <path d="M12 5v14M5 12h14" />
     </Wrap>
   ),
+  Minus: (props: SVGProps<SVGSVGElement>) => (
+    <Wrap {...props}>
+      <path d="M5 12h14" />
+    </Wrap>
+  ),
+  Pencil: (props: SVGProps<SVGSVGElement>) => (
+    <Wrap {...props}>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" />
+    </Wrap>
+  ),
+  Trash: (props: SVGProps<SVGSVGElement>) => (
+    <Wrap {...props}>
+      <path d="M4 7h16" />
+      <path d="M10 11v6M14 11v6" />
+      <path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13" />
+      <path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" />
+    </Wrap>
+  ),
+  Printer: (props: SVGProps<SVGSVGElement>) => (
+    <Wrap {...props}>
+      <path d="M6 9V3h12v6" />
+      <path d="M6 18H4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2" />
+      <rect x="6" y="14" width="12" height="7" rx="1" />
+    </Wrap>
+  ),
+  Barcode: (props: SVGProps<SVGSVGElement>) => (
+    <Wrap {...props}>
+      <path d="M4 6v12M7.5 6v12M11 6v12M14 6v12M17 6v12M20 6v12" />
+    </Wrap>
+  ),
+  Cash: (props: SVGProps<SVGSVGElement>) => (
+    <Wrap {...props}>
+      <rect x="2" y="6" width="20" height="12" rx="2" />
+      <circle cx="12" cy="12" r="2.5" />
+      <path d="M6 9v6M18 9v6" />
+    </Wrap>
+  ),
+  Card: (props: SVGProps<SVGSVGElement>) => (
+    <Wrap {...props}>
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <path d="M2 10h20" />
+    </Wrap>
+  ),
   Search: (props: SVGProps<SVGSVGElement>) => (
     <Wrap {...props}>
       <circle cx="11" cy="11" r="7" />
@@ -209,6 +253,17 @@ export const Icon = {
       <rect x="3" y="4" width="18" height="4" rx="1" />
       <path d="M5 8v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8" />
       <path d="M10 13h4" />
+    </Wrap>
+  ),
+  Sun: (props: SVGProps<SVGSVGElement>) => (
+    <Wrap {...props}>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+    </Wrap>
+  ),
+  Moon: (props: SVGProps<SVGSVGElement>) => (
+    <Wrap {...props}>
+      <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" />
     </Wrap>
   ),
 };

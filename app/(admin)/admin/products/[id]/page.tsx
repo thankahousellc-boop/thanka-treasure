@@ -1,6 +1,16 @@
 import { notFound } from "next/navigation";
 
-import { Button, Card, CardBody, CardHeader } from "@/components/admin/ui";
+import {
+  Button,
+  ButtonLink,
+  Card,
+  CardBody,
+  CardHeader,
+  DirtyFormProvider,
+} from "@/components/admin/ui";
+import { FlashToast } from "@/components/admin/flash-toast";
+import { attributeRepository } from "@/lib/repositories/attribute-repository";
+import { collectionRepository } from "@/lib/repositories/collection-repository";
 import { frameRepository } from "@/lib/repositories/frame-repository";
 import { productRepository } from "@/lib/repositories/product-repository";
 
@@ -36,10 +46,18 @@ export default async function AdminEditProductPage({
 
   const updateAction = updateProductAction.bind(null, id);
 
-  const [allFrames, productFrameRows] = await Promise.all([
-    frameRepository.listAll().catch(() => []),
-    frameRepository.listForProductAdmin(id).catch(() => []),
-  ]);
+  const [allFrames, productFrameRows, attributeDefinitions, categories] =
+    await Promise.all([
+      frameRepository.listAll().catch(() => []),
+      frameRepository.listForProductAdmin(id).catch(() => []),
+      attributeRepository.listDefinitions().catch(() => []),
+      collectionRepository.listCategoriesForAdmin().catch(() => []),
+    ]);
+
+  const attributeValues: Record<string, string[]> = {};
+  for (const entry of record.attributes) {
+    attributeValues[entry.definition.id] = entry.values;
+  }
 
   const availableFrames = allFrames
     .filter(
@@ -61,6 +79,18 @@ export default async function AdminEditProductPage({
 
   return (
     <div className="space-y-5">
+      <FlashToast
+        messages={{
+          saved: "Product saved.",
+          created: "Product created.",
+          "status-active": "Product published.",
+          "status-draft": "Product moved to draft.",
+          "status-archived": "Product archived.",
+          "image-added": "Image added.",
+          "image-removed": "Image removed.",
+        }}
+      />
+      <DirtyFormProvider formId={PRODUCT_FORM_ID}>
       <div className="grid items-start gap-5 xl:grid-cols-2">
         <div className="space-y-5">
           <ProductImageManager
@@ -97,9 +127,15 @@ export default async function AdminEditProductPage({
             hideFramesPicker
             hideSearchEngineCard
             productId={record.product.id}
+            categories={categories.map((category) => ({
+              id: category.id,
+              name: category.name,
+            }))}
             availableFrames={availableFrames}
             selectedFrameIds={selectedFrameIds}
             defaultFrameId={defaultFrameId}
+            attributeDefinitions={attributeDefinitions}
+            attributeValues={attributeValues}
             values={{
               title: record.product.title,
               slug: record.product.slug,
@@ -108,6 +144,7 @@ export default async function AdminEditProductPage({
               metaDescription: record.product.metaDescription ?? "",
               status: toAdminStatus(record.product.status),
               productType: record.product.productType ?? "",
+              categoryId: record.product.categoryId ?? "",
               vendor: record.product.vendor ?? "",
               tags: record.product.tags.join(", "),
               variants:
@@ -151,6 +188,26 @@ export default async function AdminEditProductPage({
           />
         </div>
       </div>
+      </DirtyFormProvider>
+
+      <Card>
+        <CardHeader
+          title="Barcode"
+          description="Scannable code used by the in-store POS. Configure its format under Settings → Barcodes."
+        />
+        <CardBody className="flex flex-wrap items-center justify-between gap-3">
+          <span className="text-sm" style={{ color: "var(--admin-text-soft)" }}>
+            {record.product.barcode ?? "Not generated yet."}
+          </span>
+          <ButtonLink
+            href={`/admin/products/${record.product.id}/barcode`}
+            variant="secondary"
+            size="sm"
+          >
+            View / print label
+          </ButtonLink>
+        </CardBody>
+      </Card>
 
       <Card>
         <CardHeader

@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+
+import { FlashToast } from "@/components/admin/flash-toast";
 import { blogRepository } from "@/lib/repositories/blog-repository";
 import { resolveUrl } from "@/lib/storage/resolve-url";
 
@@ -43,8 +45,15 @@ export default async function AdminEditBlogPage({
   const updateAction = updateBlogPostAction.bind(null, id);
 
   return (
-    <BlogPostForm
-      title={`Edit blog post: ${post.title}`}
+    <>
+      <FlashToast
+        messages={{
+          "post-created": "Post created.",
+          "post-saved": "Post saved.",
+        }}
+      />
+      <BlogPostForm
+        title={`Edit blog post: ${post.title}`}
       description="Update content and publishing status."
       submitLabel="Save changes"
       action={updateAction}
@@ -69,7 +78,8 @@ export default async function AdminEditBlogPage({
         scheduledAt: toDateTimeLocalValue(post.scheduledAt),
         categoryIds: record.categoryIds,
         tagIds: record.tagIds,
-      }}
-    />
+        }}
+      />
+    </>
   );
 }

@@ -5,6 +5,8 @@ import {
   Card,
   CardBody,
   CardHeader,
+  EmptyState,
+  Icon,
   StatCard,
 } from "@/components/admin/ui";
 import { orderRepository } from "@/lib/repositories/order-repository";
@@ -54,10 +56,24 @@ export default async function AdminOrdersPage({
     }),
   ]);
 
+  const paidRate =
+    stats.total > 0 ? Math.round((stats.paid / stats.total) * 100) : 0;
+  const hasFilters =
+    query.length > 0 ||
+    status !== "all" ||
+    paymentStatus !== "all" ||
+    sort !== "newest";
+
   return (
     <section className="space-y-5">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
+          <p
+            className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]"
+            style={{ color: "var(--admin-saffron)" }}
+          >
+            Sales
+          </p>
           <h2
             className="admin-display text-2xl font-semibold"
             style={{ color: "var(--admin-text)" }}
@@ -81,20 +97,51 @@ export default async function AdminOrdersPage({
             ) : null}
           </div>
         </div>
+        <ButtonLink href="/pos" className="shrink-0">
+          <Icon.Plus width={14} height={14} /> New sale
+        </ButtonLink>
       </header>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Total orders" value={stats.total} />
-        <StatCard label="Paid orders" value={stats.paid} />
+        <StatCard
+          label="Total orders"
+          value={stats.total}
+          hint="all sources"
+          icon={<Icon.Bag />}
+          href="/admin/orders"
+        />
+        <StatCard
+          label="Paid orders"
+          value={stats.paid}
+          hint={`${paidRate}% of total`}
+          icon={<Icon.Cash />}
+          tone="success"
+          href="/admin/orders?payment=paid"
+        />
         <StatCard
           label="Pending fulfillment"
           value={stats.pendingFulfillment}
+          hint={stats.pendingFulfillment > 0 ? "needs action" : "all clear"}
+          icon={<Icon.Box />}
+          tone={stats.pendingFulfillment > 0 ? "danger" : "default"}
         />
-        <StatCard label="Cancelled" value={stats.cancelled} />
+        <StatCard
+          label="Cancelled"
+          value={stats.cancelled}
+          hint="excluded from revenue"
+          icon={<Icon.Archive />}
+          href="/admin/orders?status=cancelled"
+        />
       </div>
 
       <Card>
-        <CardHeader title="Filters" description="Narrow the list of orders." />
+        <CardHeader
+          title="Filters"
+          description="Narrow the list of orders."
+          action={
+            hasFilters ? <Badge tone="info">Filters active</Badge> : null
+          }
+        />
         <CardBody>
           <form className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             <label className="space-y-1 sm:col-span-2 lg:col-span-3 xl:col-span-2">
@@ -219,12 +266,32 @@ export default async function AdminOrdersPage({
           <OrdersTable rows={orders.rows} />
         ) : (
           <CardBody>
-            <p
-              className="text-sm"
-              style={{ color: "var(--admin-text-soft)" }}
-            >
-              No orders match the current filters.
-            </p>
+            <EmptyState
+              icon={<Icon.Bag width={28} height={28} />}
+              title={
+                hasFilters ? "No orders match these filters" : "No orders yet"
+              }
+              description={
+                hasFilters
+                  ? "Try widening your search, status, or payment filters."
+                  : "Orders from your storefront and point of sale will appear here."
+              }
+              action={
+                hasFilters ? (
+                  <ButtonLink
+                    href="/admin/orders"
+                    variant="secondary"
+                    size="sm"
+                  >
+                    Clear filters
+                  </ButtonLink>
+                ) : (
+                  <ButtonLink href="/pos" size="sm">
+                    <Icon.Plus width={14} height={14} /> New sale
+                  </ButtonLink>
+                )
+              }
+            />
           </CardBody>
         )}
       </Card>

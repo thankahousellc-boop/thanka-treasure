@@ -120,9 +120,10 @@ body {
 
 /* Admin shell — scoped so the storefront is unaffected. */
 .admin-app {
-  --admin-bg: #f6f1ec;
+  /* Light theme (default) — whiter than the legacy cream. */
+  --admin-bg: #faf9f8;
   --admin-surface: #ffffff;
-  --admin-surface-2: #faf6f1;
+  --admin-surface-2: #f4f2f0;
   --admin-border: rgba(92, 31, 42, 0.10);
   --admin-border-strong: rgba(92, 31, 42, 0.18);
   --admin-text: #2b1318;
@@ -131,9 +132,12 @@ body {
   --admin-accent: var(--color-ink, #5c1f2a);
   --admin-accent-soft: rgba(92, 31, 42, 0.08);
   --admin-accent-strong: var(--color-ink-soft, #7a2e3a);
+  --admin-on-accent: #ffffff;
   --admin-saffron: var(--color-saffron, #c9772d);
   --admin-danger: #b3261e;
   --admin-success: #1f7a3f;
+  --admin-warning: #9a6b00;
+  --admin-info: #1f5fb3;
   --admin-shadow:
     0 1px 2px rgba(43, 19, 24, 0.04),
     0 8px 24px -12px rgba(43, 19, 24, 0.10);
@@ -144,6 +148,37 @@ body {
   background-color: var(--admin-bg);
   color: var(--admin-text);
   font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Dark theme — darkest grey, a little less than black.
+   Second selector bridges the first-visit case: the no-flash script sets
+   data-theme on <html> before paint, while the shell has no attribute yet. */
+.admin-app[data-theme="dark"],
+:root[data-theme="dark"] .admin-app:not([data-theme]) {
+  color-scheme: dark;
+  --admin-bg: #161616;
+  --admin-surface: #1f1f1f;
+  --admin-surface-2: #262626;
+  --admin-border: rgba(255, 255, 255, 0.08);
+  --admin-border-strong: rgba(255, 255, 255, 0.15);
+  --admin-text: #f4f3f1;
+  --admin-text-soft: #b7b2af;
+  --admin-text-mute: #8a8482;
+  /* Lightened maroon/rose so links + active nav read on a dark surface. */
+  --admin-accent: #c26b78;
+  --admin-accent-soft: rgba(194, 107, 120, 0.14);
+  --admin-accent-strong: #d18b95;
+  --admin-on-accent: #1a1012;
+  --admin-danger: #f0726a;
+  --admin-success: #5fbf81;
+  --admin-warning: #e0b341;
+  --admin-info: #6ba8e8;
+  --admin-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 8px 24px -12px rgba(0, 0, 0, 0.7);
+  --admin-shadow-lg:
+    0 4px 8px rgba(0, 0, 0, 0.55),
+    0 20px 40px -20px rgba(0, 0, 0, 0.8);
 }
 
 @layer base {

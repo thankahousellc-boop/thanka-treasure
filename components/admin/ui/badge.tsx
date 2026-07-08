@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 type Tone =
   | "neutral"
@@ -8,14 +8,31 @@ type Tone =
   | "info"
   | "muted";
 
-const toneClasses: Record<Tone, string> = {
-  neutral: "bg-zinc-100 text-zinc-700 ring-zinc-200",
-  success: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  warning: "bg-amber-50 text-amber-800 ring-amber-200",
-  danger: "bg-rose-50 text-rose-700 ring-rose-200",
-  info: "bg-blue-50 text-blue-700 ring-blue-200",
-  muted: "bg-zinc-50 text-zinc-500 ring-zinc-200",
-};
+// Each tone derives its surface/ring from a single semantic token via
+// color-mix, so badges adapt automatically to light and dark themes.
+function toneStyle(tone: Tone): CSSProperties {
+  if (tone === "neutral" || tone === "muted") {
+    return {
+      background: "var(--admin-surface-2)",
+      color:
+        tone === "muted" ? "var(--admin-text-mute)" : "var(--admin-text-soft)",
+      boxShadow: "inset 0 0 0 1px var(--admin-border)",
+    };
+  }
+  const token =
+    tone === "success"
+      ? "var(--admin-success)"
+      : tone === "warning"
+        ? "var(--admin-warning)"
+        : tone === "danger"
+          ? "var(--admin-danger)"
+          : "var(--admin-info)";
+  return {
+    background: `color-mix(in srgb, ${token} 16%, var(--admin-surface))`,
+    color: token,
+    boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${token} 32%, transparent)`,
+  };
+}
 
 export function Badge({
   children,
@@ -28,7 +45,8 @@ export function Badge({
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium uppercase tracking-wider ring-1 ring-inset ${toneClasses[tone]} ${className}`}
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium uppercase tracking-wider ${className}`}
+      style={toneStyle(tone)}
     >
       {children}
     </span>

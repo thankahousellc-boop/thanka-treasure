@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
 import { discountRepository } from "@/lib/repositories/discount-repository";
@@ -134,6 +135,8 @@ export async function createDiscountAction(formData: FormData) {
 
   revalidatePath("/admin/discounts");
   revalidatePath("/admin/discounts/new");
+
+  redirect("/admin/discounts?status=created");
 }
 
 export async function toggleDiscountStatusAction(formData: FormData) {
@@ -146,6 +149,11 @@ export async function toggleDiscountStatusAction(formData: FormData) {
     return;
   }
 
-  await discountRepository.setActiveStatus(id, nextState === "active");
+  const willActivate = nextState === "active";
+  await discountRepository.setActiveStatus(id, willActivate);
   revalidatePath("/admin/discounts");
+
+  redirect(
+    `/admin/discounts?status=${willActivate ? "activated" : "deactivated"}`,
+  );
 }
