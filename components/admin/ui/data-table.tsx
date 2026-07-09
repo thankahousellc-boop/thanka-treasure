@@ -258,17 +258,24 @@ export function DataTable<TRow>({
               ))
             ) : (
               <tr>
-                <td
-                  colSpan={columns.length}
-                  className={`${cellPaddingX} py-10 text-center text-sm`}
-                  style={{ color: "var(--admin-text-mute)" }}
-                >
+                <td colSpan={columns.length} className={cellPaddingX}>
                   {emptyState ?? (
-                    <span>
-                      {globalFilter
-                        ? "No rows match your search."
-                        : "No data to display."}
-                    </span>
+                    <div
+                      className="flex min-h-50 flex-col items-center justify-center gap-2 py-12 text-center text-sm"
+                      style={{ color: "var(--admin-text-mute)" }}
+                    >
+                      <Icon.Search width={22} height={22} />
+                      <span className="font-medium">
+                        {globalFilter
+                          ? "No rows match your search"
+                          : "Nothing here yet"}
+                      </span>
+                      <span className="text-[12px]">
+                        {globalFilter
+                          ? "Try a different keyword or clear the search."
+                          : "Records will appear here once added."}
+                      </span>
+                    </div>
                   )}
                 </td>
               </tr>

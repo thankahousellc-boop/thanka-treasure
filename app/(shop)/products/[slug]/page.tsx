@@ -18,6 +18,7 @@ import { productRepository } from "@/lib/repositories/product-repository";
 import { buildMetaDescription, getAbsoluteUrl } from "@/lib/seo";
 import { resolveUrl } from "@/lib/storage/resolve-url";
 import { formatCurrency } from "@/lib/utils/formatters";
+import { sanitizeRichText } from "@/lib/utils/sanitize-html";
 
 type ProductDetailPageProps = {
   params: Promise<{ slug: string }>;
@@ -104,9 +105,12 @@ export async function generateMetadata({
 export default async function ProductDetailPage({
   params,
 }: ProductDetailPageProps) {
-  const { currency, rates } = await getCurrencyContext();
   const { slug } = await params;
-  const productData = await getProductData(slug);
+  // Currency context and the product query are independent — run together.
+  const [{ currency, rates }, productData] = await Promise.all([
+    getCurrencyContext(),
+    getProductData(slug),
+  ]);
 
   if (!productData) {
     return (
@@ -128,7 +132,7 @@ export default async function ProductDetailPage({
     );
   }
 
-  const { product, variants, images } = productData;
+  const { product, variants, images, attributes, category } = productData;
 
   const galleryImages: GalleryImage[] = images
     .map((image, index) => {
@@ -179,28 +183,27 @@ export default async function ProductDetailPage({
         : undefined,
   };
 
-  // Related — pull other products of the same type
-  let relatedRows: Awaited<ReturnType<typeof productRepository.search>>["rows"] =
-    [];
-  try {
-    const related = await productRepository.search({
-      productType: product.productType ?? undefined,
-      limit: 6,
-    });
-    relatedRows = related.rows.filter((row) => row.slug !== product.slug).slice(
-      0,
-      4,
-    );
-  } catch {
-    relatedRows = [];
-  }
+  // Related products and frames both only need the loaded product — fetch in
+  // parallel instead of one after the other.
+  const [relatedResult, productFrames] = await Promise.all([
+    productRepository
+      .search({
+        productType: product.productType ?? undefined,
+        limit: 6,
+      })
+      .catch(() => null),
+    frameRepository.listForProductPublic(product.id).catch(() => []),
+  ]);
 
-  const eyebrow = product.productType ?? "Sacred Art";
+  const relatedRows = relatedResult
+    ? relatedResult.rows
+        .filter((row) => row.slug !== product.slug)
+        .slice(0, 4)
+    : [];
+
+  const eyebrow = category?.name ?? product.productType ?? "Sacred Art";
   const artist = product.vendor ?? null;
 
-  const productFrames = await frameRepository
-    .listForProductPublic(product.id)
-    .catch(() => []);
   const frameOptions = productFrames.map((frame) => ({
     id: frame.id,
     name: frame.name,
@@ -262,7 +265,9 @@ export default async function ProductDetailPage({
             {product.description ? (
               <div
                 className="prose prose-stone mb-7 max-w-none font-serif text-[17px] leading-[1.65] text-ink-soft prose-p:my-3 prose-ul:my-3"
-                dangerouslySetInnerHTML={{ __html: product.description }}
+                dangerouslySetInnerHTML={{
+                  __html: sanitizeRichText(product.description),
+                }}
               />
             ) : null}
 
@@ -323,17 +328,27 @@ export default async function ProductDetailPage({
             <div className="mt-9 border-t border-(--line-soft) pt-7">
               <dl className="grid grid-cols-[auto_1fr] gap-x-8 gap-y-3.5 text-sm">
                 {artist ? <Spec term="Artist" detail={artist} /> : null}
-                {product.productType ? (
-                  <Spec term="Category" detail={product.productType} />
+                {category ? (
+                  <Spec term="Category" detail={category.name} />
                 ) : null}
+                {product.productType &&
+                product.productType !== category?.name ? (
+                  <Spec term="Type" detail={product.productType} />
+                ) : null}
+                {attributes.map((entry) => (
+                  <Spec
+                    key={entry.definition.id}
+                    term={entry.definition.name}
+                    detail={
+                      entry.definition.unit
+                        ? `${entry.values.join(" · ")} ${entry.definition.unit}`
+                        : entry.values.join(" · ")
+                    }
+                  />
+                ))}
                 {product.tags && product.tags.length > 0 ? (
                   <Spec term="Tags" detail={product.tags.join(" · ")} />
                 ) : null}
-                <Spec
-                  term="Edition"
-                  detail="One-of-one, signed verso by the artist"
-                />
-                <Spec term="Provenance" detail="Painted in Boudhanath, Kathmandu" />
               </dl>
             </div>
           </div>

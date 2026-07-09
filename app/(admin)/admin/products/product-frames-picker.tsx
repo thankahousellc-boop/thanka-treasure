@@ -84,8 +84,8 @@ export function ProductFramesPicker({
                 <label
                   className={`flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2 transition ${
                     isSelected
-                      ? "border-zinc-900 bg-zinc-50"
-                      : "border-zinc-200 hover:border-zinc-300"
+                      ? "border-(--admin-accent) bg-(--admin-accent-soft)"
+                      : "border-(--admin-border) hover:border-(--admin-border-strong)"
                   }`}
                 >
                   <input
@@ -95,9 +95,9 @@ export function ProductFramesPicker({
                     value={frame.id}
                     checked={isSelected}
                     onChange={() => toggle(frame.id)}
-                    className="h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900"
+                    className="h-4 w-4 rounded border-(--admin-border-strong) accent-(--admin-accent) focus:ring-(--admin-accent)"
                   />
-                  <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded border border-zinc-200 bg-zinc-50">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded border border-(--admin-border) bg-(--admin-surface-2)">
                     {url ? (
                       <Image
                         src={url}
@@ -110,10 +110,10 @@ export function ProductFramesPicker({
                     ) : null}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-zinc-900">
+                    <p className="truncate text-sm font-medium text-(--admin-text)">
                       {frame.name}
                     </p>
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-xs text-(--admin-text-mute)">
                       {frame.priceDelta > 0
                         ? `+${formatCurrency(frame.priceDelta)}`
                         : "Included"}
@@ -121,7 +121,7 @@ export function ProductFramesPicker({
                   </div>
                   <label
                     className={`flex items-center gap-1.5 text-[11px] font-medium ${
-                      isSelected ? "text-zinc-700" : "text-zinc-400"
+                      isSelected ? "text-(--admin-text-soft)" : "text-(--admin-text-mute)"
                     }`}
                   >
                     <input
@@ -132,7 +132,7 @@ export function ProductFramesPicker({
                       checked={isDefault}
                       onChange={() => setDefaultId(frame.id)}
                       disabled={!isSelected}
-                      className="h-3.5 w-3.5 border-zinc-300 text-zinc-900 focus:ring-zinc-900"
+                      className="h-3.5 w-3.5 border-(--admin-border-strong) accent-(--admin-accent) focus:ring-(--admin-accent)"
                     />
                     Default
                   </label>

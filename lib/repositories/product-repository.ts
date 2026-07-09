@@ -14,13 +14,34 @@ import {
 
 import { getDb } from "@/db";
 import {
+  attributeDefinitions,
+  categories,
   collectionProducts,
   inventory,
+  productAttributeValues,
   productImages,
   products,
   productVariants,
 } from "@/db/schema";
+import { buildBarcodeValue } from "@/lib/barcode/build-code";
+import { getBarcodeConfig } from "@/lib/barcode/config";
+import { attributeRepository } from "@/lib/repositories/attribute-repository";
 import { requireAdminSession } from "@/lib/repositories/authz";
+import { resolveUrl } from "@/lib/storage/resolve-url";
+
+export type PosLookupResult = {
+  productId: string;
+  productTitle: string;
+  barcode: string | null;
+  imageUrl: string | null;
+  variants: {
+    variantId: string;
+    title: string;
+    sku: string | null;
+    price: number;
+    availableQuantity: number;
+  }[];
+};
 
 type ProductSearchInput = {
   query?: string;
@@ -30,6 +51,9 @@ type ProductSearchInput = {
   sort?: "newest" | "oldest" | "title" | "price_asc" | "price_desc";
   limit?: number;
   page?: number;
+  // Dynamic attribute facets: definition key → selected values (OR within a
+  // key, AND across keys).
+  attributes?: Record<string, string[]>;
 };
 
 type ProductBaseRow = {
@@ -105,9 +129,11 @@ type AdminProductUpsertInput = {
   metaDescription: string | null;
   status: AdminProductStatus;
   productType: string | null;
+  categoryId: string | null;
   vendor: string | null;
   tags: string[];
   variants: AdminProductVariantUpsertInput[];
+  attributes: { definitionId: string; values: string[] }[];
 };
 
 function clampPage(input: number | undefined) {
@@ -240,6 +266,32 @@ async function searchActiveProducts(
     input.typeCondition ??
     (productType ? eq(products.productType, productType) : undefined);
 
+  // One EXISTS subquery per selected attribute key — a product must match at
+  // least one value within each key (OR within a key, AND across keys).
+  const attributeConditions: SQL<unknown>[] = [];
+  for (const [rawKey, rawValues] of Object.entries(input.attributes ?? {})) {
+    const key = rawKey.trim();
+    const values = rawValues
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0);
+    if (!key || values.length === 0) {
+      continue;
+    }
+    attributeConditions.push(sql`
+      exists (
+        select 1
+        from ${productAttributeValues} av
+        inner join ${attributeDefinitions} ad on ad.id = av.definition_id
+        where av.product_id = ${products.id}
+          and ad.key = ${key}
+          and av.value in (${sql.join(
+            values.map((value) => sql`${value}`),
+            sql`, `,
+          )})
+      )
+    `);
+  }
+
   const where = and(
     eq(products.status, "active"),
     isNull(products.deletedAt),
@@ -253,6 +305,7 @@ async function searchActiveProducts(
       : undefined,
     typeCondition,
     priceInRangeCondition,
+    ...attributeConditions,
   );
 
   const minPriceOrderExpr = sql<number>`
@@ -353,7 +406,26 @@ export const productRepository = {
       .where(eq(productImages.productId, product.id))
       .orderBy(asc(productImages.position));
 
-    return { product, variants, images };
+    const attributes = await attributeRepository.listValuesForProduct(
+      product.id,
+      { storefrontOnly: true },
+    );
+
+    const category = product.categoryId
+      ? ((
+          await db
+            .select({
+              id: categories.id,
+              name: categories.name,
+              slug: categories.slug,
+            })
+            .from(categories)
+            .where(eq(categories.id, product.categoryId))
+            .limit(1)
+        )[0] ?? null)
+      : null;
+
+    return { product, variants, images, attributes, category };
   },
 
   async listCheckoutVariantsByIds(variantIds: string[]) {
@@ -457,6 +529,21 @@ export const productRepository = {
     return searchActiveProducts({
       ...searchInput,
       typeCondition: or(
+        // Real category relation — the canonical link.
+        categorySlug || categoryName
+          ? sql`
+              exists (
+                select 1
+                from ${categories} c
+                where c.id = ${products.categoryId}
+                  and (
+                    ${categorySlug ? sql`c.slug = ${categorySlug}` : sql`false`}
+                    or ${categoryName ? sql`lower(c.name) = lower(${categoryName})` : sql`false`}
+                  )
+              )
+            `
+          : undefined,
+        // Legacy fallbacks for products not yet linked via category_id.
         categorySlug ? eq(products.productType, categorySlug) : undefined,
         categoryName ? eq(products.productType, categoryName) : undefined,
         slugAsName ? ilike(products.productType, `%${slugAsName}%`) : undefined,
@@ -548,10 +635,39 @@ export const productRepository = {
     }));
   },
 
-  async listForAdmin(limit = 30) {
+  async listForAdmin(
+    options: { limit?: number; attributes?: Record<string, string[]> } = {},
+  ) {
     await requireAdminSession();
 
     const db = getDb();
+    const limit = options.limit ?? 30;
+
+    // Same facet logic as the storefront search: one EXISTS per attribute key,
+    // OR within a key's values, AND across keys. Admin spans every status.
+    const attributeConditions: SQL<unknown>[] = [];
+    for (const [rawKey, rawValues] of Object.entries(options.attributes ?? {})) {
+      const key = rawKey.trim();
+      const values = rawValues
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0);
+      if (!key || values.length === 0) {
+        continue;
+      }
+      attributeConditions.push(sql`
+        exists (
+          select 1
+          from ${productAttributeValues} av
+          inner join ${attributeDefinitions} ad on ad.id = av.definition_id
+          where av.product_id = ${products.id}
+            and ad.key = ${key}
+            and av.value in (${sql.join(
+              values.map((value) => sql`${value}`),
+              sql`, `,
+            )})
+        )
+      `);
+    }
 
     return db
       .select({
@@ -563,7 +679,7 @@ export const productRepository = {
         updatedAt: products.updatedAt,
       })
       .from(products)
-      .where(isNull(products.deletedAt))
+      .where(and(isNull(products.deletedAt), ...attributeConditions))
       .orderBy(desc(products.createdAt))
       .limit(limit);
   },
@@ -633,12 +749,15 @@ export const productRepository = {
       .where(eq(productImages.productId, id))
       .orderBy(asc(productImages.position), asc(productImages.createdAt));
 
+    const attributes = await attributeRepository.listValuesForProduct(id);
+
     return {
       product,
       primaryVariant: primaryVariant ?? null,
       inventory: currentInventory,
       variants: variantsWithInventory,
       images,
+      attributes,
     };
   },
 
@@ -810,6 +929,7 @@ export const productRepository = {
           metaDescription: input.metaDescription,
           status: input.status,
           productType: input.productType,
+          categoryId: input.categoryId,
           vendor: input.vendor,
           tags: input.tags,
           updatedAt: new Date(),
@@ -848,6 +968,12 @@ export const productRepository = {
         });
       }
 
+      await attributeRepository.setValuesForProduct(
+        tx,
+        createdProduct.id,
+        input.attributes,
+      );
+
       return createdProduct;
     });
   },
@@ -872,6 +998,7 @@ export const productRepository = {
           metaDescription: input.metaDescription,
           status: input.status,
           productType: input.productType,
+          categoryId: input.categoryId,
           vendor: input.vendor,
           tags: input.tags,
           updatedAt: new Date(),
@@ -951,6 +1078,33 @@ export const productRepository = {
           });
       }
 
+      // Delete variants that exist in the DB but were removed from the form.
+      // FK behavior makes this safe: inventory cascades, productImages /
+      // orderItems variantId are set null (order line-item snapshots stay intact).
+      const submittedVariantIds = new Set(
+        input.variants
+          .filter(
+            (variant) =>
+              typeof variant.id === "string" &&
+              existingVariantIdSet.has(variant.id),
+          )
+          .map((variant) => variant.id as string),
+      );
+      const variantIdsToDelete = existingVariants
+        .map((variant) => variant.id)
+        .filter((variantId) => !submittedVariantIds.has(variantId));
+      if (variantIdsToDelete.length > 0) {
+        await tx
+          .delete(productVariants)
+          .where(inArray(productVariants.id, variantIdsToDelete));
+      }
+
+      await attributeRepository.setValuesForProduct(
+        tx,
+        updatedProduct.id,
+        input.attributes,
+      );
+
       return updatedProduct;
     });
   },
@@ -970,6 +1124,230 @@ export const productRepository = {
       .returning({ id: products.id });
 
     return updatedRows.length > 0;
+  },
+
+  // Resolve a scanned/typed code to a sellable product for the POS. Matches a
+  // product barcode first, then falls back to a variant SKU. Returns the product
+  // with every variant's price + available stock so the cashier can pick one.
+  async lookupForPos(code: string): Promise<PosLookupResult | null> {
+    await requireAdminSession();
+
+    const db = getDb();
+    const needle = code.trim();
+    if (!needle) {
+      return null;
+    }
+
+    const [byBarcode] = await db
+      .select({ id: products.id })
+      .from(products)
+      .where(and(eq(products.barcode, needle), isNull(products.deletedAt)))
+      .limit(1);
+
+    let productId = byBarcode?.id ?? null;
+
+    if (!productId) {
+      const [bySku] = await db
+        .select({ id: products.id })
+        .from(productVariants)
+        .innerJoin(products, eq(products.id, productVariants.productId))
+        .where(and(eq(productVariants.sku, needle), isNull(products.deletedAt)))
+        .limit(1);
+      productId = bySku?.id ?? null;
+    }
+
+    if (!productId) {
+      return null;
+    }
+
+    const [product] = await db
+      .select({
+        id: products.id,
+        title: products.title,
+        barcode: products.barcode,
+      })
+      .from(products)
+      .where(eq(products.id, productId))
+      .limit(1);
+
+    if (!product) {
+      return null;
+    }
+
+    const variantRows = await db
+      .select({
+        variantId: productVariants.id,
+        title: productVariants.title,
+        sku: productVariants.sku,
+        price: productVariants.price,
+        availableQuantity: sql<number>`coalesce(${inventory.quantity}, 0) - coalesce(${inventory.reservedQuantity}, 0)`,
+      })
+      .from(productVariants)
+      .leftJoin(inventory, eq(inventory.variantId, productVariants.id))
+      .where(eq(productVariants.productId, productId))
+      .orderBy(asc(productVariants.createdAt));
+
+    const [image] = await db
+      .select({ bucket: productImages.bucket, path: productImages.path })
+      .from(productImages)
+      .where(eq(productImages.productId, productId))
+      .orderBy(asc(productImages.position))
+      .limit(1);
+
+    return {
+      productId: product.id,
+      productTitle: product.title,
+      barcode: product.barcode,
+      imageUrl: image ? resolveUrl({ bucket: image.bucket, path: image.path }) : null,
+      variants: variantRows.map((row) => ({
+        variantId: row.variantId,
+        title: row.title,
+        sku: row.sku,
+        price: row.price,
+        availableQuantity: Number(row.availableQuantity),
+      })),
+    };
+  },
+
+  // List sellable products for the POS product grid. Same shape as lookupForPos
+  // so a tapped tile flows through the identical "confirm then add" panel.
+  // Optional title filter powers the kiosk's "search by name" box.
+  async listForPos(
+    input: { query?: string; limit?: number } = {},
+  ): Promise<PosLookupResult[]> {
+    await requireAdminSession();
+
+    const db = getDb();
+    const limit = Math.min(Math.max(input.limit ?? 40, 1), 100);
+    const query = input.query?.trim();
+
+    const productRows = await db
+      .select({
+        id: products.id,
+        title: products.title,
+        barcode: products.barcode,
+      })
+      .from(products)
+      .where(
+        and(
+          eq(products.status, "active"),
+          isNull(products.deletedAt),
+          query ? ilike(products.title, `%${query}%`) : undefined,
+        ),
+      )
+      .orderBy(asc(products.title))
+      .limit(limit);
+
+    if (productRows.length === 0) {
+      return [];
+    }
+
+    const productIds = productRows.map((row) => row.id);
+
+    const variantRows = await db
+      .select({
+        productId: productVariants.productId,
+        variantId: productVariants.id,
+        title: productVariants.title,
+        sku: productVariants.sku,
+        price: productVariants.price,
+        createdAt: productVariants.createdAt,
+        availableQuantity: sql<number>`coalesce(${inventory.quantity}, 0) - coalesce(${inventory.reservedQuantity}, 0)`,
+      })
+      .from(productVariants)
+      .leftJoin(inventory, eq(inventory.variantId, productVariants.id))
+      .where(inArray(productVariants.productId, productIds))
+      .orderBy(asc(productVariants.createdAt));
+
+    const imageRows = await db
+      .select({
+        productId: productImages.productId,
+        bucket: productImages.bucket,
+        path: productImages.path,
+        position: productImages.position,
+      })
+      .from(productImages)
+      .where(inArray(productImages.productId, productIds))
+      .orderBy(asc(productImages.position));
+
+    const variantsByProduct = new Map<string, PosLookupResult["variants"]>();
+    for (const row of variantRows) {
+      const list = variantsByProduct.get(row.productId) ?? [];
+      list.push({
+        variantId: row.variantId,
+        title: row.title,
+        sku: row.sku,
+        price: row.price,
+        availableQuantity: Number(row.availableQuantity),
+      });
+      variantsByProduct.set(row.productId, list);
+    }
+
+    // First image per product wins (rows already ordered by position).
+    const imageByProduct = new Map<string, { bucket: string; path: string }>();
+    for (const row of imageRows) {
+      if (!imageByProduct.has(row.productId)) {
+        imageByProduct.set(row.productId, {
+          bucket: row.bucket,
+          path: row.path,
+        });
+      }
+    }
+
+    return productRows
+      .map((row) => {
+        const image = imageByProduct.get(row.id);
+        return {
+          productId: row.id,
+          productTitle: row.title,
+          barcode: row.barcode,
+          imageUrl: image ? resolveUrl(image) : null,
+          variants: variantsByProduct.get(row.id) ?? [],
+        };
+      })
+      .filter((item) => item.variants.length > 0);
+  },
+
+  // Recompute and persist a single product's barcode from the current config +
+  // its attribute values. Returns the generated code.
+  async regenerateBarcodeForAdmin(id: string) {
+    await requireAdminSession();
+
+    const db = getDb();
+    const config = await getBarcodeConfig();
+    const resolved = await attributeRepository.listValuesForProduct(id);
+
+    const valuesByKey: Record<string, string[]> = {};
+    for (const entry of resolved) {
+      valuesByKey[entry.definition.key] = entry.values;
+    }
+
+    const value = buildBarcodeValue({ config, productId: id, valuesByKey });
+
+    await db
+      .update(products)
+      .set({ barcode: value, updatedAt: new Date() })
+      .where(eq(products.id, id));
+
+    return value;
+  },
+
+  // Rebuild every non-deleted product's barcode — used after the barcode config
+  // changes so existing products pick up the new format.
+  async regenerateAllBarcodesForAdmin() {
+    await requireAdminSession();
+
+    const db = getDb();
+    const rows = await db
+      .select({ id: products.id })
+      .from(products)
+      .where(isNull(products.deletedAt));
+
+    for (const row of rows) {
+      await this.regenerateBarcodeForAdmin(row.id);
+    }
+
+    return rows.length;
   },
 
   async setStatusForAdmin(id: string, status: AdminProductStatus) {

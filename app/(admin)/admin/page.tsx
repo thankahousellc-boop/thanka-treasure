@@ -36,6 +36,12 @@ const EMPTY_BADGES = {
   lowStock: 0,
 };
 
+const EMPTY_CATALOG = {
+  activeProducts: 0,
+  totalProducts: 0,
+  outOfStock: 0,
+};
+
 async function safe<T>(promise: Promise<T>, fallback: T): Promise<T> {
   try {
     return await promise;
@@ -49,10 +55,11 @@ export default async function AdminDashboardPage() {
   const session = await auth.getSession();
   const greetingName = session.user?.email?.split("@")[0] ?? "admin";
 
-  const [kpis, badges, fulfill, lowStock, activity, trend, topProducts] =
+  const [kpis, badges, catalog, fulfill, lowStock, activity, trend, topProducts] =
     await Promise.all([
       safe(adminDashboardRepository.getKpis(WINDOW_DAYS), EMPTY_KPIS),
       safe(adminDashboardRepository.getBadges(), EMPTY_BADGES),
+      safe(adminDashboardRepository.getCatalogSummary(), EMPTY_CATALOG),
       safe(adminDashboardRepository.getOrdersToFulfill(6), []),
       safe(adminDashboardRepository.getLowStock(6), []),
       safe(adminDashboardRepository.getRecentActivity(8), []),
@@ -81,7 +88,7 @@ export default async function AdminDashboardPage() {
         }
       />
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard
           label="Revenue"
           value={formatCurrency(kpis.revenueCents)}
@@ -95,6 +102,7 @@ export default async function AdminDashboardPage() {
               : undefined
           }
           icon={<Icon.Chart />}
+          tone="accent"
           href="/admin/analytics"
         />
         <StatCard
@@ -105,16 +113,35 @@ export default async function AdminDashboardPage() {
           href="/admin/orders"
         />
         <StatCard
-          label="Average order value"
+          label="Avg order value"
           value={formatCurrency(kpis.averageOrderValueCents)}
           icon={<Icon.Tag />}
         />
         <StatCard
-          label="Customers ordered"
+          label="Customers"
           value={kpis.newCustomerOrderCount.toLocaleString()}
           hint={`${badges.subscribers} subscribers`}
           icon={<Icon.Users />}
           href="/admin/customers"
+        />
+        <StatCard
+          label="Products"
+          value={catalog.activeProducts.toLocaleString()}
+          hint={`${catalog.totalProducts} total`}
+          icon={<Icon.Box />}
+          href="/admin/products"
+        />
+        <StatCard
+          label="Low stock"
+          value={badges.lowStock.toLocaleString()}
+          hint={
+            catalog.outOfStock > 0
+              ? `${catalog.outOfStock} out of stock`
+              : "needs restock"
+          }
+          icon={<Icon.Layers />}
+          tone={badges.lowStock > 0 ? "danger" : "default"}
+          href="/admin/products/inventory"
         />
       </section>
 
@@ -126,7 +153,7 @@ export default async function AdminDashboardPage() {
             action={
               <Link
                 href="/admin/analytics"
-                className="text-xs font-medium text-zinc-700 hover:text-zinc-900"
+                className="text-xs font-medium text-(--admin-text-soft) hover:text-(--admin-text)"
               >
                 View analytics →
               </Link>
@@ -156,12 +183,12 @@ export default async function AdminDashboardPage() {
                     className="flex items-center justify-between gap-3 text-sm"
                   >
                     <span className="flex min-w-0 items-center gap-2.5">
-                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-zinc-100 text-[11px] font-semibold text-zinc-700">
+                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-(--admin-accent-soft) text-[11px] font-semibold text-(--admin-accent)">
                         {index + 1}
                       </span>
-                      <span className="truncate text-zinc-800">{row.title}</span>
+                      <span className="truncate text-(--admin-text)">{row.title}</span>
                     </span>
-                    <span className="shrink-0 text-xs font-medium text-zinc-600">
+                    <span className="shrink-0 text-xs font-medium tabular-nums text-(--admin-text-soft)">
                       {formatCurrency(Number(row.revenue))}
                     </span>
                   </li>
@@ -190,7 +217,7 @@ export default async function AdminDashboardPage() {
                 description="No paid orders are waiting on you."
               />
             ) : (
-              <ul className="divide-y divide-zinc-100">
+              <ul className="divide-y divide-(--admin-border)">
                 {fulfill.map((row) => (
                   <li
                     key={row.id}
@@ -199,19 +226,19 @@ export default async function AdminDashboardPage() {
                     <div className="min-w-0">
                       <Link
                         href={`/admin/orders/${row.id}`}
-                        className="font-medium text-zinc-900 hover:underline"
+                        className="font-medium text-(--admin-text) hover:underline"
                       >
                         {row.orderNumber}
                       </Link>
-                      <p className="truncate text-xs text-zinc-500">
+                      <p className="truncate text-xs text-(--admin-text-mute)">
                         {row.email}
                       </p>
                     </div>
                     <div className="shrink-0 text-right">
-                      <p className="text-sm font-medium text-zinc-800">
+                      <p className="text-sm font-medium tabular-nums text-(--admin-text)">
                         {formatCurrency(row.grandTotal, row.currency)}
                       </p>
-                      <p className="text-[11px] text-zinc-500">
+                      <p className="text-[11px] text-(--admin-text-mute)">
                         {formatDistanceToNow(row.createdAt, { addSuffix: true })}
                       </p>
                     </div>
@@ -239,7 +266,7 @@ export default async function AdminDashboardPage() {
                 description="No variants are currently below their low-stock threshold."
               />
             ) : (
-              <ul className="divide-y divide-zinc-100">
+              <ul className="divide-y divide-(--admin-border)">
                 {lowStock.map((row) => (
                   <li
                     key={row.variantId}
@@ -252,11 +279,11 @@ export default async function AdminDashboardPage() {
                             ? `/admin/products/${row.productId}`
                             : "/admin/products/inventory"
                         }
-                        className="font-medium text-zinc-900 hover:underline"
+                        className="font-medium text-(--admin-text) hover:underline"
                       >
                         {row.variantTitle || row.productTitle}
                       </Link>
-                      <p className="text-xs text-zinc-500">
+                      <p className="text-xs text-(--admin-text-mute)">
                         {Number(row.available)} available · threshold {row.threshold}
                       </p>
                     </div>
@@ -289,10 +316,10 @@ export default async function AdminDashboardPage() {
               <ul className="space-y-3">
                 {activity.map((row) => (
                   <li key={row.id} className="flex items-start gap-3 text-sm">
-                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-400" />
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-(--admin-accent)" />
                     <div className="min-w-0 flex-1">
-                      <p className="text-zinc-800">{row.description}</p>
-                      <p className="mt-0.5 text-[11px] text-zinc-500">
+                      <p className="text-(--admin-text)">{row.description}</p>
+                      <p className="mt-0.5 text-[11px] text-(--admin-text-mute)">
                         <Link
                           href={`/admin/orders/${row.orderId}`}
                           className="hover:underline"

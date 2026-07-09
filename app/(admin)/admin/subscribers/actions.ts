@@ -50,6 +50,7 @@ export async function addManualSubscriber(formData: FormData) {
   });
 
   revalidatePath("/admin/subscribers");
+  redirect("/admin/subscribers?status=subscriber-added");
 }
 
 export async function updateSubscriberStatus(formData: FormData) {
@@ -67,6 +68,7 @@ export async function updateSubscriberStatus(formData: FormData) {
     status,
   );
   revalidatePath("/admin/subscribers");
+  redirect("/admin/subscribers?status=subscriber-updated");
 }
 
 export async function sendNewsletterCampaignAction(formData: FormData) {

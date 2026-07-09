@@ -1,10 +1,12 @@
 import {
-  Button,
   Card,
   CardBody,
   CardHeader,
+  DirtyForm,
   Field,
   Input,
+  ShowWhenDirty,
+  SubmitButton,
 } from "@/components/admin/ui";
 import type { StoreContact } from "@/lib/site-settings";
 
@@ -15,7 +17,7 @@ type ContactFormProps = {
 
 export function ContactForm({ values, action }: ContactFormProps) {
   return (
-    <form action={action}>
+    <DirtyForm action={action}>
       <Card>
         <CardHeader
           title="Store contact"
@@ -83,13 +85,15 @@ export function ContactForm({ values, action }: ContactFormProps) {
             />
           </Field>
         </CardBody>
-        <div
-          className="flex justify-end px-5 py-3"
-          style={{ borderTop: "1px solid var(--admin-border)" }}
-        >
-          <Button type="submit">Save contact details</Button>
-        </div>
+        <ShowWhenDirty>
+          <div
+            className="flex justify-end px-5 py-3"
+            style={{ borderTop: "1px solid var(--admin-border)" }}
+          >
+            <SubmitButton>Save contact details</SubmitButton>
+          </div>
+        </ShowWhenDirty>
       </Card>
-    </form>
+    </DirtyForm>
   );
 }

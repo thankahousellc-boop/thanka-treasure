@@ -14,11 +14,20 @@ import { productRepository } from "@/lib/repositories/product-repository";
 import { resolveUrl } from "@/lib/storage/resolve-url";
 import { formatCurrency, formatDate } from "@/lib/utils/formatters";
 
-async function loadHomeData(currency: string, rates: ExchangeRateMap) {
-  const [featuredProductsResult, blogPostsResult] = await Promise.allSettled([
-    productRepository.findFeatured(6),
-    blogRepository.listPublished({ pageSize: 2 }),
-  ]);
+async function loadHomeData() {
+  // Currency context is independent of the catalog/blog queries — fetch all
+  // three in parallel instead of awaiting currency first.
+  const [currencyResult, featuredProductsResult, blogPostsResult] =
+    await Promise.allSettled([
+      getCurrencyContext(),
+      productRepository.findFeatured(6),
+      blogRepository.listPublished({ pageSize: 2 }),
+    ]);
+
+  const { currency, rates }: { currency: string; rates: ExchangeRateMap } =
+    currencyResult.status === "fulfilled"
+      ? currencyResult.value
+      : { currency: "USD", rates: {} };
 
   const featuredProducts =
     featuredProductsResult.status === "fulfilled"
@@ -71,8 +80,7 @@ async function loadHomeData(currency: string, rates: ExchangeRateMap) {
 export const revalidate = 3600;
 
 export default async function HomePage() {
-  const { currency, rates } = await getCurrencyContext();
-  const { featuredProducts, blogPosts } = await loadHomeData(currency, rates);
+  const { featuredProducts, blogPosts } = await loadHomeData();
   const heroProduct = featuredProducts[0] ?? null;
   const craftProduct = featuredProducts[1] ?? featuredProducts[0] ?? null;
 

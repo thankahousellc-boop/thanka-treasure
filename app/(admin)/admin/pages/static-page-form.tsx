@@ -4,15 +4,18 @@ import { useMemo, useState } from "react";
 
 import {
   Badge,
-  Button,
   Card,
   CardBody,
   CardHeader,
+  DirtyForm,
   Field,
   Input,
   RichTextEditor,
   Select,
+  ShowWhenDirty,
+  SubmitButton,
   Textarea,
+  useMarkDirty,
 } from "@/components/admin/ui";
 
 type StaticPageStatus = "draft" | "published" | "active";
@@ -254,7 +257,7 @@ export function StaticPageForm({
   }
 
   return (
-    <form action={action} className="space-y-5">
+    <DirtyForm action={action} className="space-y-5">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -274,48 +277,16 @@ export function StaticPageForm({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button type="submit" variant="primary" size="md">
-            {submitLabel}
-          </Button>
+          <ShowWhenDirty>
+            <SubmitButton variant="primary" size="md">
+              {submitLabel}
+            </SubmitButton>
+          </ShowWhenDirty>
         </div>
       </header>
 
       {showTemplates ? (
-        <Card>
-          <CardHeader
-            title="Start from a template"
-            description="Pick a common page type to prefill title, slug, content, and SEO. You can edit anything afterwards."
-          />
-          <CardBody>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              {TEMPLATES.map((template) => (
-                <button
-                  key={template.id}
-                  type="button"
-                  onClick={() => applyTemplate(template.id)}
-                  className="rounded-md p-3 text-left transition hover:opacity-90"
-                  style={{
-                    border: "1px solid var(--admin-border)",
-                    background: "var(--admin-surface)",
-                  }}
-                >
-                  <p
-                    className="text-sm font-medium"
-                    style={{ color: "var(--admin-text)" }}
-                  >
-                    {template.label}
-                  </p>
-                  <p
-                    className="mt-1 text-xs"
-                    style={{ color: "var(--admin-text-mute)" }}
-                  >
-                    {template.description}
-                  </p>
-                </button>
-              ))}
-            </div>
-          </CardBody>
-        </Card>
+        <TemplatePicker onPick={applyTemplate} />
       ) : null}
 
       <div className="grid gap-5 lg:grid-cols-3">
@@ -488,24 +459,70 @@ export function StaticPageForm({
         </aside>
       </div>
 
-      <div
-        className="sticky bottom-3 flex items-center justify-end gap-2 rounded-md px-4 py-3"
-        style={{
-          background: "var(--admin-surface)",
-          border: "1px solid var(--admin-border)",
-          boxShadow: "var(--admin-shadow-lg)",
-        }}
-      >
-        <span
-          className="mr-auto text-xs"
-          style={{ color: "var(--admin-text-mute)" }}
+      <ShowWhenDirty>
+        <div
+          className="sticky bottom-3 flex items-center justify-end gap-2 rounded-md px-4 py-3"
+          style={{
+            background: "var(--admin-surface)",
+            border: "1px solid var(--admin-border)",
+            boxShadow: "var(--admin-shadow-lg)",
+          }}
         >
-          The slug auto-derives from the title unless you set a custom one.
-        </span>
-        <Button type="submit" variant="primary" size="md">
-          {submitLabel}
-        </Button>
-      </div>
-    </form>
+          <span
+            className="mr-auto text-xs"
+            style={{ color: "var(--admin-text-mute)" }}
+          >
+            The slug auto-derives from the title unless you set a custom one.
+          </span>
+          <SubmitButton variant="primary" size="md">
+            {submitLabel}
+          </SubmitButton>
+        </div>
+      </ShowWhenDirty>
+    </DirtyForm>
+  );
+}
+
+function TemplatePicker({ onPick }: { onPick: (templateId: TemplateId) => void }) {
+  const markDirty = useMarkDirty();
+  return (
+    <Card>
+      <CardHeader
+        title="Start from a template"
+        description="Pick a common page type to prefill title, slug, content, and SEO. You can edit anything afterwards."
+      />
+      <CardBody>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {TEMPLATES.map((template) => (
+            <button
+              key={template.id}
+              type="button"
+              onClick={() => {
+                onPick(template.id);
+                markDirty();
+              }}
+              className="rounded-md p-3 text-left transition hover:opacity-90"
+              style={{
+                border: "1px solid var(--admin-border)",
+                background: "var(--admin-surface)",
+              }}
+            >
+              <p
+                className="text-sm font-medium"
+                style={{ color: "var(--admin-text)" }}
+              >
+                {template.label}
+              </p>
+              <p
+                className="mt-1 text-xs"
+                style={{ color: "var(--admin-text-mute)" }}
+              >
+                {template.description}
+              </p>
+            </button>
+          ))}
+        </div>
+      </CardBody>
+    </Card>
   );
 }

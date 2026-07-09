@@ -54,8 +54,16 @@ function sanitizeExchangeRates(
 
 const loadExchangeRates = unstable_cache(
   async () => {
-    const configuredRates =
-      await settingsRepository.get<Record<string, unknown>>("exchange_rates");
+    // Mirror branding/site-settings: a DB outage must degrade to defaults, not
+    // reject. This runs unguarded inside the shop layout's Promise.all, so a
+    // throw here 500s every storefront route.
+    let configuredRates: Record<string, unknown> | null = null;
+    try {
+      configuredRates =
+        await settingsRepository.get<Record<string, unknown>>("exchange_rates");
+    } catch {
+      configuredRates = null;
+    }
 
     return sanitizeExchangeRates(configuredRates);
   },

@@ -36,6 +36,41 @@
       "when": 1778544000000,
       "tag": "0004_frame_cutout",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1781266320881,
+      "tag": "0005_mushy_kitty_pryde",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1781453666058,
+      "tag": "0006_perpetual_hydra",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1781454970444,
+      "tag": "0007_rapid_moon_knight",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1781455266618,
+      "tag": "0008_zippy_hardball",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1782028566983,
+      "tag": "0009_right_gambit",
+      "breakpoints": true
     }
   ]
 }

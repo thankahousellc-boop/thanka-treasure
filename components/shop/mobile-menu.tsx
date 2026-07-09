@@ -80,7 +80,7 @@ export function MobileMenu({ links, currency, brandName }: MobileMenuProps) {
             aria-label="Close menu"
             tabIndex={-1}
             onClick={() => setOpen(false)}
-            className="flex-1 bg-ink/35 backdrop-blur-sm"
+            className="flex-1 bg-ink/45 backdrop-blur-sm"
           />
           <div
             ref={panelRef}

@@ -6,20 +6,63 @@ import {
   EmptyState,
   Icon,
 } from "@/components/admin/ui";
+import { FlashToast } from "@/components/admin/flash-toast";
+import { attributeRepository } from "@/lib/repositories/attribute-repository";
 import { productRepository } from "@/lib/repositories/product-repository";
 
+import { ProductsFilterBar } from "./products-filter-bar";
 import { ProductsTable } from "./products-table";
 
-async function loadProductsForAdmin() {
+type AdminSearchParams = Record<string, string | string[] | undefined>;
+
+// Dynamic attribute filters arrive as `?attr_<key>=value` (repeatable), matching
+// the storefront facet contract. OR within a key, AND across keys.
+function parseAttributeFilters(searchParams: AdminSearchParams) {
+  const filters: Record<string, string[]> = {};
+  for (const [rawKey, rawValue] of Object.entries(searchParams)) {
+    if (!rawKey.startsWith("attr_")) continue;
+    const key = rawKey.slice("attr_".length).trim();
+    const values = (
+      Array.isArray(rawValue) ? rawValue : rawValue ? [rawValue] : []
+    )
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0);
+    if (key && values.length > 0) {
+      filters[key] = values;
+    }
+  }
+  return filters;
+}
+
+async function loadProductsForAdmin(attributes: Record<string, string[]>) {
   try {
-    return await productRepository.listForAdmin(200);
+    return await productRepository.listForAdmin({ limit: 200, attributes });
   } catch {
     return [];
   }
 }
 
-export default async function AdminProductsPage() {
-  const products = await loadProductsForAdmin();
+async function loadFilterFacets() {
+  try {
+    return await attributeRepository.listFacetsForAdmin();
+  } catch {
+    return [];
+  }
+}
+
+export default async function AdminProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<AdminSearchParams>;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const attributeFilters = parseAttributeFilters(resolvedSearchParams);
+  const hasActiveFilters = Object.keys(attributeFilters).length > 0;
+
+  const [products, facets] = await Promise.all([
+    loadProductsForAdmin(attributeFilters),
+    loadFilterFacets(),
+  ]);
 
   const activeCount = products.filter((p) => p.status === "active").length;
   const draftCount = products.filter((p) => p.status === "draft").length;
@@ -29,6 +72,13 @@ export default async function AdminProductsPage() {
 
   return (
     <section className="space-y-5">
+      <FlashToast
+        messages={{
+          "status-active": "Product published.",
+          "status-draft": "Product moved to draft.",
+          "status-archived": "Product archived.",
+        }}
+      />
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2
@@ -46,6 +96,7 @@ export default async function AdminProductsPage() {
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
             <span style={{ color: "var(--admin-text-mute)" }}>
               {products.length} {products.length === 1 ? "product" : "products"}
+              {hasActiveFilters ? " match filters" : ""}
             </span>
             {activeCount > 0 ? (
               <Badge tone="success">{activeCount} active</Badge>
@@ -87,8 +138,17 @@ export default async function AdminProductsPage() {
           title="All products"
           description="Use the row menu to publish, move to draft, or archive."
         />
+        <ProductsFilterBar facets={facets} active={attributeFilters} />
         {products.length > 0 ? (
           <ProductsTable rows={products} />
+        ) : hasActiveFilters ? (
+          <div className="px-5 py-5">
+            <EmptyState
+              icon={<Icon.Search width={28} height={28} />}
+              title="No products match these filters."
+              description="Try removing a filter, or clear them all to see the full catalog."
+            />
+          </div>
         ) : (
           <div className="px-5 py-5">
             <EmptyState

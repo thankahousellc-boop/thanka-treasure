@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { orderRepository } from "@/lib/repositories/order-repository";
 
 type CheckoutSessionStatusResponse = {
@@ -16,6 +17,9 @@ type CheckoutSessionStatusResponse = {
 };
 
 export async function GET(request: Request) {
+  const limited = await enforceRateLimit("standard", request);
+  if (limited) return limited;
+
   const { searchParams } = new URL(request.url);
   const sessionId = searchParams.get("session_id")?.trim();
 

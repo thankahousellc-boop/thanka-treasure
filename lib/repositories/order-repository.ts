@@ -3,6 +3,7 @@ import {
   asc,
   desc,
   eq,
+  gte,
   ilike,
   inArray,
   isNull,
@@ -11,9 +12,38 @@ import {
 } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { customers, orderEvents, orderItems, orders } from "@/db/schema";
+import {
+  customers,
+  inventory,
+  orderEvents,
+  orderItems,
+  orders,
+} from "@/db/schema";
 import type { Session } from "@/lib/auth";
 import { requireAdminSession } from "@/lib/repositories/authz";
+
+// Fallback order email for anonymous walk-in POS sales.
+const POS_WALK_IN_EMAIL = "walk-in@pos.local";
+
+type InStoreOrderItemInput = {
+  variantId: string;
+  productTitle: string;
+  variantTitle: string | null;
+  sku: string | null;
+  quantity: number;
+  unitPrice: number;
+};
+
+type CreateInStoreOrderInput = {
+  items: InStoreOrderItemInput[];
+  paymentMethod: "cash" | "card" | "other";
+  discountTotal?: number;
+  customer?: {
+    email?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+  } | null;
+};
 
 type CheckoutOrderItemInput = {
   variantId: string | null;
@@ -202,6 +232,7 @@ export const orderRepository = {
         fulfillmentStatus: orders.fulfillmentStatus,
         currency: orders.currency,
         grandTotal: orders.grandTotal,
+        source: orders.source,
         createdAt: orders.createdAt,
       })
       .from(orders);
@@ -580,6 +611,134 @@ export const orderRepository = {
     });
 
     return result;
+  },
+
+  // Records a completed in-store (POS) sale: deducts stock, creates a paid +
+  // fulfilled order tagged source="in_store", and logs the event — all in one
+  // transaction so a stock shortfall rolls the whole sale back.
+  async createInStoreOrder(input: CreateInStoreOrderInput) {
+    await requireAdminSession();
+
+    if (input.items.length === 0) {
+      throw new Error("Cannot complete a sale with no items.");
+    }
+
+    const db = getDb();
+
+    return db.transaction(async (tx) => {
+      const email = input.customer?.email?.trim() || POS_WALK_IN_EMAIL;
+
+      let customerId: string | null = null;
+      // Only attach/create a customer for a named (non-walk-in) sale.
+      if (input.customer?.email?.trim()) {
+        const [customer] = await tx
+          .insert(customers)
+          .values({
+            email,
+            firstName: input.customer.firstName ?? null,
+            lastName: input.customer.lastName ?? null,
+            updatedAt: new Date(),
+          })
+          .onConflictDoUpdate({
+            target: customers.email,
+            set: { updatedAt: new Date() },
+          })
+          .returning({ id: customers.id });
+        customerId = customer?.id ?? null;
+      }
+
+      // Deduct stock first — a shortfall throws and aborts the sale.
+      for (const item of input.items) {
+        const updated = await tx
+          .update(inventory)
+          .set({
+            quantity: sql`${inventory.quantity} - ${item.quantity}`,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(inventory.variantId, item.variantId),
+              gte(
+                sql`${inventory.quantity} - ${inventory.reservedQuantity}`,
+                item.quantity,
+              ),
+            ),
+          )
+          .returning({ id: inventory.id });
+
+        if (updated.length === 0) {
+          throw new Error(`Insufficient stock for ${item.productTitle}.`);
+        }
+      }
+
+      const subtotal = input.items.reduce(
+        (sum, item) => sum + item.unitPrice * item.quantity,
+        0,
+      );
+      const discountTotal = Math.max(0, input.discountTotal ?? 0);
+      const grandTotal = Math.max(0, subtotal - discountTotal);
+
+      const [createdOrder] = await tx
+        .insert(orders)
+        .values({
+          orderNumber: createOrderNumber(),
+          customerId,
+          email,
+          status: "confirmed",
+          paymentStatus: "paid",
+          fulfillmentStatus: "fulfilled",
+          currency: "USD",
+          subtotal,
+          taxTotal: 0,
+          shippingTotal: 0,
+          discountTotal,
+          grandTotal,
+          source: "in_store",
+          paymentMethod: input.paymentMethod,
+          updatedAt: new Date(),
+        })
+        .returning();
+
+      if (!createdOrder) {
+        throw new Error("Unable to create in-store order.");
+      }
+
+      await tx.insert(orderItems).values(
+        input.items.map((item) => ({
+          orderId: createdOrder.id,
+          variantId: item.variantId,
+          productTitle: item.productTitle,
+          variantTitle: item.variantTitle,
+          sku: item.sku,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: item.unitPrice * item.quantity,
+          updatedAt: new Date(),
+        })),
+      );
+
+      if (customerId) {
+        await tx
+          .update(customers)
+          .set({
+            totalOrders: sql`${customers.totalOrders} + 1`,
+            totalSpent: sql`${customers.totalSpent} + ${grandTotal}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(customers.id, customerId));
+      }
+
+      await tx.insert(orderEvents).values({
+        orderId: createdOrder.id,
+        eventType: "pos.sale.completed",
+        description: `In-store sale completed (${input.paymentMethod}).`,
+        actor: "admin",
+        metadata: { source: "in_store", paymentMethod: input.paymentMethod },
+        updatedAt: new Date(),
+      });
+
+      return createdOrder;
+    });
   },
 
   async markCheckoutExpired(sessionId: string) {

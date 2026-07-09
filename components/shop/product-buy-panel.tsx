@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 
 import { BASE_CURRENCY } from "@/lib/currency/config";
 import { convertFromUsd, type ExchangeRateMap } from "@/lib/currency/convert";
@@ -11,11 +11,6 @@ import {
 } from "@/components/shop/selected-frame-context";
 import { useCartStore } from "@/lib/store/cart";
 import { formatCurrency } from "@/lib/utils/formatters";
-
-function variantHasNoBrocade(title: string): boolean {
-  const t = title.toLowerCase();
-  return t.includes("no brocade") || t.includes("without brocade");
-}
 
 type VariantOption = {
   id: string;
@@ -55,9 +50,8 @@ export function ProductBuyPanel({
     variants[0]?.id ?? "",
   );
   const frameCtx = useSelectedFrame();
-  const fallbackInitialFrameId =
-    frames.find((frame) => frame.isDefault)?.id ?? frames[0]?.id ?? "";
-  const [localFrameId, setLocalFrameId] = useState(fallbackInitialFrameId);
+  // Default to no brocade — optional add-on, customer opts in.
+  const [localFrameId, setLocalFrameId] = useState("");
   const selectedFrameId = frameCtx?.selectedFrameId ?? localFrameId;
   const setSelectedFrameId = frameCtx?.setSelectedFrameId ?? setLocalFrameId;
   const [statusMessage, setStatusMessage] = useState("");
@@ -69,31 +63,11 @@ export function ProductBuyPanel({
     [selectedVariantId, variants],
   );
 
-  const noBrocade = selectedVariant
-    ? variantHasNoBrocade(selectedVariant.title)
-    : false;
-  const showFrames = frames.length > 0 && !noBrocade;
-
-  useEffect(() => {
-    if (noBrocade) {
-      if (selectedFrameId !== "") setSelectedFrameId("");
-    } else if (frames.length > 0 && selectedFrameId === "") {
-      setSelectedFrameId(fallbackInitialFrameId);
-    }
-  }, [
-    noBrocade,
-    frames.length,
-    selectedFrameId,
-    setSelectedFrameId,
-    fallbackInitialFrameId,
-  ]);
+  const showFrames = frames.length > 0;
 
   const selectedFrame = useMemo(
-    () =>
-      showFrames
-        ? frames.find((frame) => frame.id === selectedFrameId) ?? null
-        : null,
-    [selectedFrameId, frames, showFrames],
+    () => frames.find((frame) => frame.id === selectedFrameId) ?? null,
+    [selectedFrameId, frames],
   );
 
   const formatVariantPrice = (priceUsdCents: number) => {
@@ -211,16 +185,41 @@ export function ProductBuyPanel({
       {showFrames ? (
         <div className="mb-6">
           <div className="mb-2.5 flex items-center justify-between text-[11.5px] tracking-[0.18em] text-ink uppercase">
-            <span>Frame</span>
-            {selectedFrame ? (
-              <span className="text-[12.5px] tracking-normal normal-case text-ink-mute">
-                {selectedFrame.priceDelta > 0
+            <span>Brocade</span>
+            <span className="text-[12.5px] tracking-normal normal-case text-ink-mute">
+              {selectedFrame
+                ? selectedFrame.priceDelta > 0
                   ? `+ ${formatVariantPrice(selectedFrame.priceDelta)}`
-                  : "Included"}
-              </span>
-            ) : null}
+                  : "Included"
+                : "No brocade"}
+            </span>
           </div>
           <div className="grid grid-cols-3 gap-2.5 max-sm:grid-cols-2">
+            {(() => {
+              const isActive = selectedFrameId === "";
+              return (
+                <button
+                  type="button"
+                  onClick={() => setSelectedFrameId("")}
+                  aria-pressed={isActive}
+                  className={`flex flex-col items-stretch gap-2 rounded-md border p-2 text-left transition ${
+                    isActive
+                      ? "border-ink bg-paper-2 shadow-[inset_0_0_0_1px_var(--color-ink)]"
+                      : "border-(--line) bg-paper hover:border-ink-mute"
+                  }`}
+                >
+                  <span className="grid aspect-square w-full place-items-center overflow-hidden rounded bg-paper-2 text-[10px] uppercase tracking-widest text-ink-mute">
+                    None
+                  </span>
+                  <span className="block text-[12.5px] font-medium text-ink">
+                    No brocade
+                  </span>
+                  <span className="block text-[11px] text-ink-mute">
+                    No charge
+                  </span>
+                </button>
+              );
+            })()}
             {frames.map((frame) => {
               const isActive = frame.id === selectedFrameId;
               return (

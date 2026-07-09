@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { auth } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { BUCKETS, storage } from "@/lib/storage";
 import { uploadRequestSchema } from "@/lib/utils/validators";
 
@@ -107,6 +109,16 @@ function getMimeRules(
 }
 
 export async function POST(request: Request) {
+  // Uploads write to Supabase storage and are only ever triggered by admin
+  // image/asset flows. Guard against anonymous abuse (disk-fill, spam uploads).
+  const session = await auth.getSession();
+  if (session.user?.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  }
+
+  const limited = await enforceRateLimit("strict", request);
+  if (limited) return limited;
+
   const formData = await request.formData();
   const file = formData.get("file");
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { blogRepository } from "@/lib/repositories/blog-repository";
 
 const bodySchema = z.object({
@@ -8,6 +9,9 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const limited = await enforceRateLimit("standard", request);
+  if (limited) return limited;
+
   let body: unknown;
   try {
     body = await request.json();

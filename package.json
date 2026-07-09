@@ -10,6 +10,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed:admin": "node ./scripts/seed-admin.mjs",
+    "db:seed:storage": "node ./scripts/seed-storage-buckets.mjs",
     "db:studio": "drizzle-kit studio",
     "db:parity": "node ./scripts/check-drizzle-parity.mjs",
     "ops:verify:supabase": "node ./scripts/verify-supabase-setup.mjs",
@@ -26,6 +27,9 @@
     "@tiptap/extension-image": "^3.22.3",
     "@tiptap/react": "3.22.2",
     "@tiptap/starter-kit": "3.22.2",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.0",
+    "bwip-js": "^4.11.1",
     "date-fns": "4.1.0",
     "drizzle-orm": "0.44.6",
     "next": "16.2.2",
@@ -35,6 +39,7 @@
     "react-dom": "19.2.4",
     "react-hook-form": "7.72.1",
     "resend": "6.10.0",
+    "sanitize-html": "^2.17.5",
     "slugify": "1.6.9",
     "sonner": "^2.0.7",
     "stripe": "22.0.0",
@@ -47,10 +52,12 @@
     "@types/papaparse": "^5.5.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/sanitize-html": "^2.16.1",
     "drizzle-kit": "0.31.4",
     "eslint": "^9",
     "eslint-config-next": "16.2.2",
     "tailwindcss": "^4",
     "typescript": "^5"
-  }
+  },
+  "packageManager": "pnpm@10.12.1+sha512.f0dda8580f0ee9481c5c79a1d927b9164f2c478e90992ad268bbb2465a736984391d6333d2c327913578b2804af33474ca554ba29c04a8b13060a717675ae3ac"
 }

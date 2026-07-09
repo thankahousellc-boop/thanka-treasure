@@ -2,11 +2,34 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
+import { useFormStatus } from "react-dom";
 
 import { Badge, DataTable, type ColumnDef } from "@/components/admin/ui";
 import { formatDate } from "@/lib/utils/formatters";
 
 import { deleteBlogPostAction } from "./actions";
+
+function DeletePostButton({ title }: { title: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      aria-busy={pending}
+      className="text-xs font-medium hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+      style={{ color: "#b3261e" }}
+      onClick={(event) => {
+        if (
+          !window.confirm(`Delete "${title}"? This cannot be undone.`)
+        ) {
+          event.preventDefault();
+        }
+      }}
+    >
+      {pending ? "Deleting…" : "Delete"}
+    </button>
+  );
+}
 
 export type BlogRow = {
   id: string;
@@ -104,22 +127,7 @@ export function BlogTable({ rows }: { rows: BlogRow[] }) {
             </Link>
             <form action={deleteBlogPostAction}>
               <input type="hidden" name="postId" value={row.original.id} />
-              <button
-                type="submit"
-                className="text-xs font-medium hover:underline"
-                style={{ color: "#b3261e" }}
-                onClick={(event) => {
-                  if (
-                    !window.confirm(
-                      `Delete "${row.original.title}"? This cannot be undone.`,
-                    )
-                  ) {
-                    event.preventDefault();
-                  }
-                }}
-              >
-                Delete
-              </button>
+              <DeletePostButton title={row.original.title} />
             </form>
           </div>
         ),

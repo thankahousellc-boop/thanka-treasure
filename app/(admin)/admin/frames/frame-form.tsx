@@ -93,6 +93,7 @@ export function FrameForm({
   const [pickedFile, setPickedFile] = useState<File | null>(null);
   const [removeExistingImage, setRemoveExistingImage] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [dirty, setDirty] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lastErrorRef = useRef<string | null>(null);
@@ -129,9 +130,20 @@ export function FrameForm({
     return null;
   }
 
+  function updateCutout(next: Cutout) {
+    setDirty(true);
+    setCutout(next);
+  }
+
+  function patchCutout(fn: (c: Cutout) => Cutout) {
+    setDirty(true);
+    setCutout((c) => fn(c));
+  }
+
   function clearPicked() {
     if (fileInputRef.current) fileInputRef.current.value = "";
     setPickedFile(null);
+    setDirty(true);
   }
 
   function applyFile(file: File | null) {
@@ -148,6 +160,7 @@ export function FrameForm({
     }
     setPickedFile(file);
     setRemoveExistingImage(false);
+    setDirty(true);
   }
 
   function handleInputChange(event: ChangeEvent<HTMLInputElement>) {
@@ -216,7 +229,9 @@ export function FrameForm({
             ? "Unsaved image change"
             : removeExistingImage
               ? "Image will be removed on save"
-              : "All changes apply on save"}
+              : dirty
+                ? "Unsaved changes"
+                : "All changes apply on save"}
         </p>
         <div className="flex items-center gap-2">
           {deleteAction && frameId ? (
@@ -225,14 +240,16 @@ export function FrameForm({
           <ButtonLink href={cancelHref} variant="secondary" size="sm">
             Cancel
           </ButtonLink>
-          <Button
-            form="frame-form"
-            type="submit"
-            disabled={isPending}
-            size="sm"
-          >
-            {isPending ? submittingLabel : submitLabel}
-          </Button>
+          {dirty ? (
+            <Button
+              form="frame-form"
+              type="submit"
+              disabled={isPending}
+              size="sm"
+            >
+              {isPending ? submittingLabel : submitLabel}
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -253,7 +270,10 @@ export function FrameForm({
                   <Input
                     name="name"
                     value={name}
-                    onChange={(event) => setName(event.target.value)}
+                    onChange={(event) => {
+                      setName(event.target.value);
+                      setDirty(true);
+                    }}
                     required
                     maxLength={120}
                   />
@@ -269,7 +289,10 @@ export function FrameForm({
                   <Input
                     name="slug"
                     value={slug}
-                    onChange={(event) => setSlug(event.target.value)}
+                    onChange={(event) => {
+                      setSlug(event.target.value);
+                      setDirty(true);
+                    }}
                     maxLength={180}
                     placeholder={slugSuggestion || "frame-slug"}
                   />
@@ -282,6 +305,7 @@ export function FrameForm({
                     name="description"
                     rows={2}
                     defaultValue={values.description}
+                    onChange={() => setDirty(true)}
                     maxLength={2000}
                   />
                 </Field>
@@ -296,7 +320,10 @@ export function FrameForm({
                       min={0}
                       step="0.01"
                       value={priceDelta}
-                      onChange={(event) => setPriceDelta(event.target.value)}
+                      onChange={(event) => {
+                        setPriceDelta(event.target.value);
+                        setDirty(true);
+                      }}
                     />
                   </Field>
                   <div className="block space-y-1">
@@ -319,8 +346,11 @@ export function FrameForm({
                         name="isActive"
                         value="on"
                         checked={isActive}
-                        onChange={(event) => setIsActive(event.target.checked)}
-                        className="h-3.5 w-3.5 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900"
+                        onChange={(event) => {
+                          setIsActive(event.target.checked);
+                          setDirty(true);
+                        }}
+                        className="h-3.5 w-3.5 rounded border-(--admin-border-strong) accent-(--admin-accent) focus:ring-(--admin-accent)"
                       />
                       <span className="truncate">
                         {isActive ? "Active" : "Hidden"}
@@ -443,7 +473,10 @@ export function FrameForm({
                     type="button"
                     variant="secondary"
                     size="sm"
-                    onClick={() => setRemoveExistingImage(true)}
+                    onClick={() => {
+                      setRemoveExistingImage(true);
+                      setDirty(true);
+                    }}
                   >
                     Remove current image
                   </Button>
@@ -457,7 +490,10 @@ export function FrameForm({
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => setRemoveExistingImage(false)}
+                      onClick={() => {
+                        setRemoveExistingImage(false);
+                        setDirty(true);
+                      }}
                     >
                       Undo
                     </Button>
@@ -483,7 +519,7 @@ export function FrameForm({
               <CutoutEditor
                 frameUrl={previewUrl}
                 cutout={cutout}
-                onChange={setCutout}
+                onChange={updateCutout}
               />
               <div className="grid grid-cols-4 gap-2">
                 <Field label="X %">
@@ -494,7 +530,7 @@ export function FrameForm({
                     step="any"
                     value={cutout.x.toFixed(1)}
                     onChange={(e) =>
-                      setCutout((c) =>
+                      patchCutout((c) =>
                         clampCutout({
                           ...c,
                           x: parseFloat(e.target.value) || 0,
@@ -511,7 +547,7 @@ export function FrameForm({
                     step="any"
                     value={cutout.y.toFixed(1)}
                     onChange={(e) =>
-                      setCutout((c) =>
+                      patchCutout((c) =>
                         clampCutout({
                           ...c,
                           y: parseFloat(e.target.value) || 0,
@@ -528,7 +564,7 @@ export function FrameForm({
                     step="any"
                     value={cutout.width.toFixed(1)}
                     onChange={(e) =>
-                      setCutout((c) =>
+                      patchCutout((c) =>
                         clampCutout({
                           ...c,
                           width: parseFloat(e.target.value) || 1,
@@ -545,7 +581,7 @@ export function FrameForm({
                     step="any"
                     value={cutout.height.toFixed(1)}
                     onChange={(e) =>
-                      setCutout((c) =>
+                      patchCutout((c) =>
                         clampCutout({
                           ...c,
                           height: parseFloat(e.target.value) || 1,

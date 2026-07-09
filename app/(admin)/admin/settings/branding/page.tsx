@@ -1,3 +1,4 @@
+import { FlashToast } from "@/components/admin/flash-toast";
 import { PageHeader } from "@/components/admin/ui";
 import { getBranding } from "@/lib/branding";
 
@@ -11,6 +12,7 @@ export default async function BrandingSettingsPage() {
 
   return (
     <>
+      <FlashToast messages={{ "branding-saved": "Branding saved." }} />
       <PageHeader
         title="Branding"
         description="Logo, colors, and fonts that the storefront uses. Changes apply immediately after save."

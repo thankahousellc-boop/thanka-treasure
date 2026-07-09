@@ -58,7 +58,7 @@ function SidebarBrand({ branding }: { branding: Awaited<ReturnType<typeof getBra
           className="grid h-7 w-7 place-items-center rounded text-[12px] font-semibold"
           style={{
             backgroundColor: "var(--admin-accent)",
-            color: "#fff",
+            color: "var(--admin-on-accent)",
           }}
         >
           {branding.brandName.charAt(0)}

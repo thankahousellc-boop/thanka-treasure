@@ -333,7 +333,7 @@ export async function createBlogPostAction(
     return { error: (error as Error).message };
   }
   // redirect() throws a special error — keep it outside the try/catch.
-  redirect(`/admin/blog/${created.id}`);
+  redirect(`/admin/blog/${created.id}?status=post-created`);
 }
 
 export async function updateBlogPostAction(
@@ -347,7 +347,7 @@ export async function updateBlogPostAction(
   } catch (error) {
     return { error: (error as Error).message };
   }
-  redirect(`/admin/blog/${updated.id}`);
+  redirect(`/admin/blog/${updated.id}?status=post-saved`);
 }
 
 export async function deleteBlogPostAction(formData: FormData) {
@@ -363,5 +363,5 @@ export async function deleteBlogPostAction(formData: FormData) {
   }
 
   revalidateBlogPaths([deleted.slug]);
-  redirect("/admin/blog");
+  redirect("/admin/blog?status=post-deleted");
 }

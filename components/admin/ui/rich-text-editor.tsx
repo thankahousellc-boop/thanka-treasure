@@ -180,7 +180,7 @@ function ToolbarIconButton({
       className="inline-flex h-8 w-8 items-center justify-center rounded-md transition disabled:cursor-not-allowed disabled:opacity-40"
       style={{
         backgroundColor: isActive ? "var(--admin-accent)" : "transparent",
-        color: isActive ? "#ffffff" : "var(--admin-text-soft)",
+        color: isActive ? "var(--admin-on-accent)" : "var(--admin-text-soft)",
       }}
       onMouseEnter={(event) => {
         if (!isActive && !disabled) {

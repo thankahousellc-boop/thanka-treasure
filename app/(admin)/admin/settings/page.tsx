@@ -1,3 +1,4 @@
+import { FlashToast } from "@/components/admin/flash-toast";
 import { PageHeader } from "@/components/admin/ui";
 import { getStoreContact, getStorefront } from "@/lib/site-settings";
 
@@ -19,6 +20,12 @@ export default async function AdminSettingsPage() {
 
   return (
     <>
+      <FlashToast
+        messages={{
+          "contact-saved": "Contact details saved.",
+          "storefront-saved": "Storefront saved.",
+        }}
+      />
       <PageHeader
         title="Site settings"
         description="Contact details, storefront copy, and integration health. Branding lives in the Branding section."

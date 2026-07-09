@@ -5,6 +5,7 @@ import {
   CardHeader,
   Icon,
 } from "@/components/admin/ui";
+import { FlashToast } from "@/components/admin/flash-toast";
 import { pagesRepository } from "@/lib/repositories/pages-repository";
 
 import { PagesTable } from "./pages-table";
@@ -22,6 +23,12 @@ export default async function AdminPagesPage() {
 
   return (
     <section className="space-y-5">
+      <FlashToast
+        messages={{
+          "page-created": "Page created.",
+          "page-saved": "Page saved.",
+        }}
+      />
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2

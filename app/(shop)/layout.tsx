@@ -22,10 +22,10 @@ export default async function ShopLayout({
   const whatsappDigits = normalizeWhatsAppNumber(contact.whatsapp);
 
   return (
-    <div className="min-h-screen bg-bg-primary">
+    <div className="flex min-h-dvh flex-col bg-bg-primary">
       <AnnouncementBar messages={storefront.announcementMessages} />
       <ShopHeader currency={currency} />
-      <main id="main-content" tabIndex={-1}>
+      <main id="main-content" tabIndex={-1} className="flex-1">
         {children}
       </main>
       <ShopFooter currency={currency} contact={contact} />

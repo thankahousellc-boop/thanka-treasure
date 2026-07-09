@@ -5,6 +5,7 @@ import { loadAdminBadges } from "@/lib/admin-shell-data";
 
 import { AdminBreadcrumbs } from "./breadcrumbs";
 import { MobileShell } from "./mobile-shell";
+import { ThemeToggle } from "./theme-toggle";
 import { UserMenu } from "./user-menu";
 
 export async function AdminTopbar() {
@@ -20,7 +21,7 @@ export async function AdminTopbar() {
     <header
       className="sticky top-0 z-30 flex h-11 items-center justify-between gap-3 px-4 backdrop-blur md:px-6"
       style={{
-        background: "rgba(255, 255, 255, 0.85)",
+        background: "color-mix(in srgb, var(--admin-surface) 85%, transparent)",
         borderBottom: "1px solid var(--admin-border)",
       }}
     >
@@ -29,6 +30,7 @@ export async function AdminTopbar() {
         <AdminBreadcrumbs />
       </div>
       <div className="flex items-center gap-2">
+        <ThemeToggle />
         <UserMenu email={email} signOutAction={adminSignOutAction} />
       </div>
     </header>

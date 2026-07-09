@@ -30,6 +30,7 @@ export const navGroups: NavGroup[] = [
   {
     label: "Sales",
     items: [
+      { href: "/pos", label: "Point of sale", icon: Icon.Bag },
       {
         href: "/admin/orders",
         label: "Orders",
@@ -54,6 +55,11 @@ export const navGroups: NavGroup[] = [
         href: "/admin/products/categories",
         label: "Categories",
         icon: Icon.Tag,
+      },
+      {
+        href: "/admin/products/attributes",
+        label: "Attributes",
+        icon: Icon.Layers,
       },
       { href: "/admin/frames", label: "Frames", icon: Icon.Frame },
     ],
@@ -85,6 +91,11 @@ export const navGroups: NavGroup[] = [
         href: "/admin/settings/branding",
         label: "Branding",
         icon: Icon.Brush,
+      },
+      {
+        href: "/admin/settings/barcode",
+        label: "Barcodes",
+        icon: Icon.Tag,
       },
     ],
   },

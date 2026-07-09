@@ -43,20 +43,20 @@ export async function HealthCard() {
           return (
             <div
               key={probe.key}
-              className="flex items-start justify-between gap-4 rounded-md border border-zinc-200 px-4 py-3"
+              className="flex items-start justify-between gap-4 rounded-md border border-(--admin-border) px-4 py-3"
             >
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-zinc-900">
+                  <p className="text-sm font-medium text-(--admin-text)">
                     {probe.label}
                   </p>
                   <Badge tone={result.ok ? "success" : "danger"}>
                     {result.ok ? "Connected" : "Not configured"}
                   </Badge>
                 </div>
-                <p className="mt-1 text-xs text-zinc-500">{probe.description}</p>
+                <p className="mt-1 text-xs text-(--admin-text-mute)">{probe.description}</p>
                 {!result.ok && result.details ? (
-                  <p className="mt-1 text-xs text-rose-700">{result.details}</p>
+                  <p className="mt-1 text-xs text-(--admin-danger)">{result.details}</p>
                 ) : null}
               </div>
             </div>

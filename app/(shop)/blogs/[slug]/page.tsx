@@ -8,6 +8,7 @@ import { blogRepository } from "@/lib/repositories/blog-repository";
 import { buildMetaDescription, getAbsoluteUrl, toPlainText } from "@/lib/seo";
 import { resolveUrl } from "@/lib/storage/resolve-url";
 import { formatDate } from "@/lib/utils/formatters";
+import { sanitizeRichText } from "@/lib/utils/sanitize-html";
 
 import { BlogViewTracker } from "./blog-view-tracker";
 
@@ -131,7 +132,7 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
     }
   })();
 
-  const htmlContent = post.content.trim();
+  const htmlContent = sanitizeRichText(post.content.trim());
 
   const blogDescription = buildMetaDescription(
     post.excerpt ?? toPlainText(post.content),

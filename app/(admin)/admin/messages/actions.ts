@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
 import { contactRepository } from "@/lib/repositories/contact-repository";
@@ -45,6 +46,7 @@ export async function updateContactSubmissionStatus(formData: FormData) {
 
   await contactRepository.updateStatus(id, status);
   revalidatePath("/admin/messages");
+  redirect("/admin/messages?flash=message-updated");
 }
 
 export async function updateContactSubmissionNotes(formData: FormData) {
@@ -62,4 +64,5 @@ export async function updateContactSubmissionNotes(formData: FormData) {
 
   await contactRepository.updateAdminNotes(id, normalizedNotes);
   revalidatePath("/admin/messages");
+  redirect("/admin/messages?flash=notes-saved");
 }
