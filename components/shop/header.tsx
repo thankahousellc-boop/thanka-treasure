@@ -9,7 +9,6 @@ import { getBranding } from "@/lib/branding";
 const leftLinks = [
   { href: "/products", label: "Shop" },
   { href: "/blogs", label: "Journal" },
-  { href: "/newsletter", label: "Newsletter" },
 ];
 
 const rightLinks = [{ href: "/contact", label: "Contact" }];

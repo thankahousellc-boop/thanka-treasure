@@ -2,13 +2,13 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { CurrencySelector } from "@/components/shop/currency-selector";
+import { NewsletterForm } from "@/components/shop/newsletter-form";
 import { getBranding } from "@/lib/branding";
 import type { StoreContact } from "@/lib/site-settings";
 
 const discoverLinks = [
   { href: "/products", label: "Shop" },
   { href: "/blogs", label: "Journal" },
-  { href: "/newsletter", label: "Newsletter" },
   { href: "/contact", label: "Contact" },
 ];
 
@@ -59,6 +59,12 @@ export async function ShopFooter({ currency, contact }: ShopFooterProps) {
               Kathmandu. Sacred art directly from studio to wall, with a fair
               share to every artist.
             </p>
+            <div className="mt-6 max-w-[34ch]">
+              <h5 className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-paper">
+                Newsletter
+              </h5>
+              <NewsletterForm source="footer" />
+            </div>
           </section>
 
           <FooterColumn title="Discover" links={discoverLinks} />
