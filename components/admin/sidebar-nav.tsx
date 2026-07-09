@@ -82,12 +82,12 @@ function NavLink({
         href={item.href}
         onClick={onNavigate}
         aria-current={active ? "page" : undefined}
-        className="group flex items-center gap-2 rounded-md px-2.5 py-1.5 text-[12.5px] transition-colors"
+        className="group flex items-center gap-2 rounded-md px-2.5 py-1.5 text-[12.5px] transition-colors hover:bg-(--admin-accent-soft) hover:text-(--admin-text)"
         style={
           active
             ? {
                 backgroundColor: "var(--admin-accent)",
-                color: "#ffffff",
+                color: "var(--admin-on-accent)",
               }
             : {
                 color: "var(--admin-text-soft)",
@@ -98,7 +98,7 @@ function NavLink({
           width={14}
           height={14}
           style={{
-            color: active ? "#ffffff" : "var(--admin-text-mute)",
+            color: active ? "var(--admin-on-accent)" : "var(--admin-text-mute)",
           }}
         />
         <span className="flex-1 truncate">{item.label}</span>
@@ -109,12 +109,12 @@ function NavLink({
             style={
               active
                 ? {
-                    backgroundColor: "rgba(255,255,255,0.22)",
-                    color: "#fff",
+                    backgroundColor: "color-mix(in srgb, var(--admin-on-accent) 22%, transparent)",
+                    color: "var(--admin-on-accent)",
                   }
                 : {
                     backgroundColor: "var(--admin-accent)",
-                    color: "#fff",
+                    color: "var(--admin-on-accent)",
                   }
             }
           >

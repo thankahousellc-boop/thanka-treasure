@@ -5,17 +5,16 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { BASE_CURRENCY } from "@/lib/currency/config";
-import { convertFromUsd, type ExchangeRateMap } from "@/lib/currency/convert";
+import { convertFromUsd } from "@/lib/currency/convert";
+import { useCurrency } from "@/components/shop/currency-provider";
 import { useCartDrawerStore } from "@/lib/store/cart-drawer";
 import { getCartLineKey, useCartStore } from "@/lib/store/cart";
 import { formatCurrency } from "@/lib/utils/formatters";
 
-type CartDrawerProps = {
-  displayCurrency: string;
-  exchangeRates: ExchangeRateMap;
-};
-
-export function CartDrawer({ displayCurrency, exchangeRates }: CartDrawerProps) {
+export function CartDrawer() {
+  // The drawer only renders once opened (post-hydration), so reading the live
+  // currency from context here shows the right totals with no flash.
+  const { currency: displayCurrency, rates: exchangeRates } = useCurrency();
   const isOpen = useCartDrawerStore((state) => state.isOpen);
   const close = useCartDrawerStore((state) => state.close);
 

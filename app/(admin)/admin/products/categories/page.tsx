@@ -1,6 +1,5 @@
 import {
   Badge,
-  Button,
   Card,
   CardBody,
   CardHeader,
@@ -9,8 +8,10 @@ import {
   Input,
   PageHeader,
   Select,
+  SubmitButton,
   Textarea,
 } from "@/components/admin/ui";
+import { FlashToast } from "@/components/admin/flash-toast";
 import { collectionRepository } from "@/lib/repositories/collection-repository";
 
 import {
@@ -85,6 +86,15 @@ export default async function AdminProductTaxonomyPage() {
 
   return (
     <>
+      <FlashToast
+        messages={{
+          "category-created": "Category created.",
+          "category-saved": "Category saved.",
+          "collection-created": "Collection created.",
+          "collection-saved": "Collection saved.",
+          "collection-updated": "Collection products updated.",
+        }}
+      />
       <PageHeader
         title="Categories & collections"
         description="Categories drive product URLs and filters. Collections bundle products under curated themes."
@@ -173,9 +183,9 @@ export default async function AdminProductTaxonomyPage() {
                           </Field>
                         </div>
                         <div className="flex justify-end">
-                          <Button type="submit" size="sm">
+                          <SubmitButton size="sm">
                             Save changes
-                          </Button>
+                          </SubmitButton>
                         </div>
                       </form>
                     </details>
@@ -286,9 +296,9 @@ export default async function AdminProductTaxonomyPage() {
                             </Field>
                           </div>
                           <div className="flex justify-end">
-                            <Button type="submit" size="sm">
+                            <SubmitButton size="sm">
                               Save details
-                            </Button>
+                            </SubmitButton>
                           </div>
                         </form>
 
@@ -325,9 +335,9 @@ export default async function AdminProductTaxonomyPage() {
                             </Select>
                           </Field>
                           <div className="flex justify-end">
-                            <Button type="submit" variant="secondary" size="sm">
+                            <SubmitButton variant="secondary" size="sm">
                               Save products
-                            </Button>
+                            </SubmitButton>
                           </div>
                         </form>
                       </div>
@@ -451,9 +461,9 @@ function InlineCreateForm({
           </Field>
         </div>
         <div className="flex justify-end">
-          <Button type="submit" size="sm">
+          <SubmitButton size="sm">
             {labels.submit}
-          </Button>
+          </SubmitButton>
         </div>
       </form>
     </details>

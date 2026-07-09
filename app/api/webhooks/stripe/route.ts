@@ -5,6 +5,7 @@ import Stripe from "stripe";
 import { serverEnv } from "@/lib/env";
 import { sendOrderConfirmationEmail } from "@/lib/email/transactional";
 import { monitor } from "@/lib/monitoring/logger";
+import { checkoutSessionRepository } from "@/lib/repositories/checkout-session-repository";
 import { discountRepository } from "@/lib/repositories/discount-repository";
 import { inventoryRepository } from "@/lib/repositories/inventory-repository";
 import { orderRepository } from "@/lib/repositories/order-repository";
@@ -234,6 +235,11 @@ async function runPaidCheckoutSideEffects(args: {
       },
     });
   }
+
+  // Reservation was just confirmed by inventoryRepository.confirm above. Mark the
+  // pending row completed so a stray `expired` event can never release stock
+  // that has already been sold.
+  await checkoutSessionRepository.markCompletedBySessionId(session.id);
 }
 
 async function handleCheckoutCompleted(checkoutSessionId: string) {
@@ -352,32 +358,17 @@ async function handleCheckoutAsyncPaymentFailed(checkoutSessionId: string) {
     return;
   }
 
-  const { items } = await loadCheckoutSessionWithItems(checkoutSessionId);
-
-  await Promise.allSettled(
-    items
-      .filter((item) => Boolean(item.variantId))
-      .map((item) =>
-        inventoryRepository.release(item.variantId as string, item.quantity),
-      ),
-  );
+  // Release via the pending row (status-guarded) so we return exactly what was
+  // reserved, exactly once — even if the replace path already released it.
+  await checkoutSessionRepository.releaseBySessionId(checkoutSessionId);
 }
 
 async function handleCheckoutExpired(checkoutSessionId: string) {
-  const expired = await orderRepository.markCheckoutExpired(checkoutSessionId);
+  await orderRepository.markCheckoutExpired(checkoutSessionId);
 
-  if (!expired || !expired.changed) {
-    return;
-  }
-
-  const { items } = await loadCheckoutSessionWithItems(checkoutSessionId);
-  await Promise.allSettled(
-    items
-      .filter((item) => Boolean(item.variantId))
-      .map((item) =>
-        inventoryRepository.release(item.variantId as string, item.quantity),
-      ),
-  );
+  // Independent of order state: an expired session always releases its
+  // reservation. Idempotent — a row already released/completed is a no-op.
+  await checkoutSessionRepository.releaseBySessionId(checkoutSessionId);
 }
 
 async function handleChargeRefunded(charge: Stripe.Charge) {

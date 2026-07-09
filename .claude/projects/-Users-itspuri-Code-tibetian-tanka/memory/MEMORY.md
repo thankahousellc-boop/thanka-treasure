@@ -1,0 +1,1 @@
+- [Stripe ui_mode naming](stripe-ui-mode-naming.md) — SDK uses 'elements'/'embedded_page', not 'custom'/'embedded'

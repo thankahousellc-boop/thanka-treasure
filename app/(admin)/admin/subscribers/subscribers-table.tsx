@@ -2,7 +2,12 @@
 
 import { useMemo } from "react";
 
-import { Badge, Button, DataTable, type ColumnDef } from "@/components/admin/ui";
+import {
+  Badge,
+  DataTable,
+  SubmitButton,
+  type ColumnDef,
+} from "@/components/admin/ui";
 import { formatDate } from "@/lib/utils/formatters";
 
 import { updateSubscriberStatus } from "./actions";
@@ -94,9 +99,9 @@ export function SubscribersTable({ rows }: { rows: SubscriberRow[] }) {
                 row.original.status === "active" ? "unsubscribed" : "active"
               }
             />
-            <Button type="submit" size="sm" variant="secondary">
+            <SubmitButton size="sm" variant="secondary" pendingLabel="Updating…">
               {row.original.status === "active" ? "Unsubscribe" : "Reactivate"}
-            </Button>
+            </SubmitButton>
           </form>
         ),
       },

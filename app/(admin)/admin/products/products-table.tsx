@@ -4,6 +4,7 @@ import { useMemo } from "react";
 
 import { Badge, DataTable, type ColumnDef } from "@/components/admin/ui";
 
+import { BulkBarcodeButton } from "./bulk-barcode-button";
 import { LabelPrintButton } from "./label-print";
 import { ProductRowMenu } from "./product-row-menu";
 
@@ -130,10 +131,13 @@ export function ProductsTable({ rows }: { rows: ProductRow[] }) {
       pageSize={10}
       initialSorting={[{ id: "createdAt", desc: true }]}
       toolbar={({ selectedRows, clearSelection }) => (
-        <LabelPrintButton
-          productIds={selectedRows.map((row) => row.id)}
-          onDone={clearSelection}
-        />
+        <>
+          <LabelPrintButton
+            productIds={selectedRows.map((row) => row.id)}
+            onDone={clearSelection}
+          />
+          <BulkBarcodeButton productIds={selectedRows.map((row) => row.id)} />
+        </>
       )}
     />
   );

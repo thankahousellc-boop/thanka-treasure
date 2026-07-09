@@ -1,12 +1,13 @@
 import {
-  Button,
   ButtonLink,
   Card,
   CardBody,
   CardHeader,
   Icon,
   StatCard,
+  SubmitButton,
 } from "@/components/admin/ui";
+import { FlashToast } from "@/components/admin/flash-toast";
 import { newsletterRepository } from "@/lib/repositories/newsletter-repository";
 
 import {
@@ -75,6 +76,12 @@ export default async function AdminSubscribersPage({
 
   return (
     <section className="space-y-5">
+      <FlashToast
+        messages={{
+          "subscriber-added": "Subscriber added.",
+          "subscriber-updated": "Subscriber updated.",
+        }}
+      />
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2
@@ -165,7 +172,7 @@ export default async function AdminSubscribersPage({
                 type="text"
                 name="subject"
                 required
-                className="h-9 w-full rounded-md px-3 text-sm focus:outline-none focus:ring-2"
+                className="h-9 w-full rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-(--admin-accent)"
                 style={{
                   background: "var(--admin-surface)",
                   border: "1px solid var(--admin-border-strong)",
@@ -184,7 +191,7 @@ export default async function AdminSubscribersPage({
               <input
                 type="text"
                 name="heading"
-                className="h-9 w-full rounded-md px-3 text-sm focus:outline-none focus:ring-2"
+                className="h-9 w-full rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-(--admin-accent)"
                 style={{
                   background: "var(--admin-surface)",
                   border: "1px solid var(--admin-border-strong)",
@@ -204,7 +211,7 @@ export default async function AdminSubscribersPage({
                 name="body"
                 required
                 rows={6}
-                className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2"
+                className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--admin-accent)"
                 style={{
                   background: "var(--admin-surface)",
                   border: "1px solid var(--admin-border-strong)",
@@ -225,7 +232,7 @@ export default async function AdminSubscribersPage({
                 <input
                   type="text"
                   name="ctaLabel"
-                  className="h-9 w-full rounded-md px-3 text-sm focus:outline-none focus:ring-2"
+                  className="h-9 w-full rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-(--admin-accent)"
                   style={{
                     background: "var(--admin-surface)",
                     border: "1px solid var(--admin-border-strong)",
@@ -244,7 +251,7 @@ export default async function AdminSubscribersPage({
                 <input
                   type="url"
                   name="ctaUrl"
-                  className="h-9 w-full rounded-md px-3 text-sm focus:outline-none focus:ring-2"
+                  className="h-9 w-full rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-(--admin-accent)"
                   style={{
                     background: "var(--admin-surface)",
                     border: "1px solid var(--admin-border-strong)",
@@ -254,10 +261,10 @@ export default async function AdminSubscribersPage({
               </label>
             </div>
 
-            <Button type="submit">
+            <SubmitButton pendingLabel="Sending…">
               <Icon.Megaphone width={14} height={14} />
               <span>Send campaign to active subscribers</span>
-            </Button>
+            </SubmitButton>
           </form>
         </CardBody>
       </Card>
@@ -284,7 +291,7 @@ export default async function AdminSubscribersPage({
                 name="email"
                 required
                 placeholder="collector@example.com"
-                className="h-9 w-full rounded-md px-3 text-sm focus:outline-none focus:ring-2"
+                className="h-9 w-full rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-(--admin-accent)"
                 style={{
                   background: "var(--admin-surface)",
                   border: "1px solid var(--admin-border-strong)",
@@ -292,10 +299,10 @@ export default async function AdminSubscribersPage({
                 }}
               />
             </label>
-            <Button type="submit">
+            <SubmitButton pendingLabel="Adding…">
               <Icon.Plus width={14} height={14} />
               <span>Add subscriber</span>
-            </Button>
+            </SubmitButton>
           </form>
         </CardBody>
       </Card>

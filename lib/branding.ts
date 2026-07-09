@@ -15,6 +15,7 @@ export type BrandingValue = {
   brandTagline?: string;
   logoLight?: { bucket: string; path: string } | null;
   logoDark?: { bucket: string; path: string } | null;
+  favicon?: { bucket: string; path: string } | null;
   colors?: {
     ink?: string;
     inkSoft?: string;
@@ -33,6 +34,7 @@ export type Branding = {
   brandTagline: string;
   logoLightUrl: string | null;
   logoDarkUrl: string | null;
+  faviconUrl: string | null;
   colors: Required<NonNullable<BrandingValue["colors"]>>;
   bodyFont: BrandingFontKey;
   displayFont: BrandingFontKey;
@@ -43,6 +45,7 @@ const DEFAULT_BRANDING: Branding = {
   brandTagline: "Sacred Art · Est. 1998",
   logoLightUrl: null,
   logoDarkUrl: null,
+  faviconUrl: null,
   colors: {
     ink: "#5c1f2a",
     inkSoft: "#7a2e3a",
@@ -70,6 +73,7 @@ const loadBranding = unstable_cache(
       brandTagline: raw?.brandTagline?.trim() ?? DEFAULT_BRANDING.brandTagline,
       logoLightUrl: raw?.logoLight ? resolveUrl(raw.logoLight) : null,
       logoDarkUrl: raw?.logoDark ? resolveUrl(raw.logoDark) : null,
+      faviconUrl: raw?.favicon ? resolveUrl(raw.favicon) : null,
       colors: {
         ...DEFAULT_BRANDING.colors,
         ...(raw?.colors ?? {}),

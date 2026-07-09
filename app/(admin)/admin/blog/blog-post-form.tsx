@@ -16,11 +16,13 @@ import {
   Card,
   CardBody,
   CardHeader,
+  DirtyForm,
   Field,
   Icon,
   Input,
   RichTextEditor,
   Select,
+  ShowWhenDirty,
   Textarea,
 } from "@/components/admin/ui";
 
@@ -154,7 +156,7 @@ export function BlogPostForm({
   const errorMessage = state?.error;
 
   return (
-    <form action={formAction} className="space-y-5">
+    <DirtyForm action={formAction} className="space-y-5">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -284,7 +286,7 @@ export function BlogPostForm({
                           backgroundColor: isActive
                             ? "var(--admin-accent)"
                             : "transparent",
-                          color: isActive ? "#ffffff" : "var(--admin-text-soft)",
+                          color: isActive ? "var(--admin-on-accent)" : "var(--admin-text-soft)",
                           boxShadow: isActive
                             ? "0 1px 2px rgba(0,0,0,0.08)"
                             : "none",
@@ -534,28 +536,30 @@ export function BlogPostForm({
         </aside>
       </div>
 
-      <div
-        className="sticky bottom-3 grid items-center gap-4 rounded-md px-4 py-3 lg:grid-cols-[minmax(0,1fr)_320px]"
-        style={{
-          background: "var(--admin-surface)",
-          border: "1px solid var(--admin-border)",
-          boxShadow: "var(--admin-shadow-lg)",
-        }}
-      >
-        <span className="text-xs" style={{ color: "var(--admin-text-mute)" }}>
-          The URL slug is generated from the title when left blank.
-        </span>
-        <div className="flex justify-end">
-          <Button
-            type="submit"
-            variant="primary"
-            size="md"
-            disabled={isPending}
-          >
-            {isPending ? "Saving…" : submitLabel}
-          </Button>
+      <ShowWhenDirty>
+        <div
+          className="sticky bottom-3 grid items-center gap-4 rounded-md px-4 py-3 lg:grid-cols-[minmax(0,1fr)_320px]"
+          style={{
+            background: "var(--admin-surface)",
+            border: "1px solid var(--admin-border)",
+            boxShadow: "var(--admin-shadow-lg)",
+          }}
+        >
+          <span className="text-xs" style={{ color: "var(--admin-text-mute)" }}>
+            The URL slug is generated from the title when left blank.
+          </span>
+          <div className="flex justify-end">
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              disabled={isPending}
+            >
+              {isPending ? "Saving…" : submitLabel}
+            </Button>
+          </div>
         </div>
-      </div>
-    </form>
+      </ShowWhenDirty>
+    </DirtyForm>
   );
 }

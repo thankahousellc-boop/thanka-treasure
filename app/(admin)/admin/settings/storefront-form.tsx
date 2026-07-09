@@ -1,10 +1,12 @@
 import {
-  Button,
   Card,
   CardBody,
   CardHeader,
+  DirtyForm,
   Field,
   Input,
+  ShowWhenDirty,
+  SubmitButton,
 } from "@/components/admin/ui";
 import type { Storefront } from "@/lib/site-settings";
 
@@ -21,7 +23,7 @@ export function StorefrontForm({ values, action }: StorefrontFormProps) {
   });
 
   return (
-    <form action={action}>
+    <DirtyForm action={action}>
       <Card>
         <CardHeader
           title="Announcement bar"
@@ -57,13 +59,15 @@ export function StorefrontForm({ values, action }: StorefrontFormProps) {
             </div>
           ))}
         </CardBody>
-        <div
-          className="flex justify-end px-5 py-3"
-          style={{ borderTop: "1px solid var(--admin-border)" }}
-        >
-          <Button type="submit">Save storefront</Button>
-        </div>
+        <ShowWhenDirty>
+          <div
+            className="flex justify-end px-5 py-3"
+            style={{ borderTop: "1px solid var(--admin-border)" }}
+          >
+            <SubmitButton>Save storefront</SubmitButton>
+          </div>
+        </ShowWhenDirty>
       </Card>
-    </form>
+    </DirtyForm>
   );
 }

@@ -8,6 +8,7 @@ import {
   orderEvents,
   orderItems,
   orders,
+  products,
   productVariants,
 } from "@/db/schema";
 import { requireAdminSession } from "@/lib/repositories/authz";
@@ -46,6 +47,12 @@ export type LowStockRow = {
   productId: string | null;
   available: number;
   threshold: number;
+};
+
+export type CatalogSummary = {
+  activeProducts: number;
+  totalProducts: number;
+  outOfStock: number;
 };
 
 export type RecentActivityRow = {
@@ -99,6 +106,39 @@ export const adminDashboardRepository = {
       messages: Number(messagesRow?.total ?? 0),
       subscribers: Number(subsRow?.total ?? 0),
       lowStock: Number(lowStockRow?.total ?? 0),
+    };
+  },
+
+  async getCatalogSummary(): Promise<CatalogSummary> {
+    await requireAdminSession();
+    const db = getDb();
+
+    const [activeRow, totalRow, outOfStockRow] = await Promise.all([
+      db
+        .select({ total: sql<number>`count(*)` })
+        .from(products)
+        .where(
+          and(eq(products.status, "active"), isNull(products.deletedAt)),
+        )
+        .then((rows) => rows[0]),
+      db
+        .select({ total: sql<number>`count(*)` })
+        .from(products)
+        .where(isNull(products.deletedAt))
+        .then((rows) => rows[0]),
+      db
+        .select({ total: sql<number>`count(*)` })
+        .from(inventory)
+        .where(
+          sql`${inventory.quantity} - ${inventory.reservedQuantity} <= 0`,
+        )
+        .then((rows) => rows[0]),
+    ]);
+
+    return {
+      activeProducts: Number(activeRow?.total ?? 0),
+      totalProducts: Number(totalRow?.total ?? 0),
+      outOfStock: Number(outOfStockRow?.total ?? 0),
     };
   },
 

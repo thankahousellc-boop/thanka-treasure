@@ -2,7 +2,12 @@
 
 import { useMemo } from "react";
 
-import { Badge, Button, DataTable, type ColumnDef } from "@/components/admin/ui";
+import {
+  Badge,
+  DataTable,
+  SubmitButton,
+  type ColumnDef,
+} from "@/components/admin/ui";
 import { formatCurrency, formatDate } from "@/lib/utils/formatters";
 
 import { toggleDiscountStatusAction } from "./actions";
@@ -201,9 +206,9 @@ export function DiscountsTable({ rows }: { rows: DiscountRow[] }) {
                 name="nextState"
                 value={row.original.isActive ? "inactive" : "active"}
               />
-              <Button type="submit" size="sm" variant="secondary">
+              <SubmitButton size="sm" variant="secondary" pendingLabel="…">
                 {row.original.isActive ? "Deactivate" : "Activate"}
-              </Button>
+              </SubmitButton>
             </form>
           </div>
         ),

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { auth } from "@/lib/auth";
+import { auth, type Session } from "@/lib/auth";
 
 type LoginPageSearchParams = {
   next?: string | string[];
@@ -45,12 +45,18 @@ async function signInAction(formData: FormData) {
     );
   }
 
+  let session: Session;
   try {
-    await auth.signInWithPassword(email, password);
+    session = await auth.signInWithPassword(email, password);
   } catch {
     redirect(
       `/auth/login?next=${nextQuery}&error=${encodeURIComponent("Unable to sign in with these credentials.")}`,
     );
+  }
+
+  // Admins land on the admin panel unless they were sent to a specific page.
+  if (nextPath === "/account" && session.user?.role === "admin") {
+    redirect("/admin");
   }
 
   redirect(nextPath);

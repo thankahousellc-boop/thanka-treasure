@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { cache } from "react";
 
+import { Price } from "@/components/shop/price";
 import { ProductBuyPanel } from "@/components/shop/product-buy-panel";
 import { ProductCard } from "@/components/shop/product-card";
 import {
@@ -9,15 +10,11 @@ import {
   type GalleryImage,
 } from "@/components/shop/product-gallery";
 import { SelectedFrameProvider } from "@/components/shop/selected-frame-context";
-import {
-  convertUsdToCurrency,
-  getCurrencyContext,
-} from "@/lib/currency/context";
-import { frameRepository } from "@/lib/repositories/frame-repository";
+import { getProductFrames, getRelatedProducts } from "@/lib/catalog-cache";
 import { productRepository } from "@/lib/repositories/product-repository";
 import { buildMetaDescription, getAbsoluteUrl } from "@/lib/seo";
 import { resolveUrl } from "@/lib/storage/resolve-url";
-import { formatCurrency } from "@/lib/utils/formatters";
+import { sanitizeRichText } from "@/lib/utils/sanitize-html";
 
 type ProductDetailPageProps = {
   params: Promise<{ slug: string }>;
@@ -104,7 +101,6 @@ export async function generateMetadata({
 export default async function ProductDetailPage({
   params,
 }: ProductDetailPageProps) {
-  const { currency, rates } = await getCurrencyContext();
   const { slug } = await params;
   const productData = await getProductData(slug);
 
@@ -128,7 +124,7 @@ export default async function ProductDetailPage({
     );
   }
 
-  const { product, variants, images } = productData;
+  const { product, variants, images, attributes, category } = productData;
 
   const galleryImages: GalleryImage[] = images
     .map((image, index) => {
@@ -143,13 +139,6 @@ export default async function ProductDetailPage({
 
   const primaryImage = galleryImages[0]?.src ?? null;
   const startingPrice = variants[0]?.price ?? null;
-  const startingDisplay =
-    startingPrice !== null
-      ? formatCurrency(
-          convertUsdToCurrency(startingPrice, currency, rates),
-          currency,
-        )
-      : null;
 
   const productDescription = buildMetaDescription(
     product.metaDescription ?? product.description,
@@ -179,28 +168,20 @@ export default async function ProductDetailPage({
         : undefined,
   };
 
-  // Related — pull other products of the same type
-  let relatedRows: Awaited<ReturnType<typeof productRepository.search>>["rows"] =
-    [];
-  try {
-    const related = await productRepository.search({
-      productType: product.productType ?? undefined,
-      limit: 6,
-    });
-    relatedRows = related.rows.filter((row) => row.slug !== product.slug).slice(
-      0,
-      4,
-    );
-  } catch {
-    relatedRows = [];
-  }
+  // Related products and frames both only need the loaded product — fetch in
+  // parallel instead of one after the other.
+  const [relatedRowsRaw, productFrames] = await Promise.all([
+    getRelatedProducts(product.productType ?? undefined, 6).catch(() => null),
+    getProductFrames(product.id).catch(() => []),
+  ]);
 
-  const eyebrow = product.productType ?? "Sacred Art";
+  const relatedRows = relatedRowsRaw
+    ? relatedRowsRaw.filter((row) => row.slug !== product.slug).slice(0, 4)
+    : [];
+
+  const eyebrow = category?.name ?? product.productType ?? "Sacred Art";
   const artist = product.vendor ?? null;
 
-  const productFrames = await frameRepository
-    .listForProductPublic(product.id)
-    .catch(() => []);
   const frameOptions = productFrames.map((frame) => ({
     id: frame.id,
     name: frame.name,
@@ -249,9 +230,11 @@ export default async function ProductDetailPage({
             </h1>
 
             <div className="my-6 flex items-baseline gap-3.5 border-y border-(--line) py-6">
-              <div className="font-serif text-[42px] font-medium leading-none text-ink">
-                {startingDisplay ?? "Price on request"}
-              </div>
+              <Price
+                cents={startingPrice}
+                fallback="Price on request"
+                className="font-serif text-[42px] font-medium leading-none text-ink"
+              />
               <div className="text-[13px] text-ink-mute">
                 +{" "}
                 <b className="font-medium text-ink">free</b> insured shipping
@@ -262,7 +245,9 @@ export default async function ProductDetailPage({
             {product.description ? (
               <div
                 className="prose prose-stone mb-7 max-w-none font-serif text-[17px] leading-[1.65] text-ink-soft prose-p:my-3 prose-ul:my-3"
-                dangerouslySetInnerHTML={{ __html: product.description }}
+                dangerouslySetInnerHTML={{
+                  __html: sanitizeRichText(product.description),
+                }}
               />
             ) : null}
 
@@ -271,9 +256,6 @@ export default async function ProductDetailPage({
               slug={product.slug}
               title={product.title}
               imageUrl={primaryImage ?? undefined}
-              cartCurrency={currency}
-              displayCurrency={currency}
-              exchangeRates={rates}
               variants={variants.map((variant) => ({
                 id: variant.id,
                 title: variant.title,
@@ -323,17 +305,27 @@ export default async function ProductDetailPage({
             <div className="mt-9 border-t border-(--line-soft) pt-7">
               <dl className="grid grid-cols-[auto_1fr] gap-x-8 gap-y-3.5 text-sm">
                 {artist ? <Spec term="Artist" detail={artist} /> : null}
-                {product.productType ? (
-                  <Spec term="Category" detail={product.productType} />
+                {category ? (
+                  <Spec term="Category" detail={category.name} />
                 ) : null}
+                {product.productType &&
+                product.productType !== category?.name ? (
+                  <Spec term="Type" detail={product.productType} />
+                ) : null}
+                {attributes.map((entry) => (
+                  <Spec
+                    key={entry.definition.id}
+                    term={entry.definition.name}
+                    detail={
+                      entry.definition.unit
+                        ? `${entry.values.join(" · ")} ${entry.definition.unit}`
+                        : entry.values.join(" · ")
+                    }
+                  />
+                ))}
                 {product.tags && product.tags.length > 0 ? (
                   <Spec term="Tags" detail={product.tags.join(" · ")} />
                 ) : null}
-                <Spec
-                  term="Edition"
-                  detail="One-of-one, signed verso by the artist"
-                />
-                <Spec term="Provenance" detail="Painted in Boudhanath, Kathmandu" />
               </dl>
             </div>
           </div>
@@ -476,14 +468,7 @@ export default async function ProductDetailPage({
                     key={row.id}
                     slug={row.slug}
                     title={row.title}
-                    price={
-                      row.price !== null
-                        ? formatCurrency(
-                            convertUsdToCurrency(row.price, currency, rates),
-                            currency,
-                          )
-                        : "Price on request"
-                    }
+                    priceCents={row.price}
                     primaryImage={primary ?? "/next.svg"}
                     secondaryImage={secondary ?? primary ?? "/vercel.svg"}
                   />

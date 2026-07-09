@@ -1,5 +1,4 @@
 import {
-  Button,
   ButtonLink,
   Card,
   CardBody,
@@ -8,8 +7,10 @@ import {
   Icon,
   Input,
   PageHeader,
+  SubmitButton,
   Textarea,
 } from "@/components/admin/ui";
+import { FlashToast } from "@/components/admin/flash-toast";
 import { blogRepository } from "@/lib/repositories/blog-repository";
 
 import {
@@ -37,6 +38,14 @@ export default async function AdminBlogCategoriesPage() {
 
   return (
     <section className="space-y-5">
+      <FlashToast
+        messages={{
+          "category-created": "Category created.",
+          "category-saved": "Category saved.",
+          "tag-created": "Tag created.",
+          "tag-saved": "Tag saved.",
+        }}
+      />
       <PageHeader
         eyebrow="Content"
         title="Blog taxonomy"
@@ -78,9 +87,9 @@ export default async function AdminBlogCategoriesPage() {
                 </Field>
               </div>
 
-              <Button type="submit">
+              <SubmitButton pendingLabel="Adding…">
                 <Icon.Plus width={14} height={14} /> Add category
-              </Button>
+              </SubmitButton>
             </form>
 
             {categories.length > 0 ? (
@@ -126,9 +135,9 @@ export default async function AdminBlogCategoriesPage() {
                           defaultValue={category.position}
                         />
                       </Field>
-                      <Button type="submit" variant="secondary" size="sm">
+                      <SubmitButton variant="secondary" size="sm">
                         Save
-                      </Button>
+                      </SubmitButton>
                     </div>
 
                     <p
@@ -172,9 +181,9 @@ export default async function AdminBlogCategoriesPage() {
                 </Field>
               </div>
 
-              <Button type="submit">
+              <SubmitButton pendingLabel="Adding…">
                 <Icon.Plus width={14} height={14} /> Add tag
-              </Button>
+              </SubmitButton>
             </form>
 
             {tags.length > 0 ? (
@@ -198,9 +207,9 @@ export default async function AdminBlogCategoriesPage() {
                       <Field label="Slug">
                         <Input name="slug" defaultValue={tag.slug} />
                       </Field>
-                      <Button type="submit" variant="secondary" size="sm">
+                      <SubmitButton variant="secondary" size="sm">
                         Save
-                      </Button>
+                      </SubmitButton>
                     </div>
 
                     <p

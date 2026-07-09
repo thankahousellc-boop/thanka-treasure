@@ -45,7 +45,7 @@ export default async function AdminFramesPage() {
         />
       ) : (
         <Card>
-          <ul className="divide-y divide-zinc-100">
+          <ul className="divide-y divide-(--admin-border)">
             {frames.map((frame) => {
               const url =
                 frame.imageBucket && frame.imagePath
@@ -55,9 +55,9 @@ export default async function AdminFramesPage() {
                 <li key={frame.id}>
                   <Link
                     href={`/admin/frames/${frame.id}`}
-                    className="flex items-center gap-4 px-5 py-3 hover:bg-zinc-50"
+                    className="flex items-center gap-4 px-5 py-3 hover:bg-(--admin-accent-soft)"
                   >
-                    <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-md border border-zinc-200 bg-zinc-50 text-zinc-400">
+                    <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-md border border-(--admin-border) bg-(--admin-surface-2) text-(--admin-text-mute)">
                       {url ? (
                         <Image
                           src={url}
@@ -72,15 +72,15 @@ export default async function AdminFramesPage() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-zinc-900">
+                      <p className="truncate text-sm font-medium text-(--admin-text)">
                         {frame.name}
                       </p>
-                      <p className="truncate text-xs text-zinc-500">
+                      <p className="truncate text-xs text-(--admin-text-mute)">
                         {frame.slug}
                       </p>
                     </div>
                     <div className="shrink-0 text-right">
-                      <p className="text-sm font-medium text-zinc-800">
+                      <p className="text-sm font-medium text-(--admin-text)">
                         {frame.priceDelta > 0
                           ? `+${formatCurrency(frame.priceDelta)}`
                           : "Included"}

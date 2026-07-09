@@ -9,6 +9,8 @@ type Trend = {
   direction?: "up" | "down";
 };
 
+type Tone = "default" | "accent" | "danger" | "success";
+
 type StatCardProps = {
   label: string;
   value: ReactNode;
@@ -16,9 +18,37 @@ type StatCardProps = {
   trend?: Trend;
   href?: string;
   icon?: ReactNode;
+  tone?: Tone;
 };
 
-export function StatCard({ label, value, hint, trend, href, icon }: StatCardProps) {
+function toneColor(tone: Tone): string {
+  switch (tone) {
+    case "accent":
+      return "var(--admin-accent)";
+    case "danger":
+      return "var(--admin-danger)";
+    case "success":
+      return "var(--admin-success)";
+    default:
+      return "var(--admin-text-mute)";
+  }
+}
+
+export function StatCard({
+  label,
+  value,
+  hint,
+  trend,
+  href,
+  icon,
+  tone = "default",
+}: StatCardProps) {
+  const accent = toneColor(tone);
+  const chipBg =
+    tone === "default"
+      ? "var(--admin-surface-2)"
+      : `color-mix(in srgb, ${accent} 14%, var(--admin-surface))`;
+
   const inner = (
     <Card
       className={
@@ -28,7 +58,7 @@ export function StatCard({ label, value, hint, trend, href, icon }: StatCardProp
       }
     >
       <div className="px-5 py-5">
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-3">
           <p
             className="text-[10.5px] font-semibold uppercase tracking-[0.14em]"
             style={{ color: "var(--admin-text-mute)" }}
@@ -36,19 +66,26 @@ export function StatCard({ label, value, hint, trend, href, icon }: StatCardProp
             {label}
           </p>
           {icon ? (
-            <div style={{ color: "var(--admin-text-mute)" }}>{icon}</div>
+            <div
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-lg"
+              style={{ background: chipBg, color: accent }}
+            >
+              {icon}
+            </div>
           ) : null}
         </div>
         <p
-          className="admin-display mt-3 text-3xl font-medium"
-          style={{ color: "var(--admin-text)" }}
+          className="admin-display mt-3 text-3xl font-medium tabular-nums"
+          style={{
+            color: tone === "default" ? "var(--admin-text)" : accent,
+          }}
         >
           {value}
         </p>
         <div className="mt-1.5 flex items-center gap-2 text-xs">
           {trend ? (
             <span
-              className="font-medium"
+              className="font-medium tabular-nums"
               style={{
                 color:
                   trend.direction === "down"

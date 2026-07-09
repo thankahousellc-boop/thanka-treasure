@@ -4,16 +4,11 @@ import Link from "next/link";
 import { cache } from "react";
 
 import { ProductCard } from "@/components/shop/product-card";
-import {
-  convertUsdToCurrency,
-  getCurrencyContext,
-} from "@/lib/currency/context";
 import { PageShell } from "@/components/ui/page-shell";
 import { collectionRepository } from "@/lib/repositories/collection-repository";
 import { productRepository } from "@/lib/repositories/product-repository";
 import { buildMetaDescription, getAbsoluteUrl } from "@/lib/seo";
 import { resolveUrl } from "@/lib/storage/resolve-url";
-import { formatCurrency } from "@/lib/utils/formatters";
 
 type CollectionPageSearchParams = {
   q?: string | string[];
@@ -249,7 +244,6 @@ export default async function CollectionPage({
   params,
   searchParams,
 }: CollectionPageProps) {
-  const { currency, rates } = await getCurrencyContext();
   const { slug } = await params;
   const grouping = await getGrouping(slug);
 
@@ -453,14 +447,7 @@ export default async function CollectionPage({
                 key={product.id}
                 slug={product.slug}
                 title={product.title}
-                price={
-                  product.price !== null
-                    ? formatCurrency(
-                        convertUsdToCurrency(product.price, currency, rates),
-                        currency,
-                      )
-                    : "Price available on request"
-                }
+                priceCents={product.price}
                 primaryImage={primaryImage ?? "/next.svg"}
                 secondaryImage={secondaryImage ?? primaryImage ?? "/vercel.svg"}
               />

@@ -1,11 +1,17 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import slugify from "slugify";
 import { z } from "zod";
 
+import { CATALOG_PRODUCTS_TAG } from "@/lib/catalog-cache";
+import {
+  TAXONOMY_FACETS_TAG,
+  TAXONOMY_PRODUCT_TYPES_TAG,
+} from "@/lib/catalog-taxonomy";
 import { auth } from "@/lib/auth";
+import { attributeRepository } from "@/lib/repositories/attribute-repository";
 import { frameRepository } from "@/lib/repositories/frame-repository";
 import { productRepository } from "@/lib/repositories/product-repository";
 import { BUCKETS, storage } from "@/lib/storage";
@@ -18,6 +24,7 @@ const productFormSchema = z.object({
   metaDescription: z.string().max(320).optional(),
   status: z.enum(["draft", "active", "archived"]),
   productType: z.string().max(120).optional(),
+  categoryId: z.string().uuid().optional(),
   vendor: z.string().max(120).optional(),
   tags: z.string().max(400).optional(),
 });
@@ -237,6 +244,15 @@ function revalidateProductPaths(productId: string, productSlug: string) {
   revalidatePath(`/admin/products/${productId}`);
   revalidatePath("/products");
   revalidatePath(`/products/${productSlug}`);
+  revalidateCatalogTaxonomy();
+}
+
+// Products drive the storefront filter taxonomy (product types + facets) and
+// the cached featured / related / frame reads (lib/catalog-cache.ts).
+function revalidateCatalogTaxonomy() {
+  revalidateTag(TAXONOMY_PRODUCT_TYPES_TAG, "max");
+  revalidateTag(TAXONOMY_FACETS_TAG, "max");
+  revalidateTag(CATALOG_PRODUCTS_TAG, "max");
 }
 
 async function assertAdmin() {
@@ -265,7 +281,36 @@ function parseFrameSelections(formData: FormData) {
   return selections;
 }
 
-function parseProductForm(formData: FormData) {
+// Collects dynamic attribute values from the product form. Each definition's
+// control submits under `attr_<definitionId>`; multi_select submits many.
+async function parseProductAttributes(formData: FormData) {
+  const definitions = await attributeRepository.listDefinitions();
+
+  const attributes: { definitionId: string; values: string[] }[] = [];
+  for (const definition of definitions) {
+    const values = formData
+      .getAll(`attr_${definition.id}`)
+      .map((value) => (typeof value === "string" ? value.trim() : ""))
+      .filter((value) => value.length > 0);
+
+    if (definition.isRequired && values.length === 0) {
+      throw new Error(`${definition.name} is required.`);
+    }
+
+    if (values.length === 0) {
+      continue;
+    }
+
+    attributes.push({
+      definitionId: definition.id,
+      values: definition.type === "multi_select" ? values : [values[0]],
+    });
+  }
+
+  return attributes;
+}
+
+async function parseProductForm(formData: FormData) {
   const parsed = productFormSchema.safeParse({
     title: getString(formData, "title"),
     slug: getString(formData, "slug") || undefined,
@@ -274,6 +319,7 @@ function parseProductForm(formData: FormData) {
     metaDescription: getString(formData, "metaDescription") || undefined,
     status: getString(formData, "status"),
     productType: getString(formData, "productType") || undefined,
+    categoryId: getString(formData, "categoryId") || undefined,
     vendor: getString(formData, "vendor") || undefined,
     tags: getString(formData, "tags") || undefined,
   });
@@ -288,6 +334,7 @@ function parseProductForm(formData: FormData) {
   }
 
   const variants = parseVariants(formData);
+  const attributes = await parseProductAttributes(formData);
 
   return {
     title: parsed.data.title,
@@ -297,29 +344,33 @@ function parseProductForm(formData: FormData) {
     metaDescription: parsed.data.metaDescription ?? null,
     status: parsed.data.status,
     productType: parsed.data.productType ?? null,
+    categoryId: parsed.data.categoryId ?? null,
     vendor: parsed.data.vendor ?? null,
     tags: normalizeTags(parsed.data.tags),
     variants,
+    attributes,
   };
 }
 
 export async function createProductAction(formData: FormData) {
   await assertAdmin();
 
-  const payload = parseProductForm(formData);
+  const payload = await parseProductForm(formData);
   const frameSelections = parseFrameSelections(formData);
   const created = await productRepository.createForAdmin(payload);
 
   await frameRepository.setForProduct(created.id, frameSelections);
+  await productRepository.regenerateBarcodeForAdmin(created.id);
 
   revalidatePath("/admin/products");
   revalidatePath("/products");
+  revalidateCatalogTaxonomy();
 
   if (payload.status === "active") {
     revalidatePath(`/products/${payload.slug}`);
   }
 
-  redirect(`/admin/products/${created.id}`);
+  redirect(`/admin/products/${created.id}?status=created`);
 }
 
 export async function updateProductAction(
@@ -333,7 +384,7 @@ export async function updateProductAction(
     throw new Error("Product not found.");
   }
 
-  const payload = parseProductForm(formData);
+  const payload = await parseProductForm(formData);
   const frameSelections = parseFrameSelections(formData);
   const updated = await productRepository.updateForAdmin(productId, payload);
 
@@ -342,13 +393,15 @@ export async function updateProductAction(
   }
 
   await frameRepository.setForProduct(productId, frameSelections);
+  await productRepository.regenerateBarcodeForAdmin(productId);
 
   revalidatePath("/admin/products");
   revalidatePath("/products");
   revalidatePath(`/products/${existing.product.slug}`);
   revalidatePath(`/products/${updated.slug}`);
+  revalidateCatalogTaxonomy();
 
-  redirect(`/admin/products/${productId}`);
+  redirect(`/admin/products/${productId}?status=saved`);
 }
 
 export async function addProductImageAction(
@@ -403,6 +456,7 @@ export async function addProductImageAction(
   });
 
   revalidateProductPaths(productId, existing.product.slug);
+  redirect(`/admin/products/${productId}?status=image-added`);
 }
 
 export async function updateProductImageMetaAction(
@@ -499,6 +553,7 @@ export async function deleteProductImageAction(
 
   await productRepository.deleteImageForAdmin(productId, imageId);
   revalidateProductPaths(productId, existing.product.slug);
+  redirect(`/admin/products/${productId}?status=image-removed`);
 }
 
 const productStatusValues = ["draft", "active", "archived"] as const;
@@ -532,6 +587,10 @@ export async function quickSetProductStatusAction(
   if (updated.slug !== existing?.product.slug) {
     revalidatePath(`/products/${updated.slug}`);
   }
+
+  revalidateCatalogTaxonomy();
+
+  redirect(`/admin/products/${productId}?status=status-${status}`);
 }
 
 export async function setProductStatusAction(formData: FormData) {
@@ -571,6 +630,38 @@ export async function setProductStatusAction(formData: FormData) {
   if (updated.slug !== existing?.product.slug) {
     revalidatePath(`/products/${updated.slug}`);
   }
+
+  revalidateCatalogTaxonomy();
+
+  redirect(`/admin/products?status=status-${status}`);
+}
+
+export type RegenerateBarcodeState = {
+  status: "idle" | "success" | "error";
+  message?: string;
+};
+
+// Returns state instead of redirecting: the barcode value is deterministic, so
+// a redirect leaves the page looking identical and the user can't tell the
+// click registered. Inline state gives speed-independent, visible feedback while
+// revalidatePath still refreshes the rendered barcode/SVG.
+export async function regenerateProductBarcodeAction(
+  productId: string,
+  _prevState: RegenerateBarcodeState,
+  formData: FormData,
+): Promise<RegenerateBarcodeState> {
+  void formData;
+
+  await assertAdmin();
+
+  if (!productId) {
+    return { status: "error", message: "Missing product." };
+  }
+
+  await productRepository.regenerateBarcodeForAdmin(productId);
+
+  revalidatePath(`/admin/products/${productId}`);
+  return { status: "success", message: "Barcode regenerated." };
 }
 
 export async function archiveProductAction(formData: FormData) {
@@ -594,4 +685,6 @@ export async function archiveProductAction(formData: FormData) {
   if (existing) {
     revalidatePath(`/products/${existing.product.slug}`);
   }
+
+  redirect("/admin/products?status=status-archived");
 }

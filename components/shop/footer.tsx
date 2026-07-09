@@ -21,11 +21,10 @@ const careLinks = [
 ];
 
 type ShopFooterProps = {
-  currency: string;
   contact: StoreContact;
 };
 
-export async function ShopFooter({ currency, contact }: ShopFooterProps) {
+export async function ShopFooter({ contact }: ShopFooterProps) {
   const branding = await getBranding();
   const year = new Date().getFullYear();
   const addressLines = [contact.addressLine1, contact.addressLine2].filter(
@@ -91,7 +90,6 @@ export async function ShopFooter({ currency, contact }: ShopFooterProps) {
               ) : null}
               <li className="pt-2">
                 <CurrencySelector
-                  selectedCurrency={currency}
                   className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.08em] text-paper-2/80"
                   labelClassName="text-paper-2/60"
                   selectClassName="h-8 border border-paper-2/25 bg-transparent px-2 text-[11px] uppercase tracking-[0.06em] text-paper"

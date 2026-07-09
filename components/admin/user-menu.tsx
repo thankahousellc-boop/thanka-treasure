@@ -58,7 +58,7 @@ export function UserMenu({ email, signOutAction }: UserMenuProps) {
           className="grid h-7 w-7 place-items-center rounded-full text-[11px] font-semibold"
           style={{
             backgroundColor: "var(--admin-accent)",
-            color: "#ffffff",
+            color: "var(--admin-on-accent)",
           }}
         >
           {initial}
@@ -100,7 +100,7 @@ export function UserMenu({ email, signOutAction }: UserMenuProps) {
           </div>
           <Link
             href="/"
-            className="flex items-center gap-2 px-3 py-2.5 text-sm transition hover:opacity-90"
+            className="flex items-center gap-2 px-3 py-2.5 text-sm transition hover:bg-(--admin-accent-soft)"
             style={{ color: "var(--admin-text-soft)" }}
           >
             <Icon.Layers width={14} height={14} /> View storefront
@@ -108,8 +108,8 @@ export function UserMenu({ email, signOutAction }: UserMenuProps) {
           <form action={signOutAction}>
             <button
               type="submit"
-              className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm transition hover:opacity-90"
-              style={{ color: "#b3261e" }}
+              className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm transition hover:bg-(--admin-danger)/10"
+              style={{ color: "var(--admin-danger)" }}
             >
               <Icon.Logout width={14} height={14} /> Sign out
             </button>

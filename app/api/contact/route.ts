@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { contactRepository } from "@/lib/repositories/contact-repository";
 import { contactSubmissionSchema } from "@/lib/utils/validators";
 
 export async function POST(request: Request) {
+  // IP-level limit (the per-email DB limit below still applies as a second key).
+  const limited = await enforceRateLimit("strict", request);
+  if (limited) return limited;
+
   let payload: unknown;
 
   try {

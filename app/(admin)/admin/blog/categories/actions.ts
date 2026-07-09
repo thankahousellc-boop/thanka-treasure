@@ -127,7 +127,7 @@ export async function createCategoryAction(formData: FormData) {
   }
 
   revalidateBlogAdminPaths();
-  redirect("/admin/blog/categories");
+  redirect("/admin/blog/categories?status=category-created");
 }
 
 export async function updateCategoryAction(formData: FormData) {
@@ -146,7 +146,7 @@ export async function updateCategoryAction(formData: FormData) {
   }
 
   revalidateBlogAdminPaths();
-  redirect("/admin/blog/categories");
+  redirect("/admin/blog/categories?status=category-saved");
 }
 
 export async function createTagAction(formData: FormData) {
@@ -160,7 +160,7 @@ export async function createTagAction(formData: FormData) {
   }
 
   revalidateBlogAdminPaths();
-  redirect("/admin/blog/categories");
+  redirect("/admin/blog/categories?status=tag-created");
 }
 
 export async function updateTagAction(formData: FormData) {
@@ -177,5 +177,5 @@ export async function updateTagAction(formData: FormData) {
   }
 
   revalidateBlogAdminPaths();
-  redirect("/admin/blog/categories");
+  redirect("/admin/blog/categories?status=tag-saved");
 }

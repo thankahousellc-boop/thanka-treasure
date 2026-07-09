@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Icon } from "@/components/admin/ui/icons";
 
 import { SidebarNav } from "./sidebar-nav";
+import { ThemeToggle } from "./theme-toggle";
 import type { NavBadges } from "./nav-config";
 
 type MobileShellProps = {
@@ -51,19 +52,22 @@ export function MobileShell({ badges, brandName }: MobileShellProps) {
             onClick={() => setOpen(false)}
             className="flex-1 bg-black/50 backdrop-blur-sm"
           />
-          <aside className="admin-app flex h-full w-72 max-w-[85vw] flex-col border-l border-(--admin-border) bg-(--admin-surface)">
-            <div className="flex items-center justify-between border-b border-(--admin-border) px-4 py-3">
+          <aside className="flex h-full w-72 max-w-[85vw] flex-col border-l border-(--admin-border) bg-(--admin-surface)">
+            <div className="flex items-center justify-between gap-2 border-b border-(--admin-border) px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-widest text-(--admin-text-mute)">
                 {brandName}
               </p>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                aria-label="Close"
-                className="grid h-10 w-10 place-items-center rounded-md text-(--admin-text-soft) hover:bg-(--admin-accent-soft) hover:text-(--admin-text) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--admin-accent)"
-              >
-                <Icon.Close />
-              </button>
+              <div className="flex items-center gap-1.5">
+                <ThemeToggle />
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  aria-label="Close"
+                  className="grid h-10 w-10 place-items-center rounded-md text-(--admin-text-soft) hover:bg-(--admin-accent-soft) hover:text-(--admin-text) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--admin-accent)"
+                >
+                  <Icon.Close />
+                </button>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto p-3">
               <SidebarNav badges={badges} onNavigate={() => setOpen(false)} />

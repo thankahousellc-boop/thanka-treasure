@@ -15,6 +15,9 @@ export const contactSubmissionSchema = z.object({
 export const checkoutSchema = z.object({
   currency: z.string().length(3).default("USD"),
   discountCode: z.string().trim().min(1).max(64).optional(),
+  // Stripe session id from a prior load (localStorage). Lets the server reuse an
+  // existing reservation on reload instead of reserving stock again.
+  existingSessionId: z.string().trim().min(1).max(255).optional(),
   items: z
     .array(
       z.object({

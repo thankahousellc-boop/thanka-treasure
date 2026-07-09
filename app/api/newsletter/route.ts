@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { newsletterRepository } from "@/lib/repositories/newsletter-repository";
 import { newsletterSchema } from "@/lib/utils/validators";
 
 export async function POST(request: Request) {
+  const limited = await enforceRateLimit("strict", request);
+  if (limited) return limited;
+
   let payload: unknown;
 
   try {

@@ -1,16 +1,17 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 
 import { BASE_CURRENCY } from "@/lib/currency/config";
-import { convertFromUsd, type ExchangeRateMap } from "@/lib/currency/convert";
+import { convertFromUsd } from "@/lib/currency/convert";
+import { useCurrency } from "@/components/shop/currency-provider";
+import { Price } from "@/components/shop/price";
 import {
   useSelectedFrame,
   type FrameOption,
 } from "@/components/shop/selected-frame-context";
 import { useCartStore } from "@/lib/store/cart";
-import { formatCurrency } from "@/lib/utils/formatters";
 
 type VariantOption = {
   id: string;
@@ -25,9 +26,6 @@ type ProductBuyPanelProps = {
   slug: string;
   title: string;
   imageUrl?: string;
-  cartCurrency?: string;
-  displayCurrency?: string;
-  exchangeRates?: ExchangeRateMap;
   variants: VariantOption[];
   frames?: FrameOption[];
 };
@@ -37,22 +35,20 @@ export function ProductBuyPanel({
   slug,
   title,
   imageUrl,
-  cartCurrency = BASE_CURRENCY,
-  displayCurrency = BASE_CURRENCY,
-  exchangeRates = {},
   variants,
   frames = [],
 }: ProductBuyPanelProps) {
   const router = useRouter();
+  // Live selected currency drives what currency the cart line is stored in.
+  const { currency, rates } = useCurrency();
   const addItem = useCartStore((state) => state.addItem);
   const clear = useCartStore((state) => state.clear);
   const [selectedVariantId, setSelectedVariantId] = useState(
     variants[0]?.id ?? "",
   );
   const frameCtx = useSelectedFrame();
-  const fallbackInitialFrameId =
-    frames.find((frame) => frame.isDefault)?.id ?? frames[0]?.id ?? "";
-  const [localFrameId, setLocalFrameId] = useState(fallbackInitialFrameId);
+  // Default to no brocade — optional add-on, customer opts in.
+  const [localFrameId, setLocalFrameId] = useState("");
   const selectedFrameId = frameCtx?.selectedFrameId ?? localFrameId;
   const setSelectedFrameId = frameCtx?.setSelectedFrameId ?? setLocalFrameId;
   const [statusMessage, setStatusMessage] = useState("");
@@ -66,37 +62,15 @@ export function ProductBuyPanel({
 
   const showFrames = frames.length > 0;
 
-  useEffect(() => {
-    if (frames.length > 0 && selectedFrameId === "") {
-      setSelectedFrameId(fallbackInitialFrameId);
-    }
-  }, [
-    frames.length,
-    selectedFrameId,
-    setSelectedFrameId,
-    fallbackInitialFrameId,
-  ]);
-
   const selectedFrame = useMemo(
-    () =>
-      showFrames
-        ? frames.find((frame) => frame.id === selectedFrameId) ?? null
-        : null,
-    [selectedFrameId, frames, showFrames],
+    () => frames.find((frame) => frame.id === selectedFrameId) ?? null,
+    [selectedFrameId, frames],
   );
 
-  const formatVariantPrice = (priceUsdCents: number) => {
-    const converted =
-      displayCurrency === BASE_CURRENCY
-        ? priceUsdCents
-        : convertFromUsd(priceUsdCents, displayCurrency, exchangeRates);
-    return formatCurrency(converted, displayCurrency);
-  };
-
   const toCartCurrencyAmount = (priceUsdCents: number) =>
-    cartCurrency === BASE_CURRENCY
+    currency === BASE_CURRENCY
       ? priceUsdCents
-      : convertFromUsd(priceUsdCents, cartCurrency, exchangeRates);
+      : convertFromUsd(priceUsdCents, currency, rates);
 
   const announce = (message: string) => {
     setStatusMessage("");
@@ -117,7 +91,7 @@ export function ProductBuyPanel({
       title,
       quantity: 1,
       unitPrice: toCartCurrencyAmount(baseUsd),
-      currency: cartCurrency,
+      currency,
       imageUrl,
       frame: selectedFrame
         ? {
@@ -187,9 +161,10 @@ export function ProductBuyPanel({
                   <span className="block text-[13.5px] font-medium text-ink hyphens-auto wrap-break-word">
                     {variant.title}
                   </span>
-                  <span className="block text-xs text-ink-mute">
-                    {formatVariantPrice(variant.price)}
-                  </span>
+                  <Price
+                    cents={variant.price}
+                    className="block text-xs text-ink-mute"
+                  />
                 </button>
               );
             })}
@@ -200,16 +175,47 @@ export function ProductBuyPanel({
       {showFrames ? (
         <div className="mb-6">
           <div className="mb-2.5 flex items-center justify-between text-[11.5px] tracking-[0.18em] text-ink uppercase">
-            <span>Frame</span>
-            {selectedFrame ? (
-              <span className="text-[12.5px] tracking-normal normal-case text-ink-mute">
-                {selectedFrame.priceDelta > 0
-                  ? `+ ${formatVariantPrice(selectedFrame.priceDelta)}`
-                  : "Included"}
-              </span>
-            ) : null}
+            <span>Brocade</span>
+            <span className="text-[12.5px] tracking-normal normal-case text-ink-mute">
+              {selectedFrame ? (
+                selectedFrame.priceDelta > 0 ? (
+                  <>
+                    + <Price cents={selectedFrame.priceDelta} />
+                  </>
+                ) : (
+                  "Included"
+                )
+              ) : (
+                "No brocade"
+              )}
+            </span>
           </div>
           <div className="grid grid-cols-3 gap-2.5 max-sm:grid-cols-2">
+            {(() => {
+              const isActive = selectedFrameId === "";
+              return (
+                <button
+                  type="button"
+                  onClick={() => setSelectedFrameId("")}
+                  aria-pressed={isActive}
+                  className={`flex flex-col items-stretch gap-2 rounded-md border p-2 text-left transition ${
+                    isActive
+                      ? "border-ink bg-paper-2 shadow-[inset_0_0_0_1px_var(--color-ink)]"
+                      : "border-(--line) bg-paper hover:border-ink-mute"
+                  }`}
+                >
+                  <span className="grid aspect-square w-full place-items-center overflow-hidden rounded bg-paper-2 text-[10px] uppercase tracking-widest text-ink-mute">
+                    None
+                  </span>
+                  <span className="block text-[12.5px] font-medium text-ink">
+                    No brocade
+                  </span>
+                  <span className="block text-[11px] text-ink-mute">
+                    No charge
+                  </span>
+                </button>
+              );
+            })()}
             {frames.map((frame) => {
               const isActive = frame.id === selectedFrameId;
               return (
@@ -243,9 +249,13 @@ export function ProductBuyPanel({
                     {frame.name}
                   </span>
                   <span className="block text-[11px] text-ink-mute">
-                    {frame.priceDelta > 0
-                      ? `+ ${formatVariantPrice(frame.priceDelta)}`
-                      : "Included"}
+                    {frame.priceDelta > 0 ? (
+                      <>
+                        + <Price cents={frame.priceDelta} />
+                      </>
+                    ) : (
+                      "Included"
+                    )}
                   </span>
                 </button>
               );
@@ -265,7 +275,7 @@ export function ProductBuyPanel({
           {selectedVariant ? (
             <>
               <span className="opacity-60">·</span>
-              {formatVariantPrice(totalUsdCents)}
+              <Price cents={totalUsdCents} />
             </>
           ) : null}
         </button>

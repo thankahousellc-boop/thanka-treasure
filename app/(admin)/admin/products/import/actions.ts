@@ -482,9 +482,11 @@ export async function bulkImportProductsAction(
         metaDescription: head.metaDescription,
         status: head.status,
         productType: head.productType,
+        categoryId: null,
         vendor: head.vendor,
         tags: head.tags,
         variants,
+        attributes: [],
       });
       productId = createdProduct.id;
     } catch (error) {

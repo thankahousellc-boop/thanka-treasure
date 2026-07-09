@@ -19,28 +19,35 @@ type CommonProps = {
   children: ReactNode;
 };
 
+// Filled variants brighten on hover; secondary/ghost change background via
+// className (inline bg would override a Tailwind hover:bg rule). Ghost also
+// keeps its text color in className so the hover text shift can apply.
+const variantClasses: Record<Variant, string> = {
+  primary: "hover:brightness-110",
+  danger: "hover:brightness-110",
+  secondary: "bg-(--admin-surface) hover:bg-(--admin-surface-2)",
+  ghost:
+    "bg-transparent text-(--admin-text-soft) hover:bg-(--admin-accent-soft) hover:text-(--admin-text)",
+};
+
 function variantStyle(variant: Variant): CSSProperties {
   switch (variant) {
     case "primary":
       return {
         backgroundColor: "var(--admin-accent)",
-        color: "#ffffff",
+        color: "var(--admin-on-accent)",
       };
     case "secondary":
       return {
-        backgroundColor: "var(--admin-surface)",
         color: "var(--admin-text)",
         border: "1px solid var(--admin-border-strong)",
       };
     case "ghost":
-      return {
-        backgroundColor: "transparent",
-        color: "var(--admin-text-soft)",
-      };
+      return {};
     case "danger":
       return {
         backgroundColor: "var(--admin-danger)",
-        color: "#ffffff",
+        color: "var(--admin-on-accent)",
       };
   }
 }
@@ -58,7 +65,7 @@ export function Button({
   return (
     <button
       {...props}
-      className={`${baseClasses} ${sizeClasses[size]} hover:brightness-110 ${className}`}
+      className={`${baseClasses} ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}
       style={variantStyle(variant)}
     >
       {children}
@@ -71,6 +78,7 @@ type ButtonLinkProps = CommonProps & {
   prefetch?: boolean;
   target?: string;
   rel?: string;
+  download?: string | boolean;
 };
 
 export function ButtonLink({
@@ -85,7 +93,7 @@ export function ButtonLink({
     <Link
       {...props}
       href={href}
-      className={`${baseClasses} ${sizeClasses[size]} hover:brightness-110 ${className}`}
+      className={`${baseClasses} ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}
       style={variantStyle(variant)}
     >
       {children}

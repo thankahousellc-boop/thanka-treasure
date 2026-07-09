@@ -22,8 +22,16 @@ export const products = pgTable(
     slug: text("slug").notNull(),
     status: text("status").notNull().default("draft"),
     productType: text("product_type"),
+    // Real category relation. Drives storefront category facets/URLs and the
+    // "Category" spec. `productType` is kept as a free-text descriptor only.
+    categoryId: uuid("category_id").references(() => categories.id, {
+      onDelete: "set null",
+    }),
     vendor: text("vendor"),
     tags: text("tags").array().notNull().default([]),
+    // Generated, scannable code (Code128) for the in-store POS. Composed from
+    // configured attributes — see lib/barcode.
+    barcode: text("barcode"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -34,7 +42,9 @@ export const products = pgTable(
   },
   (table) => [
     uniqueIndex("products_slug_unique").on(table.slug),
+    uniqueIndex("products_barcode_unique").on(table.barcode),
     index("products_status_idx").on(table.status),
+    index("products_category_id_idx").on(table.categoryId),
   ],
 );
 

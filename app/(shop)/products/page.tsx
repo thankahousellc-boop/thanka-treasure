@@ -2,12 +2,11 @@ import Link from "next/link";
 
 import { ProductCard } from "@/components/shop/product-card";
 import {
-  convertUsdToCurrency,
-  getCurrencyContext,
-} from "@/lib/currency/context";
+  getActiveProductTypes,
+  getCatalogFacets,
+} from "@/lib/catalog-taxonomy";
 import { productRepository } from "@/lib/repositories/product-repository";
 import { resolveUrl } from "@/lib/storage/resolve-url";
-import { formatCurrency } from "@/lib/utils/formatters";
 
 export const revalidate = 1800;
 
@@ -58,19 +57,28 @@ function buildTypeHref(baseParams: URLSearchParams, type: string | null) {
   return buildQueryHref(params);
 }
 
-const SWATCHES = [
-  { color: "#5C1F2A", name: "Maroon" },
-  { color: "#C9772D", name: "Saffron" },
-  { color: "#E6B97A", name: "Gold" },
-  { color: "#B8888F", name: "Rose" },
-  { color: "#3D5A3E", name: "Forest" },
-  { color: "#2E3A66", name: "Indigo" },
-];
+// Toggle a single attribute facet value on/off, preserving every other filter.
+function buildAttributeHref(
+  baseParams: URLSearchParams,
+  key: string,
+  value: string,
+  active: boolean,
+) {
+  const params = new URLSearchParams(baseParams);
+  params.delete("page");
+  const param = `attr_${key}`;
+  const existing = params.getAll(param);
+  params.delete(param);
+  for (const current of existing) {
+    if (current !== value) params.append(param, current);
+  }
+  if (!active) params.append(param, value);
+  return buildQueryHref(params);
+}
 
 export default async function ProductsPage({
   searchParams,
 }: ProductsPageProps) {
-  const { currency, rates } = await getCurrencyContext();
   const resolvedSearchParams = await searchParams;
   const query = readSingle(resolvedSearchParams.q)?.trim() ?? "";
   const productType = readSingle(resolvedSearchParams.type)?.trim() ?? "";
@@ -95,7 +103,24 @@ export default async function ProductsPage({
       : "newest";
   const page = readPositiveInt(readSingle(resolvedSearchParams.page)) ?? 1;
 
-  const [catalog, productTypes] = await Promise.all([
+  // Dynamic attribute facets arrive as `?attr_<key>=value` (repeatable).
+  const attributeFilters: Record<string, string[]> = {};
+  for (const [rawKey, rawValue] of Object.entries(
+    resolvedSearchParams as Record<string, string | string[] | undefined>,
+  )) {
+    if (!rawKey.startsWith("attr_")) continue;
+    const key = rawKey.slice("attr_".length);
+    const values = (
+      Array.isArray(rawValue) ? rawValue : rawValue ? [rawValue] : []
+    )
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0);
+    if (key && values.length > 0) {
+      attributeFilters[key] = values;
+    }
+  }
+
+  const [catalog, productTypes, facets] = await Promise.all([
     productRepository.search({
       query: query || undefined,
       productType: productType || undefined,
@@ -104,8 +129,10 @@ export default async function ProductsPage({
       sort,
       page,
       limit: 12,
+      attributes: attributeFilters,
     }),
-    productRepository.listActiveProductTypes(),
+    getActiveProductTypes(),
+    getCatalogFacets(),
   ]);
 
   const paramsWithoutPage = new URLSearchParams();
@@ -114,6 +141,11 @@ export default async function ProductsPage({
   if (minPriceUsd !== undefined) paramsWithoutPage.set("min", String(minPriceUsd));
   if (maxPriceUsd !== undefined) paramsWithoutPage.set("max", String(maxPriceUsd));
   if (sort !== "newest") paramsWithoutPage.set("sort", sort);
+  for (const [key, values] of Object.entries(attributeFilters)) {
+    for (const value of values) {
+      paramsWithoutPage.append(`attr_${key}`, value);
+    }
+  }
 
   const firstItem =
     catalog.total === 0 ? 0 : (catalog.page - 1) * catalog.pageSize + 1;
@@ -124,7 +156,8 @@ export default async function ProductsPage({
     productType.length > 0 ||
     minPriceUsd !== undefined ||
     maxPriceUsd !== undefined ||
-    sort !== "newest";
+    sort !== "newest" ||
+    Object.keys(attributeFilters).length > 0;
 
   const pageWindow = 2;
   const startPage = Math.max(1, catalog.page - pageWindow);
@@ -310,6 +343,16 @@ export default async function ProductsPage({
               {sort !== "newest" ? (
                 <input type="hidden" name="sort" value={sort} />
               ) : null}
+              {Object.entries(attributeFilters).flatMap(([key, values]) =>
+                values.map((value) => (
+                  <input
+                    key={`${key}:${value}`}
+                    type="hidden"
+                    name={`attr_${key}`}
+                    value={value}
+                  />
+                )),
+              )}
               <div className="flex items-center gap-2">
                 <input
                   type="number"
@@ -338,20 +381,36 @@ export default async function ProductsPage({
             </form>
           </SidebarGroup>
 
-          <SidebarGroup title="Dominant Color">
-            <div className="flex flex-wrap gap-2.5 pt-1">
-              {SWATCHES.map((sw) => (
-                <button
-                  key={sw.color}
-                  type="button"
-                  title={sw.name}
-                  aria-label={sw.name}
-                  style={{ background: sw.color }}
-                  className="h-6 w-6 rounded-full border-[1.5px] border-paper shadow-[0_0_0_1px_var(--line)] transition-transform hover:scale-110"
-                />
-              ))}
-            </div>
-          </SidebarGroup>
+          {facets.map((facet) => (
+            <SidebarGroup
+              key={facet.definition.id}
+              title={facet.definition.name}
+            >
+              <ul className="flex flex-col gap-2.5">
+                {facet.options.map((option) => {
+                  const active =
+                    attributeFilters[facet.definition.key]?.includes(
+                      option.value,
+                    ) ?? false;
+                  return (
+                    <SidebarItem
+                      key={option.value}
+                      href={buildAttributeHref(
+                        paramsWithoutPage,
+                        facet.definition.key,
+                        option.value,
+                        active,
+                      )}
+                      active={active}
+                      count={option.count}
+                    >
+                      {option.value}
+                    </SidebarItem>
+                  );
+                })}
+              </ul>
+            </SidebarGroup>
+          ))}
         </aside>
 
         {/* Results */}
@@ -401,6 +460,23 @@ export default async function ProductsPage({
                   )}
                 />
               ) : null}
+              {Object.entries(attributeFilters).flatMap(([key, values]) => {
+                const name =
+                  facets.find((facet) => facet.definition.key === key)
+                    ?.definition.name ?? key;
+                return values.map((value) => (
+                  <FilterTag
+                    key={`${key}:${value}`}
+                    label={`${name}: ${value}`}
+                    removeHref={buildAttributeHref(
+                      paramsWithoutPage,
+                      key,
+                      value,
+                      true,
+                    )}
+                  />
+                ));
+              })}
               <Link
                 href="/products"
                 className="ml-1 text-[12px] tracking-[0.04em] text-ink-soft underline underline-offset-2"
@@ -423,14 +499,7 @@ export default async function ProductsPage({
                     key={product.id}
                     slug={product.slug}
                     title={product.title}
-                    price={
-                      product.price !== null
-                        ? formatCurrency(
-                            convertUsdToCurrency(product.price, currency, rates),
-                            currency,
-                          )
-                        : "Price on request"
-                    }
+                    priceCents={product.price}
                     primaryImage={primaryImage ?? "/next.svg"}
                     secondaryImage={
                       secondaryImage ?? primaryImage ?? "/vercel.svg"

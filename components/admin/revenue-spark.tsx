@@ -4,20 +4,19 @@ type RevenueSparkProps = {
   points: Point[];
   width?: number;
   height?: number;
-  strokeColor?: string;
-  fillColor?: string;
 };
 
 export function RevenueSpark({
   points,
   width = 600,
   height = 140,
-  strokeColor = "#5c1f2a",
-  fillColor = "rgba(92, 31, 42, 0.08)",
 }: RevenueSparkProps) {
   if (points.length === 0) {
     return (
-      <div className="grid h-[140px] place-items-center text-xs text-zinc-400">
+      <div
+        className="grid h-35 place-items-center text-xs"
+        style={{ color: "var(--admin-text-mute)" }}
+      >
         No paid orders in this window yet.
       </div>
     );
@@ -48,13 +47,20 @@ export function RevenueSpark({
       role="img"
       aria-label="Revenue trend"
       className="block"
+      style={{ color: "var(--admin-accent)" }}
     >
-      <path d={pathArea} fill={fillColor} />
+      <defs>
+        <linearGradient id="revenue-spark-fill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="currentColor" stopOpacity={0.22} />
+          <stop offset="100%" stopColor="currentColor" stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <path d={pathArea} fill="url(#revenue-spark-fill)" />
       <path
         d={pathLine}
         fill="none"
-        stroke={strokeColor}
-        strokeWidth={1.6}
+        stroke="currentColor"
+        strokeWidth={1.8}
         strokeLinecap="round"
         strokeLinejoin="round"
       />

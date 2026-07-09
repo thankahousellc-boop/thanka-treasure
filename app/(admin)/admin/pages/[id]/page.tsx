@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { FlashToast } from "@/components/admin/flash-toast";
 import { pagesRepository } from "@/lib/repositories/pages-repository";
 
 import { updateStaticPageAction } from "../actions";
@@ -30,19 +31,27 @@ export default async function AdminEditStaticPage({
   const action = updateStaticPageAction.bind(null, id);
 
   return (
-    <StaticPageForm
-      title={`Edit static page: ${page.title}`}
-      description="Update content, publication status, and metadata."
-      submitLabel="Save changes"
-      action={action}
-      values={{
-        title: page.title,
-        slug: page.slug,
-        content: page.content ?? "",
-        status: toAdminStatus(page.status),
-        metaTitle: page.metaTitle ?? "",
-        metaDescription: page.metaDescription ?? "",
-      }}
-    />
+    <>
+      <FlashToast
+        messages={{
+          "page-created": "Page created.",
+          "page-saved": "Page saved.",
+        }}
+      />
+      <StaticPageForm
+        title={`Edit static page: ${page.title}`}
+        description="Update content, publication status, and metadata."
+        submitLabel="Save changes"
+        action={action}
+        values={{
+          title: page.title,
+          slug: page.slug,
+          content: page.content ?? "",
+          status: toAdminStatus(page.status),
+          metaTitle: page.metaTitle ?? "",
+          metaDescription: page.metaDescription ?? "",
+        }}
+      />
+    </>
   );
 }

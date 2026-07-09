@@ -85,6 +85,10 @@ export const orders = pgTable(
     fulfillmentStatus: text("fulfillment_status")
       .notNull()
       .default("unfulfilled"),
+    // Sales channel: "online" (website Stripe checkout) or "in_store" (POS).
+    source: text("source").notNull().default("online"),
+    // Recorded for in-store sales: cash | card | other.
+    paymentMethod: text("payment_method"),
     currency: text("currency").notNull().default("USD"),
     subtotal: integer("subtotal").notNull(),
     taxTotal: integer("tax_total").notNull().default(0),
@@ -139,6 +143,39 @@ export const orderItems = pgTable(
       .notNull(),
   },
   (table) => [index("order_items_order_id_idx").on(table.orderId)],
+);
+
+// Tracks the inventory reserved by a live (unpaid) Stripe Checkout session so a
+// reload of /checkout reuses the same session instead of reserving stock again.
+// `status` is the single source of truth for whether the reservation is still
+// held — it makes release idempotent across the replace path and the webhook.
+export const pendingCheckoutSessions = pgTable(
+  "pending_checkout_sessions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    stripeCheckoutSessionId: text("stripe_checkout_session_id").notNull(),
+    // Deterministic hash of the resolved cart (variant+frame+qty), currency and
+    // discount. A reload with the same signature reuses the session.
+    cartSignature: text("cart_signature").notNull(),
+    currency: text("currency").notNull(),
+    // [{ variantId, quantity }] — exactly what was reserved, so release is exact.
+    reservedItems: jsonb("reserved_items").notNull().default([]),
+    // open = reservation held, released = returned to stock, completed = paid.
+    status: text("status").notNull().default("open"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("pending_checkout_sessions_stripe_session_id_unique").on(
+      table.stripeCheckoutSessionId,
+    ),
+    index("pending_checkout_sessions_status_idx").on(table.status),
+  ],
 );
 
 export const discounts = pgTable(

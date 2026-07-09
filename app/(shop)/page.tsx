@@ -2,23 +2,22 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { BlogCard } from "@/components/shop/blog-card";
-import { NewsletterForm } from "@/components/shop/newsletter-form";
 import { ProductCard } from "@/components/shop/product-card";
-import {
-  convertUsdToCurrency,
-  getCurrencyContext,
-} from "@/lib/currency/context";
-import type { ExchangeRateMap } from "@/lib/currency/convert";
+import { getFeaturedProducts } from "@/lib/catalog-cache";
 import { blogRepository } from "@/lib/repositories/blog-repository";
-import { productRepository } from "@/lib/repositories/product-repository";
+import { reviewsRepository } from "@/lib/repositories/reviews-repository";
 import { resolveUrl } from "@/lib/storage/resolve-url";
-import { formatCurrency, formatDate } from "@/lib/utils/formatters";
+import { formatDate } from "@/lib/utils/formatters";
 
-async function loadHomeData(currency: string, rates: ExchangeRateMap) {
-  const [featuredProductsResult, blogPostsResult] = await Promise.allSettled([
-    productRepository.findFeatured(6),
-    blogRepository.listPublished({ pageSize: 2 }),
-  ]);
+async function loadHomeData() {
+  // Currency is applied client-side (<Price>), so this page carries only raw
+  // USD prices and stays statically renderable / ISR.
+  const [featuredProductsResult, blogPostsResult, reviewsResult] =
+    await Promise.allSettled([
+      getFeaturedProducts(6),
+      blogRepository.listPublished({ pageSize: 2 }),
+      reviewsRepository.listPublished(6),
+    ]);
 
   const featuredProducts =
     featuredProductsResult.status === "fulfilled"
@@ -31,13 +30,7 @@ async function loadHomeData(currency: string, rates: ExchangeRateMap) {
           return {
             slug: product.slug,
             title: product.title,
-            price:
-              product.price !== null
-                ? formatCurrency(
-                    convertUsdToCurrency(product.price, currency, rates),
-                    currency,
-                  )
-                : "Price on request",
+            priceCents: product.price,
             primaryImage: primaryImage ?? "/next.svg",
             secondaryImage: secondaryImage ?? primaryImage ?? "/vercel.svg",
           };
@@ -65,14 +58,27 @@ async function loadHomeData(currency: string, rates: ExchangeRateMap) {
         }))
       : [];
 
-  return { featuredProducts, blogPosts };
+  const reviews =
+    reviewsResult.status === "fulfilled"
+      ? reviewsResult.value.map((review) => ({
+          id: review.id,
+          authorName: review.authorName,
+          rating: review.rating,
+          body: review.body,
+          productTitle: review.productTitle,
+          reviewedAt: review.reviewedAt
+            ? formatDate(review.reviewedAt)
+            : null,
+        }))
+      : [];
+
+  return { featuredProducts, blogPosts, reviews };
 }
 
 export const revalidate = 3600;
 
 export default async function HomePage() {
-  const { currency, rates } = await getCurrencyContext();
-  const { featuredProducts, blogPosts } = await loadHomeData(currency, rates);
+  const { featuredProducts, blogPosts, reviews } = await loadHomeData();
   const heroProduct = featuredProducts[0] ?? null;
   const craftProduct = featuredProducts[1] ?? featuredProducts[0] ?? null;
 
@@ -307,48 +313,37 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Artisans */}
-      <section className="border-b border-(--line-soft) bg-paper-2 py-20 md:py-24">
-        <div className="container-page">
-          <div className="mb-12 flex flex-wrap items-end justify-between gap-5">
-            <div>
-              <p className="mb-2 text-[11.5px] font-medium uppercase tracking-[0.22em] text-saffron">
-                The atelier
-              </p>
-              <h2 className="font-serif text-[clamp(34px,4vw,46px)] leading-tight font-medium tracking-[-0.005em] text-ink">
-                Painted by{" "}
-                <em className="font-normal text-ink-soft">human hands</em>
-              </h2>
+      {/* Reviews */}
+      {reviews.length > 0 ? (
+        <section className="border-b border-(--line-soft) bg-paper-2 py-20 md:py-24">
+          <div className="container-page">
+            <div className="mb-12 flex flex-wrap items-end justify-between gap-5">
+              <div>
+                <p className="mb-2 text-[11.5px] font-medium uppercase tracking-[0.22em] text-saffron">
+                  The collectors
+                </p>
+                <h2 className="font-serif text-[clamp(34px,4vw,46px)] leading-tight font-medium tracking-[-0.005em] text-ink">
+                  Words from{" "}
+                  <em className="font-normal text-ink-soft">our patrons</em>
+                </h2>
+              </div>
+              <a
+                href="https://www.etsy.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="border-b border-ink-mute pb-1 text-[12.5px] uppercase tracking-[0.18em] text-ink-soft hover:border-ink hover:text-ink"
+              >
+                Read on Etsy →
+              </a>
             </div>
-            <Link
-              href="/contact"
-              className="border-b border-ink-mute pb-1 text-[12.5px] uppercase tracking-[0.18em] text-ink-soft hover:border-ink hover:text-ink"
-            >
-              Visit the studio →
-            </Link>
+            <div className="grid grid-cols-3 gap-7 max-md:grid-cols-1">
+              {reviews.map((review) => (
+                <ReviewCard key={review.id} {...review} />
+              ))}
+            </div>
           </div>
-          <div className="grid grid-cols-3 gap-7 max-md:grid-cols-1">
-            <ArtistCard
-              initial="T"
-              name="Tenzin Dorjee"
-              role="Master painter · 19 years"
-              body="Apprenticed at age twelve in the Karma Gadri tradition. Recognized for the quietude of his Buddhas."
-            />
-            <ArtistCard
-              initial="P"
-              name="Pema Lhamo"
-              role="Senior painter · 14 years"
-              body="Specialises in the female deities — Tara, Vajrayogini, Kurukulla. Crisp line, generous color."
-            />
-            <ArtistCard
-              initial="N"
-              name="Ngawang Sherpa"
-              role="Mandala master · 22 years"
-              body="A patient hand for the largest pieces. His Kalachakras have travelled to four continents."
-            />
-          </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       {/* Journal */}
       {blogPosts.length > 0 ? (
@@ -379,27 +374,6 @@ export default async function HomePage() {
           </div>
         </section>
       ) : null}
-
-      {/* Newsletter */}
-      <section className="bg-ink py-20 text-paper">
-        <div className="container-page mx-auto max-w-3xl text-center">
-          <p className="mb-4 text-[11.5px] font-medium uppercase tracking-[0.22em] text-gold-light">
-            Stay close
-          </p>
-          <h2 className="font-serif text-[clamp(34px,4vw,46px)] leading-tight font-medium tracking-[-0.005em]">
-            Letters from the atelier,{" "}
-            <em className="font-normal text-paper-2/80">once a month</em>.
-          </h2>
-          <p className="mx-auto mt-4 max-w-[54ch] text-[15px] leading-[1.65] text-paper-2/75">
-            New pieces, work-in-progress photographs, notes from the painters,
-            and the occasional dispatch from Boudhanath. Never spam, never
-            shared.
-          </p>
-          <div className="mx-auto mt-9 max-w-lg">
-            <NewsletterForm />
-          </div>
-        </div>
-      </section>
     </div>
   );
 }
@@ -436,31 +410,47 @@ function SymbolCard({
   );
 }
 
-function ArtistCard({
-  initial,
-  name,
-  role,
+function ReviewCard({
+  authorName,
+  rating,
   body,
+  productTitle,
+  reviewedAt,
 }: {
-  initial: string;
-  name: string;
-  role: string;
+  authorName: string;
+  rating: number;
   body: string;
+  productTitle: string | null;
+  reviewedAt: string | null;
 }) {
+  const initial = authorName.trim().charAt(0).toUpperCase() || "★";
+  const stars = Math.max(0, Math.min(5, rating));
+
   return (
     <article className="flex flex-col gap-4 rounded-md bg-paper p-7 shadow-(--shadow-1) transition-all hover:-translate-y-0.5 hover:shadow-(--shadow-2)">
-      <div className="flex items-center gap-4">
-        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-gradient-to-br from-rose to-ink font-serif text-xl text-paper">
+      <div
+        className="flex items-center gap-1 text-[15px] text-saffron"
+        aria-label={`${stars} out of 5 stars`}
+      >
+        {"★".repeat(stars)}
+        <span className="text-ink-mute">{"★".repeat(5 - stars)}</span>
+      </div>
+      <p className="text-[14.5px] leading-[1.6] text-ink-soft">
+        &ldquo;{body}&rdquo;
+      </p>
+      <div className="mt-auto flex items-center gap-4 pt-2">
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gradient-to-br from-rose to-ink font-serif text-lg text-paper">
           {initial}
         </div>
         <div>
-          <h3 className="font-serif text-xl font-medium text-ink">{name}</h3>
+          <h3 className="font-serif text-[17px] font-medium text-ink">
+            {authorName}
+          </h3>
           <p className="text-[11px] uppercase tracking-[0.16em] text-ink-mute">
-            {role}
+            {[productTitle, reviewedAt].filter(Boolean).join(" · ")}
           </p>
         </div>
       </div>
-      <p className="text-[14.5px] leading-[1.6] text-ink-soft">{body}</p>
     </article>
   );
 }

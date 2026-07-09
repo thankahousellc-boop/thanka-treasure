@@ -76,7 +76,7 @@ export async function createStaticPageAction(formData: FormData) {
   revalidatePath("/admin/pages");
   revalidatePath(`/pages/${payload.slug}`);
 
-  redirect(`/admin/pages/${created.id}`);
+  redirect(`/admin/pages/${created.id}?status=page-created`);
 }
 
 export async function updateStaticPageAction(
@@ -101,5 +101,5 @@ export async function updateStaticPageAction(
   revalidatePath(`/pages/${existing.slug}`);
   revalidatePath(`/pages/${updated.slug}`);
 
-  redirect(`/admin/pages/${pageId}`);
+  redirect(`/admin/pages/${pageId}?status=page-saved`);
 }

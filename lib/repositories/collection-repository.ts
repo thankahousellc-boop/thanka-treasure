@@ -99,7 +99,7 @@ export const collectionRepository = {
         products,
         and(
           isNull(products.deletedAt),
-          sql`lower(coalesce(${products.productType}, '')) in (lower(${categories.name}), lower(${categories.slug}))`,
+          eq(products.categoryId, categories.id),
         ),
       )
       .groupBy(

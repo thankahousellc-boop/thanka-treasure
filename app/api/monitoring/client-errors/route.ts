@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { monitor } from "@/lib/monitoring/logger";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 const payloadSchema = z.object({
   message: z.string().min(1).max(2000),
@@ -13,6 +14,9 @@ const payloadSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const limited = await enforceRateLimit("standard", request);
+  if (limited) return limited;
+
   let json: unknown;
 
   try {

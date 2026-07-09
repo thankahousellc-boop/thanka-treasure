@@ -9,6 +9,7 @@ import {
   Field,
   Icon,
   Input,
+  useMarkDirty,
 } from "@/components/admin/ui";
 
 export type ProductVariantFormValue = {
@@ -61,6 +62,7 @@ export function ProductVariantBuilder({
     index: number | null;
     variant: ProductVariantFormValue;
   } | null>(null);
+  const markDirty = useMarkDirty();
 
   function startAdd() {
     setDraft({ index: null, variant: createBlankVariant() });
@@ -83,13 +85,25 @@ export function ProductVariantBuilder({
       );
     }
     setDraft(null);
+    markDirty();
   }
 
   function removeVariant(index: number) {
+    const target = variants[index];
+    // Existing (saved) variants are deleted from the DB on save — confirm first.
+    if (
+      target?.id &&
+      !window.confirm(
+        `Remove the "${target.title || "Untitled"}" variant? It will be deleted on save and unlinked from any past orders.`,
+      )
+    ) {
+      return;
+    }
     setVariants((current) => {
       if (current.length <= 1) return current;
       return current.filter((_, variantIndex) => variantIndex !== index);
     });
+    markDirty();
   }
 
   return (
@@ -217,7 +231,7 @@ function VariantRow({ variant, isOnly, onEdit, onRemove }: VariantRowProps) {
         >
           Edit
         </button>
-        {!variant.id && !isOnly ? (
+        {!isOnly ? (
           <button
             type="button"
             onClick={onRemove}

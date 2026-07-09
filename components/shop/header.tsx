@@ -15,11 +15,7 @@ const rightLinks = [{ href: "/contact", label: "Contact" }];
 
 const mobileLinks = [...leftLinks, ...rightLinks];
 
-type ShopHeaderProps = {
-  currency: string;
-};
-
-export async function ShopHeader({ currency }: ShopHeaderProps) {
+export async function ShopHeader() {
   const branding = await getBranding();
   return (
     <header className="sticky top-0 z-40 border-b border-(--line-soft) bg-paper/85 backdrop-blur-md">
@@ -40,11 +36,7 @@ export async function ShopHeader({ currency }: ShopHeaderProps) {
           ))}
         </nav>
         <div className="md:hidden">
-          <MobileMenu
-            links={mobileLinks}
-            currency={currency}
-            brandName={branding.brandName}
-          />
+          <MobileMenu links={mobileLinks} brandName={branding.brandName} />
         </div>
 
         {/* Centered brand */}
@@ -89,7 +81,6 @@ export async function ShopHeader({ currency }: ShopHeaderProps) {
           </nav>
 
           <CurrencySelector
-            selectedCurrency={currency}
             className="hidden items-center gap-2 text-[11px] uppercase tracking-[0.08em] text-ink-soft md:inline-flex"
             labelClassName="text-ink-mute"
             selectClassName="h-7 border-0 bg-transparent text-[12px] tracking-[0.06em] text-ink"
