@@ -20,7 +20,7 @@ export function ProductCard({
   primaryImage,
   secondaryImage,
   badge,
-  caption = "Hand-painted · Free brocade",
+  caption = "Hand-painted",
 }: ProductCardData) {
   return (
     <Link

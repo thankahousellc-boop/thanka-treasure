@@ -12,11 +12,6 @@ import {
 import { useCartStore } from "@/lib/store/cart";
 import { formatCurrency } from "@/lib/utils/formatters";
 
-function variantHasNoBrocade(title: string): boolean {
-  const t = title.toLowerCase();
-  return t.includes("no brocade") || t.includes("without brocade");
-}
-
 type VariantOption = {
   id: string;
   title: string;
@@ -69,19 +64,13 @@ export function ProductBuyPanel({
     [selectedVariantId, variants],
   );
 
-  const noBrocade = selectedVariant
-    ? variantHasNoBrocade(selectedVariant.title)
-    : false;
-  const showFrames = frames.length > 0 && !noBrocade;
+  const showFrames = frames.length > 0;
 
   useEffect(() => {
-    if (noBrocade) {
-      if (selectedFrameId !== "") setSelectedFrameId("");
-    } else if (frames.length > 0 && selectedFrameId === "") {
+    if (frames.length > 0 && selectedFrameId === "") {
       setSelectedFrameId(fallbackInitialFrameId);
     }
   }, [
-    noBrocade,
     frames.length,
     selectedFrameId,
     setSelectedFrameId,

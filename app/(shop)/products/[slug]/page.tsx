@@ -24,7 +24,7 @@ type ProductDetailPageProps = {
 };
 
 const PRODUCT_META_FALLBACK =
-  "Authentic Tibetan Thangka artwork with free brocade and free international shipping.";
+  "Authentic Tibetan Thangka artwork with free international shipping.";
 const PRODUCT_NOT_FOUND_DESCRIPTION =
   "This product could not be found or has not been published yet.";
 

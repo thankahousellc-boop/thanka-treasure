@@ -310,6 +310,37 @@ async function searchActiveProducts(
   };
 }
 
+// Short, random, human-typable barcode value. Kept intentionally tiny so the
+// printed Code128 stays narrow — the barcode is a lookup key, not a description.
+function randomSkuSuffix(): string {
+  return crypto.randomUUID().replace(/[^a-z0-9]/gi, "").slice(0, 6).toUpperCase();
+}
+
+// Generate and persist a unique SKU for a variant that has none, so the barcode
+// value is stable across reprints. Retries on the (rare) collision against the
+// unique index.
+async function assignSku(
+  db: ReturnType<typeof getDb>,
+  variantId: string,
+): Promise<string> {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const candidate = `TT-${randomSkuSuffix()}`;
+    const [existing] = await db
+      .select({ id: productVariants.id })
+      .from(productVariants)
+      .where(eq(productVariants.sku, candidate))
+      .limit(1);
+    if (existing) continue;
+
+    await db
+      .update(productVariants)
+      .set({ sku: candidate, updatedAt: new Date() })
+      .where(eq(productVariants.id, variantId));
+    return candidate;
+  }
+  throw new Error("Failed to generate a unique SKU after several attempts.");
+}
+
 export const productRepository = {
   async findFeatured(limit = 6) {
     const db = getDb();
@@ -561,11 +592,50 @@ export const productRepository = {
         status: products.status,
         createdAt: products.createdAt,
         updatedAt: products.updatedAt,
+        inventoryCount: sql<number>`coalesce(sum(coalesce(${inventory.quantity}, 0) - coalesce(${inventory.reservedQuantity}, 0)), 0)::int`,
       })
       .from(products)
+      .leftJoin(productVariants, eq(productVariants.productId, products.id))
+      .leftJoin(inventory, eq(inventory.variantId, productVariants.id))
       .where(isNull(products.deletedAt))
+      .groupBy(products.id)
       .orderBy(desc(products.createdAt))
       .limit(limit);
+  },
+
+  // One row per variant for the selected products. Backfills a SKU for any
+  // variant missing one so every printed label has a scannable barcode value.
+  async labelsForProducts(productIds: string[]) {
+    await requireAdminSession();
+
+    if (productIds.length === 0) return [];
+
+    const db = getDb();
+
+    const rows = await db
+      .select({
+        productId: products.id,
+        productTitle: products.title,
+        vendor: products.vendor,
+        variantId: productVariants.id,
+        variantTitle: productVariants.title,
+        sku: productVariants.sku,
+        price: productVariants.price,
+        option1: productVariants.option1,
+        option2: productVariants.option2,
+        option3: productVariants.option3,
+      })
+      .from(products)
+      .innerJoin(productVariants, eq(productVariants.productId, products.id))
+      .where(and(inArray(products.id, productIds), isNull(products.deletedAt)))
+      .orderBy(asc(products.title), asc(productVariants.createdAt));
+
+    const labels = [];
+    for (const row of rows) {
+      const sku = row.sku ?? (await assignSku(db, row.variantId));
+      labels.push({ ...row, sku });
+    }
+    return labels;
   },
 
   async findByIdForAdmin(id: string) {
