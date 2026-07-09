@@ -3,6 +3,7 @@ import { CartDrawer } from "@/components/shop/cart-drawer";
 import { ShopFooter } from "@/components/shop/footer";
 import { ShopHeader } from "@/components/shop/header";
 import { WhatsAppButton } from "@/components/shop/whatsapp-button";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import { getCurrencyContext } from "@/lib/currency/context";
 import {
   getStoreContact,
@@ -31,6 +32,7 @@ export default async function ShopLayout({
       <ShopFooter currency={currency} contact={contact} />
       {whatsappDigits ? <WhatsAppButton phoneNumber={whatsappDigits} /> : null}
       <CartDrawer displayCurrency={currency} exchangeRates={rates} />
+      <GoogleAnalytics gaId="G-TG802Y89CS" />
     </div>
   );
 }
