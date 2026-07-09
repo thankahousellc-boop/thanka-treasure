@@ -252,3 +252,20 @@ body {
     padding-inline: 2rem;
   }
 }
+
+/* Currency display toggle. <Price> renders one span per supported currency;
+   only the one matching html[data-currency] shows. The layout head script sets
+   the attribute from the tt_currency cookie before paint, so static/ISR pages
+   render the visitor's currency on first paint with no flash. Defaults to USD
+   when the attribute is absent. */
+[data-price-cur] {
+  display: none;
+}
+:root:not([data-currency]) [data-price-cur="USD"],
+:root[data-currency="USD"] [data-price-cur="USD"],
+:root[data-currency="EUR"] [data-price-cur="EUR"],
+:root[data-currency="GBP"] [data-price-cur="GBP"],
+:root[data-currency="AUD"] [data-price-cur="AUD"],
+:root[data-currency="JPY"] [data-price-cur="JPY"] {
+  display: inline;
+}

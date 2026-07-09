@@ -5,13 +5,8 @@ import {
   getActiveProductTypes,
   getCatalogFacets,
 } from "@/lib/catalog-taxonomy";
-import {
-  convertUsdToCurrency,
-  getCurrencyContext,
-} from "@/lib/currency/context";
 import { productRepository } from "@/lib/repositories/product-repository";
 import { resolveUrl } from "@/lib/storage/resolve-url";
-import { formatCurrency } from "@/lib/utils/formatters";
 
 export const revalidate = 1800;
 
@@ -84,7 +79,6 @@ function buildAttributeHref(
 export default async function ProductsPage({
   searchParams,
 }: ProductsPageProps) {
-  const { currency, rates } = await getCurrencyContext();
   const resolvedSearchParams = await searchParams;
   const query = readSingle(resolvedSearchParams.q)?.trim() ?? "";
   const productType = readSingle(resolvedSearchParams.type)?.trim() ?? "";
@@ -505,14 +499,7 @@ export default async function ProductsPage({
                     key={product.id}
                     slug={product.slug}
                     title={product.title}
-                    price={
-                      product.price !== null
-                        ? formatCurrency(
-                            convertUsdToCurrency(product.price, currency, rates),
-                            currency,
-                          )
-                        : "Price on request"
-                    }
+                    priceCents={product.price}
                     primaryImage={primaryImage ?? "/next.svg"}
                     secondaryImage={
                       secondaryImage ?? primaryImage ?? "/vercel.svg"

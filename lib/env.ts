@@ -20,6 +20,14 @@ const publicEnvSchema = z.object({
 const serverEnvSchema = z.object({
   DATABASE_URL: z.string().optional(),
   DIRECT_DATABASE_URL: z.string().optional(),
+  // Enable Postgres prepared statements (query-plan reuse → faster repeat
+  // reads). Safe ONLY on a direct / session-mode connection. Leave unset when
+  // DATABASE_URL points at a transaction-mode pooler (Supabase pgbouncer),
+  // which does not support them. Defaults to off.
+  DATABASE_PREPARED_STATEMENTS: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((value) => value === "true"),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
@@ -58,6 +66,9 @@ export const publicEnv = publicEnvSchema.parse({
 export const serverEnv = serverEnvSchema.parse({
   DATABASE_URL: optionalEnv(process.env.DATABASE_URL),
   DIRECT_DATABASE_URL: optionalEnv(process.env.DIRECT_DATABASE_URL),
+  DATABASE_PREPARED_STATEMENTS: optionalEnv(
+    process.env.DATABASE_PREPARED_STATEMENTS,
+  ),
   SUPABASE_SERVICE_ROLE_KEY: optionalEnv(process.env.SUPABASE_SERVICE_ROLE_KEY),
   STRIPE_SECRET_KEY: optionalEnv(process.env.STRIPE_SECRET_KEY),
   STRIPE_WEBHOOK_SECRET: optionalEnv(process.env.STRIPE_WEBHOOK_SECRET),

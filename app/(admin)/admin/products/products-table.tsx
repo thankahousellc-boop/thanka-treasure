@@ -4,6 +4,7 @@ import { useMemo } from "react";
 
 import { Badge, DataTable, type ColumnDef } from "@/components/admin/ui";
 
+import { BulkBarcodeButton } from "./bulk-barcode-button";
 import { ProductRowMenu } from "./product-row-menu";
 
 export type ProductRow = {
@@ -12,6 +13,7 @@ export type ProductRow = {
   slug: string;
   status: string;
   createdAt: Date;
+  inventoryCount: number;
 };
 
 type ProductStatus = "draft" | "active" | "archived";
@@ -26,6 +28,12 @@ function statusTone(status: string): StatusTone {
 function toProductStatus(status: string): ProductStatus {
   if (status === "active" || status === "archived") return status;
   return "draft";
+}
+
+function stockTone(count: number): StatusTone {
+  if (count <= 0) return "warning";
+  if (count <= 5) return "muted";
+  return "success";
 }
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -69,6 +77,18 @@ export function ProductsTable({ rows }: { rows: ProductRow[] }) {
         ),
       },
       {
+        id: "inventoryCount",
+        accessorKey: "inventoryCount",
+        header: "Stock",
+        sortingFn: (a, b) =>
+          a.original.inventoryCount - b.original.inventoryCount,
+        cell: ({ row }) => (
+          <Badge tone={stockTone(row.original.inventoryCount)}>
+            {row.original.inventoryCount}
+          </Badge>
+        ),
+      },
+      {
         id: "createdAt",
         accessorKey: "createdAt",
         header: "Created",
@@ -105,9 +125,13 @@ export function ProductsTable({ rows }: { rows: ProductRow[] }) {
       columns={columns}
       data={rows}
       getRowId={(row) => row.id}
+      enableRowSelection
       searchPlaceholder="Search by title or slug…"
       pageSize={10}
       initialSorting={[{ id: "createdAt", desc: true }]}
+      toolbar={({ selectedRows }) => (
+        <BulkBarcodeButton productIds={selectedRows.map((row) => row.id)} />
+      )}
     />
   );
 }

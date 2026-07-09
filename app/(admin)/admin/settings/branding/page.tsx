@@ -27,6 +27,7 @@ export default async function BrandingSettingsPage() {
           colors: branding.colors,
           logoLightUrl: branding.logoLightUrl,
           logoDarkUrl: branding.logoDarkUrl,
+          faviconUrl: branding.faviconUrl,
         }}
       />
     </>

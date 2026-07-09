@@ -13,11 +13,10 @@ type MobileMenuLink = {
 
 type MobileMenuProps = {
   links: MobileMenuLink[];
-  currency: string;
   brandName: string;
 };
 
-export function MobileMenu({ links, currency, brandName }: MobileMenuProps) {
+export function MobileMenu({ links, brandName }: MobileMenuProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const [previousPathname, setPreviousPathname] = useState(pathname);
@@ -153,7 +152,6 @@ export function MobileMenu({ links, currency, brandName }: MobileMenuProps) {
 
             <div className="border-t border-(--line-soft) px-5 py-4">
               <CurrencySelector
-                selectedCurrency={currency}
                 className="inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.08em] text-ink-soft"
                 labelClassName="text-ink-mute"
                 selectClassName="h-9 rounded-md border border-(--line) bg-paper px-2 text-[13px] tracking-[0.06em] text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron"

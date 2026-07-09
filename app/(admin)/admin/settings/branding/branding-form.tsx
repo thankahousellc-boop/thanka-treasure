@@ -36,6 +36,7 @@ type BrandingFormValues = {
   };
   logoLightUrl: string | null;
   logoDarkUrl: string | null;
+  faviconUrl: string | null;
 };
 
 type BrandingFormProps = {
@@ -90,6 +91,23 @@ export function BrandingForm({ values, action }: BrandingFormProps) {
               label="Logo (dark surfaces)"
               currentUrl={values.logoDarkUrl}
               previewBg="bg-zinc-900"
+            />
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Favicon"
+            description="ICO, PNG, or SVG up to 1MB. Shown in browser tabs and bookmarks. A 32×32 (or square) image works best."
+          />
+          <CardBody>
+            <LogoSlot
+              name="favicon"
+              removeName="removeFavicon"
+              label="Favicon"
+              currentUrl={values.faviconUrl}
+              previewBg="bg-white"
+              accept="image/x-icon,image/vnd.microsoft.icon,image/png,image/svg+xml,.ico"
             />
           </CardBody>
         </Card>
@@ -217,22 +235,36 @@ function LogoSlot({
   label,
   currentUrl,
   previewBg,
+  accept = "image/jpeg,image/png,image/webp,image/svg+xml",
 }: {
   name: string;
   removeName: string;
   label: string;
   currentUrl: string | null;
   previewBg: string;
+  accept?: string;
 }) {
+  const [preview, setPreview] = useState<string | null>(null);
+
+  function onFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    setPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return file ? URL.createObjectURL(file) : null;
+    });
+  }
+
+  const shownUrl = preview ?? currentUrl;
+
   return (
     <div className="space-y-2">
       <p className="text-sm font-medium text-(--admin-text-soft)">{label}</p>
       <div
         className={`grid h-24 place-items-center rounded border border-(--admin-border) ${previewBg}`}
       >
-        {currentUrl ? (
+        {shownUrl ? (
           <Image
-            src={currentUrl}
+            src={shownUrl}
             alt={label}
             width={120}
             height={60}
@@ -240,15 +272,21 @@ function LogoSlot({
             unoptimized
           />
         ) : (
-          <span className="text-xs text-(--admin-text-mute)">No logo uploaded</span>
+          <span className="text-xs text-(--admin-text-mute)">No image uploaded</span>
         )}
       </div>
       <input
         type="file"
         name={name}
-        accept="image/jpeg,image/png,image/webp,image/svg+xml"
+        accept={accept}
+        onChange={onFileChange}
         className="block w-full text-xs text-(--admin-text-soft) file:mr-2 file:rounded file:border-0 file:bg-(--admin-accent) file:px-2 file:py-1.5 file:text-xs file:font-medium file:text-(--admin-on-accent)"
       />
+      {preview ? (
+        <p className="text-xs text-(--admin-text-mute)">
+          New image selected — click Save branding to apply.
+        </p>
+      ) : null}
       {currentUrl ? (
         <label className="flex items-center gap-2 text-xs text-(--admin-text-soft)">
           <input

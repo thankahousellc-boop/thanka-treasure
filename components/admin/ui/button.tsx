@@ -78,6 +78,7 @@ type ButtonLinkProps = CommonProps & {
   prefetch?: boolean;
   target?: string;
   rel?: string;
+  download?: string | boolean;
 };
 
 export function ButtonLink({

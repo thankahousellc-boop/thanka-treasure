@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import Script from "next/script";
 import { Toaster } from "sonner";
 
 import { AdminSidebar } from "@/components/admin/sidebar";
@@ -12,8 +11,8 @@ export const dynamic = "force-dynamic";
 
 // Runs before paint when no cookie is set: adopt the OS preference and
 // persist it so the server can render data-theme directly on later visits.
-// Hoisted into <head> by next/script (beforeInteractive), so it sets the
-// attribute on <html>; CSS bridges that to the as-yet-unattributed shell.
+// Inlined into the SSR HTML so it sets the attribute on <html> before paint;
+// CSS bridges that to the as-yet-unattributed shell.
 const NO_FLASH_SCRIPT = `(function(){try{if(/(^|;)\\s*${ADMIN_THEME_COOKIE}=/.test(document.cookie))return;var dark=window.matchMedia('(prefers-color-scheme: dark)').matches;var t=dark?'dark':'light';document.documentElement.setAttribute('data-theme',t);document.cookie='${ADMIN_THEME_COOKIE}='+t+';path=/;max-age=31536000;samesite=lax';}catch(e){}})();`;
 
 export default async function AdminLayout({
@@ -37,11 +36,11 @@ export default async function AdminLayout({
       className="admin-app flex min-h-screen"
       data-theme={theme ?? undefined}
     >
-      <Script
-        id="admin-no-flash-theme"
-        strategy="beforeInteractive"
-        dangerouslySetInnerHTML={{ __html: NO_FLASH_SCRIPT }}
-      />
+      {/* Plain inline script (not next/script beforeInteractive, which is only
+          valid in the root layout and errors when rendered in a nested layout on
+          client navigation). Cookie-guarded + idempotent: only acts on the first
+          server-rendered load, so it needs no client-nav execution. */}
+      <script dangerouslySetInnerHTML={{ __html: NO_FLASH_SCRIPT }} />
       <AdminSidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <AdminTopbar />

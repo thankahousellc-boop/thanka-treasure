@@ -20,30 +20,37 @@ const cormorant = Cormorant_Garamond({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(getSiteUrl()),
-  title: {
-    default: "Thangka Treasure",
-    template: "%s | Thangka Treasure",
-  },
-  description:
-    "A modern storefront and admin platform for authentic Tibetan Thangka art.",
-  openGraph: {
-    type: "website",
-    locale: "en_US",
-    siteName: "Thangka Treasure",
-    title: "Thangka Treasure",
+export async function generateMetadata(): Promise<Metadata> {
+  const branding = await getBranding();
+
+  return {
+    metadataBase: new URL(getSiteUrl()),
+    title: {
+      default: "Thangka Treasure",
+      template: "%s | Thangka Treasure",
+    },
     description:
       "A modern storefront and admin platform for authentic Tibetan Thangka art.",
-    url: getSiteUrl(),
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Thangka Treasure",
-    description:
-      "A modern storefront and admin platform for authentic Tibetan Thangka art.",
-  },
-};
+    icons: {
+      icon: branding.faviconUrl ?? "/favicon.svg",
+    },
+    openGraph: {
+      type: "website",
+      locale: "en_US",
+      siteName: "Thangka Treasure",
+      title: "Thangka Treasure",
+      description:
+        "A modern storefront and admin platform for authentic Tibetan Thangka art.",
+      url: getSiteUrl(),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "Thangka Treasure",
+      description:
+        "A modern storefront and admin platform for authentic Tibetan Thangka art.",
+    },
+  };
+}
 
 export default async function RootLayout({
   children,

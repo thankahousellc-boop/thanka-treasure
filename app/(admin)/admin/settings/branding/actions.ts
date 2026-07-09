@@ -35,7 +35,14 @@ const logoMimeTypes = new Set([
   "image/webp",
   "image/svg+xml",
 ]);
+const faviconMimeTypes = new Set([
+  "image/x-icon",
+  "image/vnd.microsoft.icon",
+  "image/png",
+  "image/svg+xml",
+]);
 const logoSizeLimit = 2 * 1024 * 1024;
+const faviconSizeLimit = 1 * 1024 * 1024;
 
 function getString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -79,6 +86,21 @@ async function uploadLogo(file: File, label: string) {
   });
 }
 
+async function uploadFavicon(file: File) {
+  if (!faviconMimeTypes.has(file.type)) {
+    throw new Error("Favicon must be an ICO, PNG, or SVG file.");
+  }
+  if (file.size > faviconSizeLimit) {
+    throw new Error("Favicon must be under 1MB.");
+  }
+  const path = `branding/favicon/${Date.now()}-${sanitizeFileName(file.name || "favicon")}`;
+  return storage.upload(BUCKETS.SITE_ASSETS, path, file, {
+    contentType: file.type,
+    cacheControl: "3600",
+    upsert: false,
+  });
+}
+
 export async function updateBrandingAction(formData: FormData) {
   await assertAdmin();
 
@@ -109,6 +131,7 @@ export async function updateBrandingAction(formData: FormData) {
 
   let logoLight = existing.logoLight ?? null;
   let logoDark = existing.logoDark ?? null;
+  let favicon = existing.favicon ?? null;
 
   const lightFile = formData.get("logoLight");
   if (lightFile instanceof File && lightFile.size > 0) {
@@ -120,11 +143,19 @@ export async function updateBrandingAction(formData: FormData) {
     logoDark = await uploadLogo(darkFile, "dark");
   }
 
+  const faviconFile = formData.get("favicon");
+  if (faviconFile instanceof File && faviconFile.size > 0) {
+    favicon = await uploadFavicon(faviconFile);
+  }
+
   if (getString(formData, "removeLogoLight") === "on") {
     logoLight = null;
   }
   if (getString(formData, "removeLogoDark") === "on") {
     logoDark = null;
+  }
+  if (getString(formData, "removeFavicon") === "on") {
+    favicon = null;
   }
 
   const next: BrandingValue = {
@@ -143,6 +174,7 @@ export async function updateBrandingAction(formData: FormData) {
     },
     logoLight,
     logoDark,
+    favicon,
   };
 
   await settingsRepository.set(BRANDING_SETTINGS_KEY, next);

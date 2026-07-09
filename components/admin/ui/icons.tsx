@@ -101,6 +101,11 @@ export const Icon = {
       <path d="M7 16l4-4 3 3 5-7" />
     </Wrap>
   ),
+  Star: (props: SVGProps<SVGSVGElement>) => (
+    <Wrap {...props}>
+      <path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.79L12 16.77l-5.2 2.73.99-5.79-4.21-4.1 5.82-.85L12 3.5Z" />
+    </Wrap>
+  ),
   Settings: (props: SVGProps<SVGSVGElement>) => (
     <Wrap {...props}>
       <circle cx="12" cy="12" r="3" />

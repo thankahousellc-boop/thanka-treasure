@@ -17,7 +17,9 @@ export function getDb() {
   }
 
   const client = postgres(serverEnv.DATABASE_URL, {
-    prepare: false,
+    // Off by default for transaction-mode poolers (Supabase pgbouncer); opt in
+    // via DATABASE_PREPARED_STATEMENTS on a direct/session connection.
+    prepare: serverEnv.DATABASE_PREPARED_STATEMENTS,
     idle_timeout: 20,
     connect_timeout: 10,
     max: 10,

@@ -31,17 +31,18 @@ export default async function AdminBarcodeSettingsPage() {
           Barcode settings
         </h2>
         <p className="mt-1 text-sm" style={{ color: "var(--admin-text-soft)" }}>
-          Choose which attributes compose each product&apos;s scannable code. A
-          unique product suffix is always appended automatically. Saving
-          regenerates every product&apos;s barcode.
+          The scannable code is kept short — an optional prefix plus a unique
+          product suffix — so it stays readable on a 1D scanner. Attributes
+          selected below set the order product details print as text on the
+          label. Saving regenerates every product&apos;s barcode.
         </p>
       </header>
 
       <form action={saveBarcodeConfigAction}>
         <Card>
           <CardHeader
-            title="Code composition"
-            description="Selected attributes are joined in list order."
+            title="Label layout"
+            description="Checked attributes print first, in list order. Unchecked attributes still print, after the ordered ones."
           />
           <CardBody className="space-y-4">
             {definitions.length > 0 ? (

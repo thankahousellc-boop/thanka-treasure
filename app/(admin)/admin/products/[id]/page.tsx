@@ -2,23 +2,31 @@ import { notFound } from "next/navigation";
 
 import {
   Button,
-  ButtonLink,
   Card,
   CardBody,
   CardHeader,
   DirtyFormProvider,
 } from "@/components/admin/ui";
 import { FlashToast } from "@/components/admin/flash-toast";
+import { getBarcodeConfig } from "@/lib/barcode/config";
+import { renderBarcodeSvg } from "@/lib/barcode/render";
 import { attributeRepository } from "@/lib/repositories/attribute-repository";
 import { collectionRepository } from "@/lib/repositories/collection-repository";
 import { frameRepository } from "@/lib/repositories/frame-repository";
 import { productRepository } from "@/lib/repositories/product-repository";
+import { formatCurrency } from "@/lib/utils/formatters";
 
-import { archiveProductAction, updateProductAction } from "../actions";
+import {
+  archiveProductAction,
+  regenerateProductBarcodeAction,
+  updateProductAction,
+} from "../actions";
 import { ProductForm } from "../product-form";
 import { ProductFramesPicker } from "../product-frames-picker";
 import { ProductImageManager } from "../product-image-manager";
 import { ProductSearchEngineCard } from "../product-search-engine-card";
+import { BarcodePrintButton } from "./barcode-print-button";
+import { RegenerateBarcodeButton } from "./regenerate-barcode-button";
 
 const PRODUCT_FORM_ID = "product-edit-form";
 
@@ -45,19 +53,56 @@ export default async function AdminEditProductPage({
   }
 
   const updateAction = updateProductAction.bind(null, id);
+  const regenerateBarcode = regenerateProductBarcodeAction.bind(null, id);
+  const barcodeSvg = record.product.barcode
+    ? renderBarcodeSvg(record.product.barcode)
+    : null;
 
-  const [allFrames, productFrameRows, attributeDefinitions, categories] =
-    await Promise.all([
-      frameRepository.listAll().catch(() => []),
-      frameRepository.listForProductAdmin(id).catch(() => []),
-      attributeRepository.listDefinitions().catch(() => []),
-      collectionRepository.listCategoriesForAdmin().catch(() => []),
-    ]);
+  const [
+    allFrames,
+    productFrameRows,
+    attributeDefinitions,
+    categories,
+    barcodeConfig,
+  ] = await Promise.all([
+    frameRepository.listAll().catch(() => []),
+    frameRepository.listForProductAdmin(id).catch(() => []),
+    attributeRepository.listDefinitions().catch(() => []),
+    collectionRepository.listCategoriesForAdmin().catch(() => []),
+    getBarcodeConfig().catch(() => null),
+  ]);
 
   const attributeValues: Record<string, string[]> = {};
   for (const entry of record.attributes) {
     attributeValues[entry.definition.id] = entry.values;
   }
+
+  // Printed-label attribute order follows the barcode config's attributeKeys
+  // (they no longer affect the scanned code — see buildBarcodeValue — so they now
+  // control label layout instead). Keys listed in config come first, in order;
+  // any product attribute not named in the config is appended after.
+  const orderedLabelAttributes = (() => {
+    const configKeys = barcodeConfig?.attributeKeys ?? [];
+    const byKey = new Map(
+      record.attributes.map((entry) => [entry.definition.key, entry]),
+    );
+    const ordered: typeof record.attributes = [];
+    const seen = new Set<string>();
+    for (const key of configKeys) {
+      const entry = byKey.get(key);
+      if (entry && !seen.has(key)) {
+        ordered.push(entry);
+        seen.add(key);
+      }
+    }
+    for (const entry of record.attributes) {
+      if (!seen.has(entry.definition.key)) {
+        ordered.push(entry);
+        seen.add(entry.definition.key);
+      }
+    }
+    return ordered;
+  })();
 
   const availableFrames = allFrames
     .filter(
@@ -195,17 +240,52 @@ export default async function AdminEditProductPage({
           title="Barcode"
           description="Scannable code used by the in-store POS. Configure its format under Settings → Barcodes."
         />
-        <CardBody className="flex flex-wrap items-center justify-between gap-3">
-          <span className="text-sm" style={{ color: "var(--admin-text-soft)" }}>
-            {record.product.barcode ?? "Not generated yet."}
-          </span>
-          <ButtonLink
-            href={`/admin/products/${record.product.id}/barcode`}
-            variant="secondary"
-            size="sm"
-          >
-            View / print label
-          </ButtonLink>
+        <CardBody className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span
+              className="text-sm"
+              style={{ color: "var(--admin-text-soft)" }}
+            >
+              {record.product.barcode ?? "Not generated yet."}
+            </span>
+            <div className="flex items-center gap-2 print:hidden">
+              <RegenerateBarcodeButton action={regenerateBarcode} />
+              {barcodeSvg ? <BarcodePrintButton /> : null}
+            </div>
+          </div>
+
+          {barcodeSvg ? (
+            <div
+              className="barcode-print-area mx-auto w-[320px] space-y-2 rounded border border-(--admin-border) bg-white p-4 text-center text-black"
+              style={{ color: "#000" }}
+            >
+              <p className="text-sm font-semibold">{record.product.title}</p>
+              {orderedLabelAttributes.length > 0 ? (
+                <p className="text-xs">
+                  {orderedLabelAttributes
+                    .map((entry) => entry.values.join(" · "))
+                    .join(" • ")}
+                </p>
+              ) : null}
+              {record.primaryVariant ? (
+                <p className="text-sm font-medium">
+                  {formatCurrency(record.primaryVariant.price)}
+                </p>
+              ) : null}
+              <div
+                className="flex justify-center"
+                dangerouslySetInnerHTML={{ __html: barcodeSvg }}
+              />
+            </div>
+          ) : (
+            <p
+              className="text-sm"
+              style={{ color: "var(--admin-text-soft)" }}
+            >
+              No barcode yet. Click Regenerate to build one from the current
+              barcode settings.
+            </p>
+          )}
         </CardBody>
       </Card>
 

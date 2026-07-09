@@ -2,13 +2,13 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { CurrencySelector } from "@/components/shop/currency-selector";
+import { NewsletterForm } from "@/components/shop/newsletter-form";
 import { getBranding } from "@/lib/branding";
 import type { StoreContact } from "@/lib/site-settings";
 
 const discoverLinks = [
   { href: "/products", label: "Shop" },
   { href: "/blogs", label: "Journal" },
-  { href: "/newsletter", label: "Newsletter" },
   { href: "/contact", label: "Contact" },
 ];
 
@@ -21,11 +21,10 @@ const careLinks = [
 ];
 
 type ShopFooterProps = {
-  currency: string;
   contact: StoreContact;
 };
 
-export async function ShopFooter({ currency, contact }: ShopFooterProps) {
+export async function ShopFooter({ contact }: ShopFooterProps) {
   const branding = await getBranding();
   const year = new Date().getFullYear();
   const addressLines = [contact.addressLine1, contact.addressLine2].filter(
@@ -59,6 +58,12 @@ export async function ShopFooter({ currency, contact }: ShopFooterProps) {
               Kathmandu. Sacred art directly from studio to wall, with a fair
               share to every artist.
             </p>
+            <div className="mt-6 max-w-[34ch]">
+              <h5 className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-paper">
+                Newsletter
+              </h5>
+              <NewsletterForm source="footer" />
+            </div>
           </section>
 
           <FooterColumn title="Discover" links={discoverLinks} />
@@ -85,7 +90,6 @@ export async function ShopFooter({ currency, contact }: ShopFooterProps) {
               ) : null}
               <li className="pt-2">
                 <CurrencySelector
-                  selectedCurrency={currency}
                   className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.08em] text-paper-2/80"
                   labelClassName="text-paper-2/60"
                   selectClassName="h-8 border border-paper-2/25 bg-transparent px-2 text-[11px] uppercase tracking-[0.06em] text-paper"

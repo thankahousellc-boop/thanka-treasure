@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { cache } from "react";
 
+import { Price } from "@/components/shop/price";
 import { ProductBuyPanel } from "@/components/shop/product-buy-panel";
 import { ProductCard } from "@/components/shop/product-card";
 import {
@@ -9,15 +10,10 @@ import {
   type GalleryImage,
 } from "@/components/shop/product-gallery";
 import { SelectedFrameProvider } from "@/components/shop/selected-frame-context";
-import {
-  convertUsdToCurrency,
-  getCurrencyContext,
-} from "@/lib/currency/context";
-import { frameRepository } from "@/lib/repositories/frame-repository";
+import { getProductFrames, getRelatedProducts } from "@/lib/catalog-cache";
 import { productRepository } from "@/lib/repositories/product-repository";
 import { buildMetaDescription, getAbsoluteUrl } from "@/lib/seo";
 import { resolveUrl } from "@/lib/storage/resolve-url";
-import { formatCurrency } from "@/lib/utils/formatters";
 import { sanitizeRichText } from "@/lib/utils/sanitize-html";
 
 type ProductDetailPageProps = {
@@ -25,7 +21,7 @@ type ProductDetailPageProps = {
 };
 
 const PRODUCT_META_FALLBACK =
-  "Authentic Tibetan Thangka artwork with free brocade and free international shipping.";
+  "Authentic Tibetan Thangka artwork with free international shipping.";
 const PRODUCT_NOT_FOUND_DESCRIPTION =
   "This product could not be found or has not been published yet.";
 
@@ -106,11 +102,7 @@ export default async function ProductDetailPage({
   params,
 }: ProductDetailPageProps) {
   const { slug } = await params;
-  // Currency context and the product query are independent — run together.
-  const [{ currency, rates }, productData] = await Promise.all([
-    getCurrencyContext(),
-    getProductData(slug),
-  ]);
+  const productData = await getProductData(slug);
 
   if (!productData) {
     return (
@@ -147,13 +139,6 @@ export default async function ProductDetailPage({
 
   const primaryImage = galleryImages[0]?.src ?? null;
   const startingPrice = variants[0]?.price ?? null;
-  const startingDisplay =
-    startingPrice !== null
-      ? formatCurrency(
-          convertUsdToCurrency(startingPrice, currency, rates),
-          currency,
-        )
-      : null;
 
   const productDescription = buildMetaDescription(
     product.metaDescription ?? product.description,
@@ -185,20 +170,13 @@ export default async function ProductDetailPage({
 
   // Related products and frames both only need the loaded product — fetch in
   // parallel instead of one after the other.
-  const [relatedResult, productFrames] = await Promise.all([
-    productRepository
-      .search({
-        productType: product.productType ?? undefined,
-        limit: 6,
-      })
-      .catch(() => null),
-    frameRepository.listForProductPublic(product.id).catch(() => []),
+  const [relatedRowsRaw, productFrames] = await Promise.all([
+    getRelatedProducts(product.productType ?? undefined, 6).catch(() => null),
+    getProductFrames(product.id).catch(() => []),
   ]);
 
-  const relatedRows = relatedResult
-    ? relatedResult.rows
-        .filter((row) => row.slug !== product.slug)
-        .slice(0, 4)
+  const relatedRows = relatedRowsRaw
+    ? relatedRowsRaw.filter((row) => row.slug !== product.slug).slice(0, 4)
     : [];
 
   const eyebrow = category?.name ?? product.productType ?? "Sacred Art";
@@ -252,9 +230,11 @@ export default async function ProductDetailPage({
             </h1>
 
             <div className="my-6 flex items-baseline gap-3.5 border-y border-(--line) py-6">
-              <div className="font-serif text-[42px] font-medium leading-none text-ink">
-                {startingDisplay ?? "Price on request"}
-              </div>
+              <Price
+                cents={startingPrice}
+                fallback="Price on request"
+                className="font-serif text-[42px] font-medium leading-none text-ink"
+              />
               <div className="text-[13px] text-ink-mute">
                 +{" "}
                 <b className="font-medium text-ink">free</b> insured shipping
@@ -276,9 +256,6 @@ export default async function ProductDetailPage({
               slug={product.slug}
               title={product.title}
               imageUrl={primaryImage ?? undefined}
-              cartCurrency={currency}
-              displayCurrency={currency}
-              exchangeRates={rates}
               variants={variants.map((variant) => ({
                 id: variant.id,
                 title: variant.title,
@@ -491,14 +468,7 @@ export default async function ProductDetailPage({
                     key={row.id}
                     slug={row.slug}
                     title={row.title}
-                    price={
-                      row.price !== null
-                        ? formatCurrency(
-                            convertUsdToCurrency(row.price, currency, rates),
-                            currency,
-                          )
-                        : "Price on request"
-                    }
+                    priceCents={row.price}
                     primaryImage={primary ?? "/next.svg"}
                     secondaryImage={secondary ?? primary ?? "/vercel.svg"}
                   />

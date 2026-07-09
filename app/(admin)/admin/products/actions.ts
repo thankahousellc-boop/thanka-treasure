@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import slugify from "slugify";
 import { z } from "zod";
 
+import { CATALOG_PRODUCTS_TAG } from "@/lib/catalog-cache";
 import {
   TAXONOMY_FACETS_TAG,
   TAXONOMY_PRODUCT_TYPES_TAG,
@@ -246,10 +247,12 @@ function revalidateProductPaths(productId: string, productSlug: string) {
   revalidateCatalogTaxonomy();
 }
 
-// Products drive the storefront filter taxonomy (product types + facets).
+// Products drive the storefront filter taxonomy (product types + facets) and
+// the cached featured / related / frame reads (lib/catalog-cache.ts).
 function revalidateCatalogTaxonomy() {
   revalidateTag(TAXONOMY_PRODUCT_TYPES_TAG, "max");
   revalidateTag(TAXONOMY_FACETS_TAG, "max");
+  revalidateTag(CATALOG_PRODUCTS_TAG, "max");
 }
 
 async function assertAdmin() {
@@ -585,6 +588,8 @@ export async function quickSetProductStatusAction(
     revalidatePath(`/products/${updated.slug}`);
   }
 
+  revalidateCatalogTaxonomy();
+
   redirect(`/admin/products/${productId}?status=status-${status}`);
 }
 
@@ -626,26 +631,37 @@ export async function setProductStatusAction(formData: FormData) {
     revalidatePath(`/products/${updated.slug}`);
   }
 
+  revalidateCatalogTaxonomy();
+
   redirect(`/admin/products?status=status-${status}`);
 }
 
+export type RegenerateBarcodeState = {
+  status: "idle" | "success" | "error";
+  message?: string;
+};
+
+// Returns state instead of redirecting: the barcode value is deterministic, so
+// a redirect leaves the page looking identical and the user can't tell the
+// click registered. Inline state gives speed-independent, visible feedback while
+// revalidatePath still refreshes the rendered barcode/SVG.
 export async function regenerateProductBarcodeAction(
   productId: string,
+  _prevState: RegenerateBarcodeState,
   formData: FormData,
-) {
+): Promise<RegenerateBarcodeState> {
   void formData;
 
   await assertAdmin();
 
   if (!productId) {
-    return;
+    return { status: "error", message: "Missing product." };
   }
 
   await productRepository.regenerateBarcodeForAdmin(productId);
 
   revalidatePath(`/admin/products/${productId}`);
-  revalidatePath(`/admin/products/${productId}/barcode`);
-  redirect(`/admin/products/${productId}/barcode?status=regenerated`);
+  return { status: "success", message: "Barcode regenerated." };
 }
 
 export async function archiveProductAction(formData: FormData) {

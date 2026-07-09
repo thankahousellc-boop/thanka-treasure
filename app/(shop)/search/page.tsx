@@ -2,15 +2,11 @@ import Link from "next/link";
 
 import { BlogCard } from "@/components/shop/blog-card";
 import { ProductCard } from "@/components/shop/product-card";
-import {
-  convertUsdToCurrency,
-  getCurrencyContext,
-} from "@/lib/currency/context";
 import { blogRepository } from "@/lib/repositories/blog-repository";
 import { productRepository } from "@/lib/repositories/product-repository";
 import { toPlainText } from "@/lib/seo";
 import { resolveUrl } from "@/lib/storage/resolve-url";
-import { formatCurrency, formatDate } from "@/lib/utils/formatters";
+import { formatDate } from "@/lib/utils/formatters";
 
 type SearchPageSearchParams = {
   q?: string | string[];
@@ -45,7 +41,6 @@ async function loadResults(query: string) {
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
-  const { currency, rates } = await getCurrencyContext();
   const resolvedSearchParams = await searchParams;
   const query = readSingle(resolvedSearchParams.q)?.trim() ?? "";
   const hasQuery = query.length > 0;
@@ -146,14 +141,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                   key={product.id}
                   slug={product.slug}
                   title={product.title}
-                  price={
-                    product.price !== null
-                      ? formatCurrency(
-                          convertUsdToCurrency(product.price, currency, rates),
-                          currency,
-                        )
-                      : "Price available on request"
-                  }
+                  priceCents={product.price}
                   primaryImage={primaryImage ?? "/next.svg"}
                   secondaryImage={
                     secondaryImage ?? primaryImage ?? "/vercel.svg"

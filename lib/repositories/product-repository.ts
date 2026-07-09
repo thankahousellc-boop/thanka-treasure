@@ -677,9 +677,13 @@ export const productRepository = {
         status: products.status,
         createdAt: products.createdAt,
         updatedAt: products.updatedAt,
+        inventoryCount: sql<number>`coalesce(sum(coalesce(${inventory.quantity}, 0) - coalesce(${inventory.reservedQuantity}, 0)), 0)::int`,
       })
       .from(products)
+      .leftJoin(productVariants, eq(productVariants.productId, products.id))
+      .leftJoin(inventory, eq(inventory.variantId, productVariants.id))
       .where(and(isNull(products.deletedAt), ...attributeConditions))
+      .groupBy(products.id)
       .orderBy(desc(products.createdAt))
       .limit(limit);
   },
@@ -1315,14 +1319,8 @@ export const productRepository = {
 
     const db = getDb();
     const config = await getBarcodeConfig();
-    const resolved = await attributeRepository.listValuesForProduct(id);
 
-    const valuesByKey: Record<string, string[]> = {};
-    for (const entry of resolved) {
-      valuesByKey[entry.definition.key] = entry.values;
-    }
-
-    const value = buildBarcodeValue({ config, productId: id, valuesByKey });
+    const value = buildBarcodeValue({ config, productId: id });
 
     await db
       .update(products)
@@ -1348,6 +1346,67 @@ export const productRepository = {
     }
 
     return rows.length;
+  },
+
+  // Label data for bulk barcode printing. One row per selected product,
+  // matching the single-product label: title, attribute line, price, and a
+  // scannable barcode. Any product missing a barcode gets one generated and
+  // persisted so every label scans.
+  async barcodeLabelsForProducts(productIds: string[]) {
+    await requireAdminSession();
+
+    if (productIds.length === 0) return [];
+
+    const db = getDb();
+
+    const rows = await db
+      .select({
+        id: products.id,
+        title: products.title,
+        barcode: products.barcode,
+      })
+      .from(products)
+      .where(and(inArray(products.id, productIds), isNull(products.deletedAt)))
+      .orderBy(asc(products.title));
+
+    if (rows.length === 0) return [];
+
+    const priceRows = await db
+      .select({
+        productId: productVariants.productId,
+        minPrice: sql<number>`min(${productVariants.price})`,
+      })
+      .from(productVariants)
+      .where(
+        inArray(
+          productVariants.productId,
+          rows.map((row) => row.id),
+        ),
+      )
+      .groupBy(productVariants.productId);
+
+    const priceByProductId = new Map(
+      priceRows.map((row) => [row.productId, Number(row.minPrice)]),
+    );
+
+    const labels = [];
+    for (const row of rows) {
+      const barcode =
+        row.barcode ?? (await this.regenerateBarcodeForAdmin(row.id));
+      const attributes = await attributeRepository.listValuesForProduct(row.id);
+
+      labels.push({
+        id: row.id,
+        title: row.title,
+        barcode,
+        price: priceByProductId.get(row.id) ?? null,
+        attributeLine: attributes
+          .map((entry) => entry.values.join(" · "))
+          .join(" • "),
+      });
+    }
+
+    return labels;
   },
 
   async setStatusForAdmin(id: string, status: AdminProductStatus) {

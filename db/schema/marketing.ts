@@ -1,4 +1,12 @@
-import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 export const contactSubmissions = pgTable(
   "contact_submissions",
@@ -45,4 +53,30 @@ export const newsletterSubscribers = pgTable(
       .notNull(),
   },
   (table) => [index("newsletter_subscribers_email_idx").on(table.email)],
+);
+
+export const etsyReviews = pgTable(
+  "etsy_reviews",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    authorName: text("author_name").notNull(),
+    rating: integer("rating").notNull().default(5),
+    body: text("body").notNull(),
+    productTitle: text("product_title"),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    sortOrder: integer("sort_order").notNull().default(0),
+    isPublished: boolean("is_published").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("etsy_reviews_published_sort_idx").on(
+      table.isPublished,
+      table.sortOrder,
+    ),
+  ],
 );

@@ -8,6 +8,7 @@ import {
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
+  type RowSelectionState,
   type SortingState,
   type Table as TanstackTable,
 } from "@tanstack/react-table";
@@ -32,7 +33,13 @@ type DataTableProps<TRow> = {
   emptyState?: ReactNode;
   initialSorting?: SortingState;
   density?: Density;
-  toolbar?: ReactNode;
+  enableRowSelection?: boolean;
+  toolbar?:
+    | ReactNode
+    | ((ctx: {
+        selectedRows: TRow[];
+        clearSelection: () => void;
+      }) => ReactNode);
   rowClassName?: string;
 };
 
@@ -73,11 +80,39 @@ export function DataTable<TRow>({
   emptyState,
   initialSorting = [],
   density = "comfortable",
+  enableRowSelection = false,
   toolbar,
   rowClassName,
 }: DataTableProps<TRow>) {
   const [sorting, setSorting] = useState<SortingState>(initialSorting);
   const [globalFilter, setGlobalFilter] = useState("");
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+
+  const tableColumns = useMemo<ColumnDef<TRow, unknown>[]>(() => {
+    if (!enableRowSelection) return columns;
+    const selectionColumn: ColumnDef<TRow, unknown> = {
+      id: "__select",
+      enableSorting: false,
+      size: 40,
+      header: ({ table }) => (
+        <SelectionCheckbox
+          checked={table.getIsAllPageRowsSelected()}
+          indeterminate={table.getIsSomePageRowsSelected()}
+          onChange={table.getToggleAllPageRowsSelectedHandler()}
+          ariaLabel="Select all rows on this page"
+        />
+      ),
+      cell: ({ row }) => (
+        <SelectionCheckbox
+          checked={row.getIsSelected()}
+          indeterminate={false}
+          onChange={row.getToggleSelectedHandler()}
+          ariaLabel="Select row"
+        />
+      ),
+    };
+    return [selectionColumn, ...columns];
+  }, [columns, enableRowSelection]);
 
   const filteredData = useMemo(() => {
     if (!enableSearch || !globalFilter) return data;
@@ -87,9 +122,11 @@ export function DataTable<TRow>({
 
   const table = useReactTable<TRow>({
     data: filteredData,
-    columns,
-    state: { sorting },
+    columns: tableColumns,
+    state: { sorting, rowSelection },
     onSortingChange: setSorting,
+    onRowSelectionChange: setRowSelection,
+    enableRowSelection,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -100,6 +137,17 @@ export function DataTable<TRow>({
     },
   });
 
+  const selectedRows = table
+    .getSelectedRowModel()
+    .rows.map((row) => row.original);
+  const toolbarNode =
+    typeof toolbar === "function"
+      ? toolbar({
+          selectedRows,
+          clearSelection: () => setRowSelection({}),
+        })
+      : toolbar;
+
   const cellPaddingY = density === "compact" ? "py-2.5" : "py-3.5";
   const cellPaddingX = density === "compact" ? "px-3.5" : "px-5";
 
@@ -109,7 +157,7 @@ export function DataTable<TRow>({
 
   return (
     <div className="flex flex-col">
-      {(enableSearch || toolbar) ? (
+      {(enableSearch || toolbarNode) ? (
         <div
           className="flex flex-wrap items-center gap-3 px-4 py-3"
           style={{
@@ -140,7 +188,7 @@ export function DataTable<TRow>({
               />
             </div>
           ) : null}
-          {toolbar ? <div className="flex flex-wrap items-center gap-2">{toolbar}</div> : null}
+          {toolbarNode ? <div className="flex flex-wrap items-center gap-2">{toolbarNode}</div> : null}
           <div
             className="ml-auto text-[11px] tabular-nums"
             style={{ color: "var(--admin-text-mute)" }}
@@ -258,7 +306,7 @@ export function DataTable<TRow>({
               ))
             ) : (
               <tr>
-                <td colSpan={columns.length} className={cellPaddingX}>
+                <td colSpan={tableColumns.length} className={cellPaddingX}>
                   {emptyState ?? (
                     <div
                       className="flex min-h-50 flex-col items-center justify-center gap-2 py-12 text-center text-sm"
@@ -290,6 +338,31 @@ export function DataTable<TRow>({
         totalFilteredCount={totalFilteredCount}
       />
     </div>
+  );
+}
+
+function SelectionCheckbox({
+  checked,
+  indeterminate,
+  onChange,
+  ariaLabel,
+}: {
+  checked: boolean;
+  indeterminate: boolean;
+  onChange: (event: unknown) => void;
+  ariaLabel: string;
+}) {
+  return (
+    <input
+      type="checkbox"
+      checked={checked}
+      ref={(node) => {
+        if (node) node.indeterminate = !checked && indeterminate;
+      }}
+      onChange={onChange}
+      aria-label={ariaLabel}
+      className="h-4 w-4 cursor-pointer rounded accent-(--admin-accent)"
+    />
   );
 }
 

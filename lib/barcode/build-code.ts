@@ -10,28 +10,21 @@ function sanitizeSegment(input: string) {
     .replace(/^-|-$/g, "");
 }
 
-// Builds the scannable string for a product. The configured attribute values
-// (in order) form the human-meaningful part; a short slice of the product id is
-// appended so the code is always unique even when two products share attributes.
+// Builds the scannable string for a product. Kept deliberately SHORT — just an
+// optional prefix plus a unique id slice — so the 1D Code128 symbol stays narrow
+// enough for a laser scanner regardless of how many attributes a product has.
+// The human-meaningful attribute values are NOT encoded here; they are printed
+// as separate label text next to the barcode (see the product detail page).
 export function buildBarcodeValue(input: {
   config: BarcodeConfig;
   productId: string;
-  // attribute_definitions.key → that product's value(s).
-  valuesByKey: Record<string, string[]>;
 }) {
-  const { config, productId, valuesByKey } = input;
+  const { config, productId } = input;
 
   const segments: string[] = [];
   if (config.prefix) {
     const prefix = sanitizeSegment(config.prefix);
     if (prefix) segments.push(prefix);
-  }
-
-  for (const key of config.attributeKeys) {
-    const values = valuesByKey[key];
-    if (!values || values.length === 0) continue;
-    const segment = sanitizeSegment(values.join("-"));
-    if (segment) segments.push(segment);
   }
 
   // Deterministic, collision-free suffix from the product UUID.

@@ -81,6 +81,7 @@ export const navGroups: NavGroup[] = [
         icon: Icon.Megaphone,
         badgeKey: "subscribers",
       },
+      { href: "/admin/reviews", label: "Reviews", icon: Icon.Star },
     ],
   },
   {

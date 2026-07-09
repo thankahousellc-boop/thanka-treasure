@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import Script from "next/script";
 import { Toaster } from "sonner";
 
 import { auth } from "@/lib/auth";
@@ -38,11 +37,11 @@ export default async function PosLayout({
       className="admin-app flex min-h-dvh flex-col"
       data-theme={theme ?? undefined}
     >
-      <Script
-        id="pos-no-flash-theme"
-        strategy="beforeInteractive"
-        dangerouslySetInnerHTML={{ __html: NO_FLASH_SCRIPT }}
-      />
+      {/* Plain inline script (not next/script beforeInteractive, which is only
+          valid in the root layout and errors when rendered in a nested layout on
+          client navigation). Cookie-guarded + idempotent: only acts on the first
+          server-rendered load, so it needs no client-nav execution. */}
+      <script dangerouslySetInnerHTML={{ __html: NO_FLASH_SCRIPT }} />
       <KioskTopbar
         brandName={branding.brandName}
         logoUrl={branding.logoLightUrl}

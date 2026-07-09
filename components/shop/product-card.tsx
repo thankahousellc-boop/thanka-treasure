@@ -3,10 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { Price } from "@/components/shop/price";
+
 export type ProductCardData = {
   slug: string;
   title: string;
-  price: string;
+  // Amount in USD cents; null renders the "Price on request" fallback.
+  priceCents: number | null;
   primaryImage: string;
   secondaryImage?: string;
   badge?: string;
@@ -16,11 +19,11 @@ export type ProductCardData = {
 export function ProductCard({
   slug,
   title,
-  price,
+  priceCents,
   primaryImage,
   secondaryImage,
   badge,
-  caption = "Hand-painted · Free brocade",
+  caption = "Hand-painted",
 }: ProductCardData) {
   return (
     <Link
@@ -79,7 +82,7 @@ export function ProductCard({
         <h3 className="font-serif text-[22px] leading-tight font-medium text-ink">
           {title}
         </h3>
-        <p className="shrink-0 text-sm text-ink-soft">{price}</p>
+        <Price cents={priceCents} className="shrink-0 text-sm text-ink-soft" />
       </div>
       {caption ? (
         <p className="text-[11.5px] uppercase tracking-[0.06em] text-ink-mute">
