@@ -41,7 +41,7 @@ type Grouping = {
 const GROUPING_NOT_FOUND_DESCRIPTION =
   "This collection page is unavailable or has not been configured yet.";
 const GROUPING_META_FALLBACK =
-  "Discover curated Thangka artwork, with detailed filters and free worldwide shipping.";
+  "Discover curated thanka artwork, with detailed filters and free worldwide shipping.";
 
 function readSingle(value: string | string[] | undefined) {
   if (Array.isArray(value)) {
@@ -338,7 +338,7 @@ export default async function CollectionPage({
       </h1>
       <p className="mt-4 max-w-3xl text-base leading-7 text-warm-gray-700">
         {grouping.description ??
-          "Explore handpicked Tibetan Thangka pieces in this curated group."}
+          "Explore handpicked Tibetan thanka pieces in this curated group."}
       </p>
 
       {coverImage ? (

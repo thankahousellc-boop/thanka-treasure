@@ -85,7 +85,7 @@ const TEMPLATES: Template[] = [
         "<h2>Our story</h2><p>Tell visitors who you are, where your thangkas come from, and what makes your work distinctive.</p><h2>Our artisans</h2><p>Introduce the painters and the lineage behind the craft.</p>",
       metaTitle: "About us",
       metaDescription:
-        "Learn about our story, our artisans, and the tradition behind every thangka.",
+        "Learn about our story, our artisans, and the tradition behind every thanka.",
     },
   },
   {
@@ -140,8 +140,7 @@ const TEMPLATES: Template[] = [
       content:
         "<h2>Return window</h2><p>Items can be returned within X days of delivery, unworn and in original packaging.</p><h2>How to start a return</h2><p>Email us at orders@example.com with your order number to begin a return.</p><h2>Refunds</h2><p>Refunds are issued to the original payment method within 5–10 business days of receipt.</p>",
       metaTitle: "Returns & refunds",
-      metaDescription:
-        "Our return window, conditions, and refund timeline.",
+      metaDescription: "Our return window, conditions, and refund timeline.",
     },
   },
   {
@@ -192,7 +191,8 @@ const STATUS_OPTIONS: {
   {
     value: "active",
     label: "Active (legacy)",
-    description: "Older flag preserved for pages migrated from previous setups.",
+    description:
+      "Older flag preserved for pages migrated from previous setups.",
   },
 ];
 
@@ -228,7 +228,9 @@ export function StaticPageForm({
   const [slugLocked, setSlugLocked] = useState(values.slug.length > 0);
   const [contentValue, setContentValue] = useState(values.content);
   const [contentKey, setContentKey] = useState(0);
-  const [statusValue, setStatusValue] = useState<StaticPageStatus>(values.status);
+  const [statusValue, setStatusValue] = useState<StaticPageStatus>(
+    values.status,
+  );
   const [metaTitleValue, setMetaTitleValue] = useState(values.metaTitle);
   const [metaDescriptionValue, setMetaDescriptionValue] = useState(
     values.metaDescription,
@@ -240,7 +242,9 @@ export function StaticPageForm({
   );
 
   const statusHelp = useMemo(
-    () => STATUS_OPTIONS.find((option) => option.value === statusValue)?.description,
+    () =>
+      STATUS_OPTIONS.find((option) => option.value === statusValue)
+        ?.description,
     [statusValue],
   );
 
@@ -285,9 +289,7 @@ export function StaticPageForm({
         </div>
       </header>
 
-      {showTemplates ? (
-        <TemplatePicker onPick={applyTemplate} />
-      ) : null}
+      {showTemplates ? <TemplatePicker onPick={applyTemplate} /> : null}
 
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="space-y-5 lg:col-span-2">
@@ -483,7 +485,11 @@ export function StaticPageForm({
   );
 }
 
-function TemplatePicker({ onPick }: { onPick: (templateId: TemplateId) => void }) {
+function TemplatePicker({
+  onPick,
+}: {
+  onPick: (templateId: TemplateId) => void;
+}) {
   const markDirty = useMarkDirty();
   return (
     <Card>

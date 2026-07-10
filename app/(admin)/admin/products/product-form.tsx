@@ -151,12 +151,15 @@ export function ProductForm({
             description="The product name and the long-form story shown on the storefront."
           />
           <CardBody className="space-y-5">
-            <Field label="Title" hint="Shown to customers and used to build the URL slug.">
+            <Field
+              label="Title"
+              hint="Shown to customers and used to build the URL slug."
+            >
               <Input
                 name="title"
                 required
                 defaultValue={values.title}
-                placeholder="Enlightenment Thangka — hand-painted"
+                placeholder="Enlightenment thanka — hand-painted"
               />
             </Field>
 
@@ -211,12 +214,12 @@ export function ProductForm({
             </Field>
             <Field
               label="Product type"
-              hint="Free-text descriptor (e.g. Thangka). Not the category."
+              hint="Free-text descriptor (e.g. thanka). Not the category."
             >
               <Input
                 name="productType"
                 defaultValue={values.productType}
-                placeholder="Thangka"
+                placeholder="thanka"
               />
             </Field>
             <Field label="Vendor">
@@ -230,7 +233,7 @@ export function ProductForm({
               <Input
                 name="tags"
                 defaultValue={values.tags}
-                placeholder="thangka, hand-painted, buddhist"
+                placeholder="thanka, hand-painted, buddhist"
               />
             </Field>
           </CardBody>
@@ -259,7 +262,10 @@ export function ProductForm({
               <Field label="Meta title" hint="Recommended 60–70 characters.">
                 <Input name="metaTitle" defaultValue={values.metaTitle} />
               </Field>
-              <Field label="Meta description" hint="Recommended 150–160 characters.">
+              <Field
+                label="Meta description"
+                hint="Recommended 150–160 characters."
+              >
                 <Textarea
                   name="metaDescription"
                   rows={3}
@@ -288,8 +294,12 @@ export function ProductForm({
             boxShadow: "var(--admin-shadow-lg)",
           }}
         >
-          <span className="mr-auto text-xs" style={{ color: "var(--admin-text-mute)" }}>
-            Unsaved changes — the URL slug is generated automatically from the title.
+          <span
+            className="mr-auto text-xs"
+            style={{ color: "var(--admin-text-mute)" }}
+          >
+            Unsaved changes — the URL slug is generated automatically from the
+            title.
           </span>
           <SubmitButton variant="primary" size="md" pendingLabel="Saving…">
             {submitLabel}

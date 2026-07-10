@@ -44,7 +44,11 @@ type BrandingFormProps = {
   action: (formData: FormData) => Promise<void>;
 };
 
-const colorRows: Array<{ key: keyof BrandingFormValues["colors"]; label: string; hint: string }> = [
+const colorRows: Array<{
+  key: keyof BrandingFormValues["colors"];
+  label: string;
+  hint: string;
+}> = [
   { key: "ink", label: "Ink (primary)", hint: "Buttons, headings" },
   { key: "inkSoft", label: "Ink soft", hint: "Body copy, secondary text" },
   { key: "inkMute", label: "Ink muted", hint: "Captions, subtle UI" },
@@ -64,9 +68,16 @@ export function BrandingForm({ values, action }: BrandingFormProps) {
           <CardHeader title="Identity" />
           <CardBody className="space-y-4">
             <Field label="Brand name">
-              <Input name="brandName" defaultValue={values.brandName} required />
+              <Input
+                name="brandName"
+                defaultValue={values.brandName}
+                required
+              />
             </Field>
-            <Field label="Tagline" hint="Optional. Shown below the brand name in some places.">
+            <Field
+              label="Tagline"
+              hint="Optional. Shown below the brand name in some places."
+            >
               <Input name="brandTagline" defaultValue={values.brandTagline} />
             </Field>
           </CardBody>
@@ -113,7 +124,10 @@ export function BrandingForm({ values, action }: BrandingFormProps) {
         </Card>
 
         <Card>
-          <CardHeader title="Colors" description="Hex values applied as CSS variables across the storefront." />
+          <CardHeader
+            title="Colors"
+            description="Hex values applied as CSS variables across the storefront."
+          />
           <CardBody>
             <div className="grid gap-3 sm:grid-cols-2">
               {colorRows.map((row) => (
@@ -206,7 +220,7 @@ export function BrandingForm({ values, action }: BrandingFormProps) {
                 {values.brandName || "Brand"}
               </p>
               <p className="mt-1 text-sm" style={{ color: colors.inkSoft }}>
-                A heritage atelier of one-of-one Thangka paintings.
+                A heritage atelier of one-of-one thanka paintings.
               </p>
               <p className="mt-3 text-xs" style={{ color: colors.inkMute }}>
                 Soft tertiary text uses ink-mute.
@@ -272,7 +286,9 @@ function LogoSlot({
             unoptimized
           />
         ) : (
-          <span className="text-xs text-(--admin-text-mute)">No image uploaded</span>
+          <span className="text-xs text-(--admin-text-mute)">
+            No image uploaded
+          </span>
         )}
       </div>
       <input

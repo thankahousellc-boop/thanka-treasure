@@ -13,9 +13,7 @@ type CartState = {
   clear: () => void;
 };
 
-export function getCartLineKey(
-  item: Pick<CartItem, "variantId" | "frame">,
-) {
+export function getCartLineKey(item: Pick<CartItem, "variantId" | "frame">) {
   return item.frame ? `${item.variantId}::${item.frame.id}` : item.variantId;
 }
 
@@ -60,14 +58,12 @@ export const useCartStore = create<CartState>()(
         }),
       removeItem: (lineKey) =>
         set((state) => ({
-          items: state.items.filter(
-            (item) => getCartLineKey(item) !== lineKey,
-          ),
+          items: state.items.filter((item) => getCartLineKey(item) !== lineKey),
         })),
       clear: () => set({ items: [] }),
     }),
     {
-      name: "thangka-cart",
+      name: "thanka-cart",
       storage: createJSONStorage(() => localStorage),
     },
   ),

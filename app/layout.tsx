@@ -26,28 +26,28 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase: new URL(getSiteUrl()),
     title: {
-      default: "Thangka Treasure",
-      template: "%s | Thangka Treasure",
+      default: "Thanka Treasure",
+      template: "%s | Thanka Treasure",
     },
     description:
-      "A modern storefront and admin platform for authentic Tibetan Thangka art.",
+      "A modern storefront and admin platform for authentic Tibetan Thanka art.",
     icons: {
       icon: branding.faviconUrl ?? "/favicon.svg",
     },
     openGraph: {
       type: "website",
       locale: "en_US",
-      siteName: "Thangka Treasure",
-      title: "Thangka Treasure",
+      siteName: "Thanka Treasure",
+      title: "Thanka Treasure",
       description:
-        "A modern storefront and admin platform for authentic Tibetan Thangka art.",
+        "A modern storefront and admin platform for authentic Tibetan Thanka art.",
       url: getSiteUrl(),
     },
     twitter: {
       card: "summary_large_image",
-      title: "Thangka Treasure",
+      title: "Thanka Treasure",
       description:
-        "A modern storefront and admin platform for authentic Tibetan Thangka art.",
+        "A modern storefront and admin platform for authentic Tibetan Thanka art.",
     },
   };
 }

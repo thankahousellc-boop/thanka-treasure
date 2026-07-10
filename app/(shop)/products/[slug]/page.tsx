@@ -21,7 +21,7 @@ type ProductDetailPageProps = {
 };
 
 const PRODUCT_META_FALLBACK =
-  "Authentic Tibetan Thangka artwork with free international shipping.";
+  "Authentic Tibetan thanka artwork with free international shipping.";
 const PRODUCT_NOT_FOUND_DESCRIPTION =
   "This product could not be found or has not been published yet.";
 
@@ -86,7 +86,14 @@ export async function generateMetadata({
       description,
       url: canonicalUrl,
       images: primaryImage
-        ? [{ url: primaryImage, alt: productData.product.title, width: 1200, height: 1200 }]
+        ? [
+            {
+              url: primaryImage,
+              alt: productData.product.title,
+              width: 1200,
+              height: 1200,
+            },
+          ]
         : undefined,
     },
     twitter: {
@@ -218,118 +225,119 @@ export default async function ProductDetailPage({
         </nav>
 
         <SelectedFrameProvider frames={frameOptions}>
-        <section className="grid grid-cols-[1.2fr_1fr] items-start gap-16 pb-20 max-[980px]:grid-cols-1 max-[980px]:gap-9">
-          <ProductGallery images={galleryImages} badge="One of one" />
+          <section className="grid grid-cols-[1.2fr_1fr] items-start gap-16 pb-20 max-[980px]:grid-cols-1 max-[980px]:gap-9">
+            <ProductGallery images={galleryImages} badge="One of one" />
 
-          <div>
-            <div className="mb-3.5 text-[11.5px] font-medium uppercase tracking-[0.22em] text-saffron">
-              {eyebrow}
-            </div>
-            <h1 className="font-serif text-[clamp(36px,4.5vw,52px)] leading-[1.05] font-medium tracking-[-0.01em] text-ink">
-              {product.title}
-            </h1>
+            <div>
+              <div className="mb-3.5 text-[11.5px] font-medium uppercase tracking-[0.22em] text-saffron">
+                {eyebrow}
+              </div>
+              <h1 className="font-serif text-[clamp(36px,4.5vw,52px)] leading-[1.05] font-medium tracking-[-0.01em] text-ink">
+                {product.title}
+              </h1>
 
-            <div className="my-6 flex items-baseline gap-3.5 border-y border-(--line) py-6">
-              <Price
-                cents={startingPrice}
-                fallback="Price on request"
-                className="font-serif text-[42px] font-medium leading-none text-ink"
+              <div className="my-6 flex items-baseline gap-3.5 border-y border-(--line) py-6">
+                <Price
+                  cents={startingPrice}
+                  fallback="Price on request"
+                  className="font-serif text-[42px] font-medium leading-none text-ink"
+                />
+                <div className="text-[13px] text-ink-mute">
+                  + <b className="font-medium text-ink">free</b> insured
+                  shipping worldwide
+                </div>
+              </div>
+
+              {product.description ? (
+                <div
+                  className="prose prose-stone mb-7 max-w-none font-serif text-[17px] leading-[1.65] text-ink-soft prose-p:my-3 prose-ul:my-3"
+                  dangerouslySetInnerHTML={{
+                    __html: sanitizeRichText(product.description),
+                  }}
+                />
+              ) : null}
+
+              <ProductBuyPanel
+                productId={product.id}
+                slug={product.slug}
+                title={product.title}
+                imageUrl={primaryImage ?? undefined}
+                variants={variants.map((variant) => ({
+                  id: variant.id,
+                  title: variant.title,
+                  price: variant.price,
+                }))}
+                frames={frameOptions}
               />
-              <div className="text-[13px] text-ink-mute">
-                +{" "}
-                <b className="font-medium text-ink">free</b> insured shipping
-                worldwide
+
+              <div className="mt-7 grid grid-cols-2 gap-3.5 text-[12.5px] leading-[1.4] text-ink-soft">
+                <Assurance
+                  icon={
+                    <path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6l-8-4Z" />
+                  }
+                >
+                  Lifetime certificate of authenticity
+                </Assurance>
+                <Assurance
+                  icon={
+                    <>
+                      <path d="M5 7h14l-2 13H7L5 7Z" />
+                      <path d="M9 7V5a3 3 0 0 1 6 0v2" />
+                    </>
+                  }
+                >
+                  Artist&rsquo;s signed letter included
+                </Assurance>
+                <Assurance
+                  icon={
+                    <>
+                      <circle cx="12" cy="12" r="9" />
+                      <path d="M12 7v5l3 2" />
+                    </>
+                  }
+                >
+                  Ships in 5–7 business days
+                </Assurance>
+                <Assurance
+                  icon={
+                    <>
+                      <path d="M9 14l-4-4 4-4" />
+                      <path d="M5 10h12a4 4 0 0 1 4 4v0a4 4 0 0 1-4 4h-1" />
+                    </>
+                  }
+                >
+                  30-day no-questions returns
+                </Assurance>
+              </div>
+
+              <div className="mt-9 border-t border-(--line-soft) pt-7">
+                <dl className="grid grid-cols-[auto_1fr] gap-x-8 gap-y-3.5 text-sm">
+                  {artist ? <Spec term="Artist" detail={artist} /> : null}
+                  {category ? (
+                    <Spec term="Category" detail={category.name} />
+                  ) : null}
+                  {product.productType &&
+                  product.productType !== category?.name ? (
+                    <Spec term="Type" detail={product.productType} />
+                  ) : null}
+                  {attributes.map((entry) => (
+                    <Spec
+                      key={entry.definition.id}
+                      term={entry.definition.name}
+                      detail={
+                        entry.definition.unit
+                          ? `${entry.values.join(" · ")} ${entry.definition.unit}`
+                          : entry.values.join(" · ")
+                      }
+                    />
+                  ))}
+                  {product.tags && product.tags.length > 0 ? (
+                    <Spec term="Tags" detail={product.tags.join(" · ")} />
+                  ) : null}
+                </dl>
               </div>
             </div>
-
-            {product.description ? (
-              <div
-                className="prose prose-stone mb-7 max-w-none font-serif text-[17px] leading-[1.65] text-ink-soft prose-p:my-3 prose-ul:my-3"
-                dangerouslySetInnerHTML={{
-                  __html: sanitizeRichText(product.description),
-                }}
-              />
-            ) : null}
-
-            <ProductBuyPanel
-              productId={product.id}
-              slug={product.slug}
-              title={product.title}
-              imageUrl={primaryImage ?? undefined}
-              variants={variants.map((variant) => ({
-                id: variant.id,
-                title: variant.title,
-                price: variant.price,
-              }))}
-              frames={frameOptions}
-            />
-
-            <div className="mt-7 grid grid-cols-2 gap-3.5 text-[12.5px] leading-[1.4] text-ink-soft">
-              <Assurance
-                icon={<path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6l-8-4Z" />}
-              >
-                Lifetime certificate of authenticity
-              </Assurance>
-              <Assurance
-                icon={
-                  <>
-                    <path d="M5 7h14l-2 13H7L5 7Z" />
-                    <path d="M9 7V5a3 3 0 0 1 6 0v2" />
-                  </>
-                }
-              >
-                Artist&rsquo;s signed letter included
-              </Assurance>
-              <Assurance
-                icon={
-                  <>
-                    <circle cx="12" cy="12" r="9" />
-                    <path d="M12 7v5l3 2" />
-                  </>
-                }
-              >
-                Ships in 5–7 business days
-              </Assurance>
-              <Assurance
-                icon={
-                  <>
-                    <path d="M9 14l-4-4 4-4" />
-                    <path d="M5 10h12a4 4 0 0 1 4 4v0a4 4 0 0 1-4 4h-1" />
-                  </>
-                }
-              >
-                30-day no-questions returns
-              </Assurance>
-            </div>
-
-            <div className="mt-9 border-t border-(--line-soft) pt-7">
-              <dl className="grid grid-cols-[auto_1fr] gap-x-8 gap-y-3.5 text-sm">
-                {artist ? <Spec term="Artist" detail={artist} /> : null}
-                {category ? (
-                  <Spec term="Category" detail={category.name} />
-                ) : null}
-                {product.productType &&
-                product.productType !== category?.name ? (
-                  <Spec term="Type" detail={product.productType} />
-                ) : null}
-                {attributes.map((entry) => (
-                  <Spec
-                    key={entry.definition.id}
-                    term={entry.definition.name}
-                    detail={
-                      entry.definition.unit
-                        ? `${entry.values.join(" · ")} ${entry.definition.unit}`
-                        : entry.values.join(" · ")
-                    }
-                  />
-                ))}
-                {product.tags && product.tags.length > 0 ? (
-                  <Spec term="Tags" detail={product.tags.join(" · ")} />
-                ) : null}
-              </dl>
-            </div>
-          </div>
-        </section>
+          </section>
         </SelectedFrameProvider>
       </div>
 
@@ -341,7 +349,7 @@ export default async function ProductDetailPage({
             painting
           </h2>
           <p className="mx-auto mt-3 max-w-[54ch] text-center text-[15px] text-ink-mute">
-            Every gesture, color, and ornament in a Thangka is a visualisation.
+            Every gesture, color, and ornament in a thanka is a visualisation.
             Look closely and a quiet vocabulary emerges.
           </p>
           <div className="mt-12 grid grid-cols-4 gap-6 max-md:grid-cols-2">
@@ -394,7 +402,7 @@ export default async function ProductDetailPage({
         <div className="container-page grid grid-cols-2 gap-12 max-md:grid-cols-1">
           <div className="rounded-md bg-paper p-9 shadow-(--shadow-1)">
             <h3 className="mb-4.5 font-serif text-[28px] font-medium text-ink">
-              Hanging your Thangka
+              Hanging your thanka
             </h3>
             <ul className="flex flex-col gap-3.5 text-[14.5px] leading-[1.5] text-ink-soft">
               <Step n={1}>

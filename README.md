@@ -1,4 +1,4 @@
-# Thangka Treasure
+# Thanka Treasure
 
 Modern e-commerce foundation built with Next.js App Router, ready for a storefront and Shopify-grade admin dashboard in one codebase.
 

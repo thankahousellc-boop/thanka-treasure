@@ -1,4 +1,4 @@
-const DEFAULT_MESSAGE = "Hi, I'm interested in your Tibetan Thangka paintings.";
+const DEFAULT_MESSAGE = "Hi, I'm interested in your Tibetan thanka paintings.";
 
 type WhatsAppButtonProps = {
   phoneNumber: string;

@@ -11,7 +11,7 @@ type StaticPageProps = {
 };
 
 const STATIC_PAGE_META_FALLBACK =
-  "Read curated information and policy details from Thangka Treasure.";
+  "Read curated information and policy details from thanka Treasure.";
 const STATIC_PAGE_NOT_FOUND_DESCRIPTION =
   "The requested page is unavailable or has not been published yet.";
 

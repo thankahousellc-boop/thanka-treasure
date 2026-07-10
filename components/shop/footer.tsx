@@ -54,7 +54,7 @@ export async function ShopFooter({ contact }: ShopFooterProps) {
               )}
             </Link>
             <p className="max-w-[34ch] text-sm leading-[1.7]">
-              A small atelier of master Thangka painters working in Boudhanath,
+              A small atelier of master thanka painters working in Boudhanath,
               Kathmandu. Sacred art directly from studio to wall, with a fair
               share to every artist.
             </p>

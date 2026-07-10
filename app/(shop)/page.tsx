@@ -66,9 +66,7 @@ async function loadHomeData() {
           rating: review.rating,
           body: review.body,
           productTitle: review.productTitle,
-          reviewedAt: review.reviewedAt
-            ? formatDate(review.reviewedAt)
-            : null,
+          reviewedAt: review.reviewedAt ? formatDate(review.reviewedAt) : null,
         }))
       : [];
 
@@ -93,13 +91,13 @@ export default async function HomePage() {
             </p>
             <h1 className="font-serif text-[clamp(40px,5.5vw,72px)] leading-[1.02] font-medium tracking-[-0.012em] text-ink">
               The painted{" "}
-              <em className="font-normal text-ink-soft">presence</em>{" "}
-              of awakened beings,{" "}
+              <em className="font-normal text-ink-soft">presence</em> of
+              awakened beings,{" "}
               <em className="font-normal text-ink-soft">unbroken</em> for a
               thousand years.
             </h1>
             <p className="mt-7 max-w-[58ch] text-[17px] leading-[1.65] text-ink-soft">
-              A small atelier of master Thangka painters, working in Boudhanath,
+              A small atelier of master thanka painters, working in Boudhanath,
               Kathmandu. Mineral pigment, 24-karat gold, and breath-thin lines —
               each piece blessed at the stupa and shipped directly to your wall.
             </p>
@@ -245,7 +243,7 @@ export default async function HomePage() {
               href="/blogs"
               className="mt-7 inline-flex border-b border-ink-mute pb-1 text-[12.5px] uppercase tracking-[0.18em] text-ink-soft hover:border-ink hover:text-ink"
             >
-              How a Thangka is painted →
+              How a thanka is painted →
             </Link>
           </div>
         </div>
@@ -263,7 +261,7 @@ export default async function HomePage() {
               <em className="font-normal text-ink-soft">visualisation</em>
             </h2>
             <p className="mt-4 text-[15px] text-ink-mute">
-              Mudras, mantras, mandalas. A Thangka is not decoration — it is a
+              Mudras, mantras, mandalas. A thanka is not decoration — it is a
               meditation made visible.
             </p>
           </div>
