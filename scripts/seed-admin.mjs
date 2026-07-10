@@ -15,14 +15,20 @@
  * Usage:
  *   pnpm db:seed:admin                                  # reads ADMIN_* from env
  *   pnpm db:seed:admin --email a@b.com --password 'Pw!' --name 'Root'
+ *   pnpm db:seed:admin -p                               # seed the PROD Supabase
+ *   pnpm db:seed:admin --prod --yes                     # prod, skip confirm (CI)
  *
- * Env (loaded from .env then .env.local):
+ * Env (dev/staging: .env then .env.local; --prod: .env.production then
+ * .env.production.local):
  *   NEXT_PUBLIC_SUPABASE_URL      required
  *   SUPABASE_SERVICE_ROLE_KEY     required
  *   DATABASE_URL                  optional (enables profiles upsert)
  *   ADMIN_EMAIL / ADMIN_PASSWORD  defaults for the account
  *   ADMIN_NAME                    optional display name
  */
+
+import { createInterface } from "node:readline/promises";
+import { stdin, stdout } from "node:process";
 
 import { createClient } from "@supabase/supabase-js";
 import postgres from "postgres";
@@ -102,7 +108,21 @@ async function upsertAdminProfile(databaseUrl, userId, fullName) {
   }
 }
 
+/** Prompt for an explicit "yes" before touching prod (skipped with --yes / CI). */
+async function confirmProd(host, skip) {
+  console.log(`\n⚠  Seeding admin to PRODUCTION Supabase: ${host}\n`);
+  if (skip) return true;
+  const rl = createInterface({ input: stdin, output: stdout });
+  const answer = await rl.question('Type "yes" to continue: ');
+  rl.close();
+  return answer.trim().toLowerCase() === "yes";
+}
+
 async function main() {
+  const argv = process.argv.slice(2);
+  const isProd = argv.includes("-p") || argv.includes("--prod");
+  if (isProd) process.env.DB_ENV = "prod";
+
   loadEnvFiles();
 
   const envResult = envSchema.safeParse(process.env);
@@ -111,7 +131,7 @@ async function main() {
   }
   const env = envResult.data;
 
-  const args = parseArgs(process.argv.slice(2));
+  const args = parseArgs(argv);
   const inputResult = inputSchema.safeParse({
     email: args.email ?? process.env.ADMIN_EMAIL,
     password: args.password ?? process.env.ADMIN_PASSWORD,
@@ -124,6 +144,20 @@ async function main() {
     );
   }
   const { email, password, name } = inputResult.data;
+
+  if (isProd) {
+    let host = env.NEXT_PUBLIC_SUPABASE_URL;
+    try {
+      host = new URL(env.NEXT_PUBLIC_SUPABASE_URL).host;
+    } catch {
+      // leave raw if it doesn't parse
+    }
+    const skip = argv.includes("--yes") || process.env.CI === "true";
+    if (!(await confirmProd(host, skip))) {
+      console.log("[db:seed:admin] Aborted.");
+      process.exit(1);
+    }
+  }
 
   const admin = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },

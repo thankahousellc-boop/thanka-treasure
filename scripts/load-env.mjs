@@ -2,13 +2,21 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 /**
- * Load `.env` then `.env.local` into process.env so standalone node scripts
- * (run via `pnpm <script>`) see the same vars as Next.js / drizzle-kit.
+ * Load env files into process.env so standalone node scripts (run via
+ * `pnpm <script>`) see the same vars as Next.js / drizzle-kit.
  * Existing process.env values win (real env overrides files).
+ *
+ * Default (staging/dev): `.env` then `.env.local`.
+ * When `DB_ENV=prod`: `.env.production` then `.env.production.local` — matches
+ * drizzle.config.ts so `--prod` scripts target the prod Supabase instead.
  */
 export function loadEnvFiles() {
   const cwd = process.cwd();
-  for (const name of [".env", ".env.local"]) {
+  const files =
+    process.env.DB_ENV === "prod"
+      ? [".env.production", ".env.production.local"]
+      : [".env", ".env.local"];
+  for (const name of files) {
     const filePath = resolve(cwd, name);
     if (!existsSync(filePath)) continue;
     const text = readFileSync(filePath, "utf8");

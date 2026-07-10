@@ -3,10 +3,20 @@ import { resolve } from "node:path";
 
 import { defineConfig } from "drizzle-kit";
 
-/** Load `.env` then `.env.local` so `drizzle-kit migrate` picks up DATABASE_URL overrides (Next.js parity). */
+/**
+ * Load env files so `drizzle-kit migrate` picks up DATABASE_URL overrides (Next.js parity).
+ *
+ * Default (staging/dev): `.env` then `.env.local`.
+ * When `DB_ENV=prod` (set by `pnpm db:migrate-prod`): `.env.production` then
+ * `.env.production.local` — so migrations target the prod Supabase instead.
+ */
 function loadEnvFiles() {
   const cwd = process.cwd();
-  for (const name of [".env", ".env.local"] as const) {
+  const files =
+    process.env.DB_ENV === "prod"
+      ? ([".env.production", ".env.production.local"] as const)
+      : ([".env", ".env.local"] as const);
+  for (const name of files) {
     const filePath = resolve(cwd, name);
     if (!existsSync(filePath)) continue;
     const text = readFileSync(filePath, "utf8");

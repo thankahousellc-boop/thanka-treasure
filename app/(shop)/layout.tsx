@@ -3,14 +3,9 @@ import { CartDrawer } from "@/components/shop/cart-drawer";
 import { CurrencyProvider } from "@/components/shop/currency-provider";
 import { ShopFooter } from "@/components/shop/footer";
 import { ShopHeader } from "@/components/shop/header";
-import { WhatsAppButton } from "@/components/shop/whatsapp-button";
-import { GoogleAnalytics } from "@next/third-parties/google";
 import { getExchangeRates } from "@/lib/currency/context";
-import {
-  getStoreContact,
-  getStorefront,
-  normalizeWhatsAppNumber,
-} from "@/lib/site-settings";
+import { getStoreContact, getStorefront } from "@/lib/site-settings";
+import { GoogleAnalytics } from "@next/third-parties/google";
 
 // Currency selection lives entirely on the client now (cookie + <Price>). The
 // layout only needs exchange rates, which are cache-backed and read no
@@ -24,8 +19,6 @@ export default async function ShopLayout({
     getStoreContact(),
     getStorefront(),
   ]);
-
-  const whatsappDigits = normalizeWhatsAppNumber(contact.whatsapp);
 
   return (
     <CurrencyProvider rates={rates}>
@@ -44,7 +37,7 @@ export default async function ShopLayout({
           {children}
         </main>
         <ShopFooter contact={contact} />
-        {whatsappDigits ? <WhatsAppButton phoneNumber={whatsappDigits} /> : null}
+
         <CartDrawer />
         <GoogleAnalytics gaId="G-TG802Y89CS" />
       </div>
