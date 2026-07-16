@@ -812,7 +812,7 @@ function CutoutEditor({
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
-      className="relative aspect-square overflow-hidden rounded-md select-none"
+      className="relative aspect-4/5 overflow-hidden rounded-md select-none"
       style={{
         background:
           "repeating-conic-gradient(var(--admin-surface-2) 0 25%, transparent 0 50%) 50% 50% / 16px 16px",
