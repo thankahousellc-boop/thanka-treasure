@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
 
+import { BootstrapScript } from "@/components/bootstrap-script";
 import { brandingToCssVariables, getBranding } from "@/lib/branding";
 import { getSiteUrl } from "@/lib/seo";
 import "./globals.css";
@@ -64,8 +65,13 @@ export default async function RootLayout({
     <html
       lang="en"
       className={`${inter.variable} ${cormorant.variable} antialiased`}
+      // BootstrapScript stamps data-currency/data-theme here before hydration.
+      // Reading those cookies server-side would force every route dynamic, so
+      // the mismatch is by design — scoped to <html>'s own attributes.
+      suppressHydrationWarning
     >
       <head>
+        <BootstrapScript />
         {/* Branding overrides — applied last so they win over the @theme defaults. */}
         <style>{`:root{${cssVariables}}`}</style>
       </head>

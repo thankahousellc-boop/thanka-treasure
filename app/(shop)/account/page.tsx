@@ -74,6 +74,14 @@ export default async function AccountPage() {
       </div>
 
       <div className="mt-8 flex flex-wrap gap-3">
+        {session.user.role === "admin" ? (
+          <Link
+            href="/admin"
+            className="inline-flex h-10 items-center border border-ink bg-ink px-4 text-xs font-medium uppercase tracking-[0.06em] text-paper hover:bg-ink-soft"
+          >
+            View Admin Dashboard
+          </Link>
+        ) : null}
         <Link
           href="/account/orders"
           className="inline-flex h-10 items-center border border-paper-3 px-4 text-xs font-medium uppercase tracking-[0.06em] text-ink-soft hover:bg-paper-2"

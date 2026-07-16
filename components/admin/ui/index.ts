@@ -14,5 +14,6 @@ export { StatCard } from "./stat-card";
 export { PageHeader } from "./page-header";
 export { EmptyState } from "./empty-state";
 export { Icon } from "./icons";
+export { Thumb } from "./thumb";
 export { RichTextEditor } from "./rich-text-editor";
 export { DataTable, type ColumnDef } from "./data-table";

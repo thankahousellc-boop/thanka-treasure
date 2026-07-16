@@ -363,37 +363,6 @@ async function searchActiveProducts(
   };
 }
 
-// Short, random, human-typable barcode value. Kept intentionally tiny so the
-// printed Code128 stays narrow — the barcode is a lookup key, not a description.
-function randomSkuSuffix(): string {
-  return crypto.randomUUID().replace(/[^a-z0-9]/gi, "").slice(0, 6).toUpperCase();
-}
-
-// Generate and persist a unique SKU for a variant that has none, so the barcode
-// value is stable across reprints. Retries on the (rare) collision against the
-// unique index.
-async function assignSku(
-  db: ReturnType<typeof getDb>,
-  variantId: string,
-): Promise<string> {
-  for (let attempt = 0; attempt < 8; attempt += 1) {
-    const candidate = `TT-${randomSkuSuffix()}`;
-    const [existing] = await db
-      .select({ id: productVariants.id })
-      .from(productVariants)
-      .where(eq(productVariants.sku, candidate))
-      .limit(1);
-    if (existing) continue;
-
-    await db
-      .update(productVariants)
-      .set({ sku: candidate, updatedAt: new Date() })
-      .where(eq(productVariants.id, variantId));
-    return candidate;
-  }
-  throw new Error("Failed to generate a unique SKU after several attempts.");
-}
-
 export const productRepository = {
   async findFeatured(limit = 6) {
     const db = getDb();
@@ -700,7 +669,7 @@ export const productRepository = {
       `);
     }
 
-    return db
+    const rows = await db
       .select({
         id: products.id,
         title: products.title,
@@ -717,41 +686,37 @@ export const productRepository = {
       .groupBy(products.id)
       .orderBy(desc(products.createdAt))
       .limit(limit);
-  },
 
-  // One row per variant for the selected products. Backfills a SKU for any
-  // variant missing one so every printed label has a scannable barcode value.
-  async labelsForProducts(productIds: string[]) {
-    await requireAdminSession();
+    // Thumbnails come from a follow-up query, not a join: the query above already
+    // fans out over variants to sum inventory, so joining images would multiply
+    // those rows and inflate the count.
+    const productIds = rows.map((row) => row.id);
+    const imageRows = productIds.length
+      ? await db
+          .select({
+            productId: productImages.productId,
+            bucket: productImages.bucket,
+            path: productImages.path,
+          })
+          .from(productImages)
+          .where(inArray(productImages.productId, productIds))
+          .orderBy(asc(productImages.position))
+      : [];
 
-    if (productIds.length === 0) return [];
-
-    const db = getDb();
-
-    const rows = await db
-      .select({
-        productId: products.id,
-        productTitle: products.title,
-        vendor: products.vendor,
-        variantId: productVariants.id,
-        variantTitle: productVariants.title,
-        sku: productVariants.sku,
-        price: productVariants.price,
-        option1: productVariants.option1,
-        option2: productVariants.option2,
-        option3: productVariants.option3,
-      })
-      .from(products)
-      .innerJoin(productVariants, eq(productVariants.productId, products.id))
-      .where(and(inArray(products.id, productIds), isNull(products.deletedAt)))
-      .orderBy(asc(products.title), asc(productVariants.createdAt));
-
-    const labels = [];
-    for (const row of rows) {
-      const sku = row.sku ?? (await assignSku(db, row.variantId));
-      labels.push({ ...row, sku });
+    const firstImage = new Map<string, { bucket: string; path: string }>();
+    for (const image of imageRows) {
+      if (!firstImage.has(image.productId)) {
+        firstImage.set(image.productId, {
+          bucket: image.bucket,
+          path: image.path,
+        });
+      }
     }
-    return labels;
+
+    return rows.map((row) => ({
+      ...row,
+      imageUrl: resolveUrl(firstImage.get(row.id) ?? null),
+    }));
   },
 
   async findByIdForAdmin(id: string) {

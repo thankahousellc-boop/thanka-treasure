@@ -22,14 +22,6 @@ export default async function ShopLayout({
 
   return (
     <CurrencyProvider rates={rates}>
-      {/* Set the currency attribute from the cookie before paint so CSS-toggled
-          prices render in the visitor's currency with no flash. */}
-      <script
-        dangerouslySetInnerHTML={{
-          __html:
-            "(function(){try{var m=document.cookie.match(/(?:^|;\\s*)tt_currency=([^;]+)/);if(m){document.documentElement.dataset.currency=decodeURIComponent(m[1]).toUpperCase();}}catch(e){}})();",
-        }}
-      />
       <div className="flex min-h-dvh flex-col bg-bg-primary">
         <AnnouncementBar messages={storefront.announcementMessages} />
         <ShopHeader />
