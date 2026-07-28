@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
 
+import { BootstrapScript } from "@/components/bootstrap-script";
 import { brandingToCssVariables, getBranding } from "@/lib/branding";
 import { getSiteUrl } from "@/lib/seo";
 import "./globals.css";
@@ -26,28 +27,28 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase: new URL(getSiteUrl()),
     title: {
-      default: "Thangka Treasure",
-      template: "%s | Thangka Treasure",
+      default: "Thanka Treasure",
+      template: "%s | Thanka Treasure",
     },
     description:
-      "A modern storefront and admin platform for authentic Tibetan Thangka art.",
+      "A modern storefront and admin platform for authentic Tibetan Thanka art.",
     icons: {
       icon: branding.faviconUrl ?? "/favicon.svg",
     },
     openGraph: {
       type: "website",
       locale: "en_US",
-      siteName: "Thangka Treasure",
-      title: "Thangka Treasure",
+      siteName: "Thanka Treasure",
+      title: "Thanka Treasure",
       description:
-        "A modern storefront and admin platform for authentic Tibetan Thangka art.",
+        "A modern storefront and admin platform for authentic Tibetan Thanka art.",
       url: getSiteUrl(),
     },
     twitter: {
       card: "summary_large_image",
-      title: "Thangka Treasure",
+      title: "Thanka Treasure",
       description:
-        "A modern storefront and admin platform for authentic Tibetan Thangka art.",
+        "A modern storefront and admin platform for authentic Tibetan Thanka art.",
     },
   };
 }
@@ -64,8 +65,13 @@ export default async function RootLayout({
     <html
       lang="en"
       className={`${inter.variable} ${cormorant.variable} antialiased`}
+      // BootstrapScript stamps data-currency/data-theme here before hydration.
+      // Reading those cookies server-side would force every route dynamic, so
+      // the mismatch is by design — scoped to <html>'s own attributes.
+      suppressHydrationWarning
     >
       <head>
+        <BootstrapScript />
         {/* Branding overrides — applied last so they win over the @theme defaults. */}
         <style>{`:root{${cssVariables}}`}</style>
       </head>

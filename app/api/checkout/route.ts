@@ -668,6 +668,11 @@ async function handleCheckoutPost(request: Request) {
       ui_mode: "elements",
       mode: "payment",
       currency: currency.toLowerCase(),
+      // Force card so session creation doesn't depend on the account's
+      // dashboard-configured automatic payment methods. Without this, an account
+      // with no methods activated for the currency fails create with
+      // "No valid payment method types for this Checkout Session".
+      payment_method_types: ["card"],
       // Abandoned sessions expire here; the `checkout.session.expired` webhook
       // then releases the reservation made below.
       expires_at: Math.floor(reservationExpiresAt.getTime() / 1000),

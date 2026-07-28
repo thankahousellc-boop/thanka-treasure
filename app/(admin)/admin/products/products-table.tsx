@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 
-import { Badge, DataTable, type ColumnDef } from "@/components/admin/ui";
+import { Badge, DataTable, Thumb, type ColumnDef } from "@/components/admin/ui";
 
 import { BulkBarcodeButton } from "./bulk-barcode-button";
 import { ProductRowMenu } from "./product-row-menu";
@@ -14,6 +14,7 @@ export type ProductRow = {
   status: string;
   createdAt: Date;
   inventoryCount: number;
+  imageUrl: string | null;
 };
 
 type ProductStatus = "draft" | "active" | "archived";
@@ -50,19 +51,22 @@ export function ProductsTable({ rows }: { rows: ProductRow[] }) {
         accessorKey: "title",
         header: "Title",
         cell: ({ row }) => (
-          <div className="min-w-0">
-            <p
-              className="font-medium"
-              style={{ color: "var(--admin-text)" }}
-            >
-              {row.original.title}
-            </p>
-            <p
-              className="mt-0.5 text-[11px]"
-              style={{ color: "var(--admin-text-mute)" }}
-            >
-              /{row.original.slug}
-            </p>
+          <div className="flex min-w-0 items-center gap-3">
+            <Thumb src={row.original.imageUrl} alt={row.original.title} />
+            <div className="min-w-0">
+              <p
+                className="font-medium"
+                style={{ color: "var(--admin-text)" }}
+              >
+                {row.original.title}
+              </p>
+              <p
+                className="mt-0.5 text-[11px]"
+                style={{ color: "var(--admin-text-mute)" }}
+              >
+                /{row.original.slug}
+              </p>
+            </div>
           </div>
         ),
       },

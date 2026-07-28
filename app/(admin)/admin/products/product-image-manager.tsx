@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import type { DragEvent } from "react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   Badge,
@@ -15,6 +15,7 @@ import {
   Input,
   Select,
   SubmitButton,
+  Thumb,
 } from "@/components/admin/ui";
 import { resolveUrl } from "@/lib/storage";
 
@@ -72,7 +73,12 @@ export function ProductImageManager({
         description="Click a thumbnail to preview. Edit alt text and reorder below."
       />
       <CardBody className="space-y-5">
-        <UploadForm action={addImage} variants={variants} />
+        {/* Remount after every add/delete so the picked-file preview clears. */}
+        <UploadForm
+          key={images.length}
+          action={addImage}
+          variants={variants}
+        />
 
         {images.length > 0 && active ? (
           <Gallery
@@ -103,10 +109,51 @@ type UploadFormProps = {
   variants: Variant[];
 };
 
+type PickedFile = {
+  name: string;
+  url: string;
+};
+
 function UploadForm({ action, variants }: UploadFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [pickedName, setPickedName] = useState<string | null>(null);
+  const [picked, setPicked] = useState<PickedFile | null>(null);
+  // Mirrors `picked` so cleanup can revoke the object URL without re-running
+  // the effect on every pick.
+  const pickedRef = useRef<PickedFile | null>(null);
+
+  // Only offer the variant choice once there is an actual choice to make. With
+  // one variant an upload is always product-level, so it goes in unassigned and
+  // stays visible if a second variant is added later.
+  const canAssignVariant = variants.length > 1;
+
+  useEffect(() => {
+    return () => {
+      if (pickedRef.current) {
+        URL.revokeObjectURL(pickedRef.current.url);
+      }
+    };
+  }, []);
+
+  function selectFile(file: File | null) {
+    if (pickedRef.current) {
+      URL.revokeObjectURL(pickedRef.current.url);
+    }
+
+    const next = file
+      ? { name: file.name, url: URL.createObjectURL(file) }
+      : null;
+
+    pickedRef.current = next;
+    setPicked(next);
+  }
+
+  function clearFile() {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    selectFile(null);
+  }
 
   function handleDragEnter(event: DragEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -143,7 +190,7 @@ function UploadForm({ action, variants }: UploadFormProps) {
     const transfer = new DataTransfer();
     transfer.items.add(file);
     fileInputRef.current.files = transfer.files;
-    setPickedName(file.name);
+    selectFile(file);
   }
 
   return (
@@ -169,41 +216,64 @@ function UploadForm({ action, variants }: UploadFormProps) {
         name="file"
         accept="image/jpeg,image/png,image/webp"
         required
-        onChange={(event) =>
-          setPickedName(event.target.files?.[0]?.name ?? null)
-        }
+        onChange={(event) => selectFile(event.target.files?.[0] ?? null)}
         className="min-w-0 flex-1 text-xs file:mr-2 file:rounded-md file:border-0 file:bg-(--admin-accent) file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white hover:file:brightness-110"
         style={{ color: "var(--admin-text-soft)" }}
       />
 
-      <Select
-        name="variantId"
-        defaultValue=""
-        aria-label="Assign variant"
-        className="h-8 max-w-44 text-xs"
-      >
-        <option value="">Unassigned (shared)</option>
-        {variants.map((variant) => (
-          <option key={variant.id} value={variant.id}>
-            {variant.title}
-            {variant.sku ? ` · ${variant.sku}` : ""}
-          </option>
-        ))}
-      </Select>
+      {canAssignVariant ? (
+        <Select
+          name="variantId"
+          defaultValue=""
+          aria-label="Assign variant"
+          className="h-8 max-w-44 text-xs"
+        >
+          <option value="">All variants</option>
+          {variants.map((variant) => (
+            <option key={variant.id} value={variant.id}>
+              {variant.title}
+              {variant.sku ? ` · ${variant.sku}` : ""}
+            </option>
+          ))}
+        </Select>
+      ) : null}
 
       <SubmitButton variant="primary" size="sm" pendingLabel="Uploading…">
         <Icon.Upload width={14} height={14} />
         <span>Upload</span>
       </SubmitButton>
 
-      <span
-        className="basis-full text-[11px]"
-        style={{ color: "var(--admin-text-mute)" }}
-      >
-        {pickedName
-          ? `Ready: ${pickedName}`
-          : "Drag an image here or pick one. JPEG, PNG, or WEBP. Max 5MB. Alt text and ordering are set below."}
-      </span>
+      {picked ? (
+        <div className="flex basis-full items-center gap-2">
+          <Thumb src={picked.url} alt={picked.name} size={40} />
+          <span
+            className="min-w-0 flex-1 truncate text-[11px]"
+            style={{ color: "var(--admin-text-soft)" }}
+          >
+            Ready: {picked.name}
+          </span>
+          <button
+            type="button"
+            onClick={clearFile}
+            className="inline-flex h-6 items-center gap-1 rounded-md px-2 text-[11px] transition hover:brightness-110"
+            style={{
+              color: "var(--admin-text-mute)",
+              border: "1px solid var(--admin-border)",
+            }}
+          >
+            <Icon.Close width={11} height={11} />
+            <span>Clear</span>
+          </button>
+        </div>
+      ) : (
+        <span
+          className="basis-full text-[11px]"
+          style={{ color: "var(--admin-text-mute)" }}
+        >
+          Drag an image here or pick one. JPEG, PNG, or WEBP. Max 5MB. Alt text
+          and ordering are set below.
+        </span>
+      )}
     </form>
   );
 }
@@ -238,6 +308,7 @@ function Gallery({
   const activeIndex = images.findIndex((image) => image.id === active.id);
   const isFirst = activeIndex === 0;
   const isLast = activeIndex === images.length - 1;
+  const canAssignVariant = variants.length > 1;
 
   return (
     <div className="grid items-start gap-4 md:grid-cols-[96px_minmax(0,1fr)]">
@@ -364,7 +435,11 @@ function Gallery({
 
         <form
           action={updateImageMeta}
-          className="grid gap-3 rounded-lg p-3 md:grid-cols-[1fr_220px_auto] md:items-end"
+          className={`grid gap-3 rounded-lg p-3 md:items-end ${
+            canAssignVariant
+              ? "md:grid-cols-[1fr_220px_auto]"
+              : "md:grid-cols-[1fr_auto]"
+          }`}
           style={{
             background: "var(--admin-surface-2)",
             border: "1px solid var(--admin-border)",
@@ -382,21 +457,33 @@ function Gallery({
             />
           </Field>
 
-          <Field label="Variant">
-            <Select
+          {canAssignVariant ? (
+            <Field label="Variant">
+              <Select
+                name="variantId"
+                key={`variant-${active.id}`}
+                defaultValue={active.variantId ?? ""}
+              >
+                <option value="">All variants</option>
+                {variants.map((variant) => (
+                  <option key={variant.id} value={variant.id}>
+                    {variant.title}
+                    {variant.sku ? ` · ${variant.sku}` : ""}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          ) : (
+            // The select is hidden, but the action reads variantId off the form
+            // and nulls it when absent — resubmit the existing value so saving
+            // alt text can't silently drop an assignment made when this product
+            // still had multiple variants.
+            <input
+              type="hidden"
               name="variantId"
-              key={`variant-${active.id}`}
-              defaultValue={active.variantId ?? ""}
-            >
-              <option value="">Unassigned</option>
-              {variants.map((variant) => (
-                <option key={variant.id} value={variant.id}>
-                  {variant.title}
-                  {variant.sku ? ` · ${variant.sku}` : ""}
-                </option>
-              ))}
-            </Select>
-          </Field>
+              value={active.variantId ?? ""}
+            />
+          )}
 
           <SubmitButton variant="primary" size="md">
             Save

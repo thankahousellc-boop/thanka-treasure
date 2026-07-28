@@ -53,9 +53,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   return (
     <section className="container-page py-14 md:py-20">
-      <h1 className="font-serif text-4xl text-ink md:text-5xl">
-        Search
-      </h1>
+      <h1 className="font-serif text-4xl text-ink md:text-5xl">Search</h1>
       <p className="mt-4 max-w-2xl text-base text-ink-soft">
         Search across products and journal articles.
       </p>
@@ -69,7 +67,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             type="search"
             name="q"
             defaultValue={query}
-            placeholder="Thangka, Tara, mandala, symbolism..."
+            placeholder="thanka, Tara, mandala, symbolism..."
             className="h-11 w-full rounded-md border border-paper-3 bg-paper px-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-saffron focus:ring-offset-1"
           />
         </label>

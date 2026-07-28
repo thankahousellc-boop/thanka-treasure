@@ -55,7 +55,7 @@ export function ReviewFields({ review }: { review?: ReviewFieldValues }) {
           <Input
             name="productTitle"
             defaultValue={review?.productTitle ?? ""}
-            placeholder="Green Tara Thangka"
+            placeholder="Green Tara thanka"
           />
         </Field>
         <Field label="Review date (optional)">

@@ -209,14 +209,14 @@ export function BlogPostForm({
                     name="title"
                     required
                     defaultValue={values.title}
-                    placeholder="A guide to choosing your first thangka"
+                    placeholder="A guide to choosing your first thanka"
                   />
                 </Field>
                 <Field label="Slug" hint="Leave blank to auto-generate.">
                   <Input
                     name="slug"
                     defaultValue={values.slug}
-                    placeholder="choosing-your-first-thangka"
+                    placeholder="choosing-your-first-thanka"
                   />
                 </Field>
               </div>
@@ -286,7 +286,9 @@ export function BlogPostForm({
                           backgroundColor: isActive
                             ? "var(--admin-accent)"
                             : "transparent",
-                          color: isActive ? "var(--admin-on-accent)" : "var(--admin-text-soft)",
+                          color: isActive
+                            ? "var(--admin-on-accent)"
+                            : "var(--admin-text-soft)",
                           boxShadow: isActive
                             ? "0 1px 2px rgba(0,0,0,0.08)"
                             : "none",

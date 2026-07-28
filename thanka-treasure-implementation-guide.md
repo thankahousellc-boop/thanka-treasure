@@ -13,12 +13,12 @@ Supabase is the backend today (Postgres, Auth, Storage), but **no app code impor
 
 ### The four layers and their seams
 
-| Layer                 | Interface                          | Today's Impl                    | Tomorrow's Options                                                            |
-| --------------------- | ---------------------------------- | ------------------------------- | ----------------------------------------------------------------------------- |
-| **Database queries**  | Drizzle ORM + Repository functions | `postgres.js` → Supabase pooler | Neon, Railway, RDS, Fly Postgres, self-hosted — change connection string only |
-| **Auth**              | `AuthProvider` interface           | `SupabaseAuthProvider`          | Better Auth, Auth.js, Clerk — write new provider class                        |
+| Layer                 | Interface                          | Today's Impl                                                     | Tomorrow's Options                                                                                                 |
+| --------------------- | ---------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Database queries**  | Drizzle ORM + Repository functions | `postgres.js` → Supabase pooler                                  | Neon, Railway, RDS, Fly Postgres, self-hosted — change connection string only                                      |
+| **Auth**              | `AuthProvider` interface           | `SupabaseAuthProvider`                                           | Better Auth, Auth.js, Clerk — write new provider class                                                             |
 | **Storage**           | `StorageProvider` interface        | `SupabaseStorageProvider` (dev) → **Cloudflare R2 (production)** | R2 is the planned production target — zero egress fees, S3-compatible API. S3, GCS, B2 remain viable alternatives. |
-| **Realtime** (future) | `RealtimeProvider` interface       | (not in MVP)                    | Pusher, Ably, self-hosted                                                     |
+| **Realtime** (future) | `RealtimeProvider` interface       | (not in MVP)                                                     | Pusher, Ably, self-hosted                                                                                          |
 
 ### The non-negotiable rules
 
@@ -208,7 +208,7 @@ The current Shopify site has the following structure and features that must be r
 **Homepage sections:**
 
 - Top announcement bar ("Welcome to Tibetan Thanka treasure")
-- Hero banner with full-width Thangka artwork image
+- Hero banner with full-width thanka artwork image
 - "Browse our products" CTA linking to All Products
 - "Highlights of Our Collection" — featured product grid (6 products, 2 images per product with hover swap)
 - Newsletter signup section ("To receive regular updates, please provide your email address.")
@@ -216,7 +216,7 @@ The current Shopify site has the following structure and features that must be r
 
 **Product pages:** Display product images (2+ per product with hover swap on cards), title, price in USD, product description, add-to-cart functionality. Products include free brocade and free shipping as value propositions.
 
-**Blog:** Simple blog at `/blogs/news` with article cards showing featured image, title, date, and excerpt. Currently has content about Thangka art history and the shop's legacy.
+**Blog:** Simple blog at `/blogs/news` with article cards showing featured image, title, date, and excerpt. Currently has content about thanka art history and the shop's legacy.
 
 **Contact page:** Physical address (Paryatan Marg, Thamel, Kathmandu), shop phone, two WhatsApp numbers, two email addresses, and a contact form (name, email, phone, comment).
 
@@ -230,7 +230,7 @@ The current Shopify site has the following structure and features that must be r
 
 ### 1.10 Design Tokens & Color Palette
 
-The storefront uses a maroon and white color scheme designed to evoke peace, spirituality, and gallery-like sophistication — appropriate for sacred Thangka art. The admin dashboard uses a separate neutral palette (standard shadcn/ui theme).
+The storefront uses a maroon and white color scheme designed to evoke peace, spirituality, and gallery-like sophistication — appropriate for sacred thanka art. The admin dashboard uses a separate neutral palette (standard shadcn/ui theme).
 
 **Primary palette:**
 
@@ -1067,20 +1067,20 @@ Branching: `main` → production, `develop` → preview, feature branches off `d
 
 ## Appendix B — Cost Estimate (Monthly)
 
-| Service                 | Free Tier                    | Paid Estimate           |
-| ----------------------- | ---------------------------- | ----------------------- |
-| Vercel                  | Hobby (free)                 | Pro: $20/mo             |
-| Supabase (DB + Auth)    | Free (500MB DB)              | Pro: $25/mo             |
+| Service                 | Free Tier                                  | Paid Estimate               |
+| ----------------------- | ------------------------------------------ | --------------------------- |
+| Vercel                  | Hobby (free)                               | Pro: $20/mo                 |
+| Supabase (DB + Auth)    | Free (500MB DB)                            | Pro: $25/mo                 |
 | Cloudflare R2 (storage) | 10 GB storage free, **egress always free** | $0.015/GB stored, $0 egress |
-| Stripe                  | No monthly fee               | 2.9% + $0.30/txn        |
-| Stripe Tax              | N/A                          | +0.5%/txn               |
-| Sentry                  | Free (5K events/mo)          | $0 initially            |
-| Resend                  | Free (3K emails/mo)          | $0 initially            |
-| Exchange Rate API       | Free (1500 req/mo)           | $0 initially            |
-| Domain                  | N/A                          | ~$12/year               |
-| **Total (pre-revenue)** |                              | **~$45–50/mo + domain** |
+| Stripe                  | No monthly fee                             | 2.9% + $0.30/txn            |
+| Stripe Tax              | N/A                                        | +0.5%/txn                   |
+| Sentry                  | Free (5K events/mo)                        | $0 initially                |
+| Resend                  | Free (3K emails/mo)                        | $0 initially                |
+| Exchange Rate API       | Free (1500 req/mo)                         | $0 initially                |
+| Domain                  | N/A                                        | ~$12/year                   |
+| **Total (pre-revenue)** |                                            | **~$45–50/mo + domain**     |
 
-> **Storage choice:** Cloudflare R2 is the planned production storage provider (not Supabase Storage). R2 is S3-compatible, ~30% cheaper per GB stored, and charges **$0 egress** vs. Supabase/S3's $0.09/GB. For an image-heavy Thangka catalog this is the dominant cost line at scale — savings reach hundreds of $/month once egress crosses ~1 TB/mo. Dev environments may continue using `SupabaseStorageProvider`; production swaps to `R2StorageProvider` per Appendix E.3.
+> **Storage choice:** Cloudflare R2 is the planned production storage provider (not Supabase Storage). R2 is S3-compatible, ~30% cheaper per GB stored, and charges **$0 egress** vs. Supabase/S3's $0.09/GB. For an image-heavy thanka catalog this is the dominant cost line at scale — savings reach hundreds of $/month once egress crosses ~1 TB/mo. Dev environments may continue using `SupabaseStorageProvider`; production swaps to `R2StorageProvider` per Appendix E.3.
 
 ---
 
@@ -1107,7 +1107,7 @@ Branching: `main` → production, `develop` → preview, feature branches off `d
 
 ## Appendix D — Blog Content Strategy
 
-Recommended categories: Thangka Art History, Techniques & Process, Buddhist Traditions, Shop Stories, Collector's Guide.
+Recommended categories: thanka Art History, Techniques & Process, Buddhist Traditions, Shop Stories, Collector's Guide.
 
 ---
 

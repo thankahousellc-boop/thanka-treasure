@@ -4,16 +4,9 @@ import { Toaster } from "sonner";
 import { AdminSidebar } from "@/components/admin/sidebar";
 import { AdminTopbar } from "@/components/admin/topbar";
 import { auth } from "@/lib/auth";
-import { ADMIN_THEME_COOKIE } from "@/lib/admin-theme";
 import { getAdminTheme } from "@/lib/admin-theme.server";
 
 export const dynamic = "force-dynamic";
-
-// Runs before paint when no cookie is set: adopt the OS preference and
-// persist it so the server can render data-theme directly on later visits.
-// Inlined into the SSR HTML so it sets the attribute on <html> before paint;
-// CSS bridges that to the as-yet-unattributed shell.
-const NO_FLASH_SCRIPT = `(function(){try{if(/(^|;)\\s*${ADMIN_THEME_COOKIE}=/.test(document.cookie))return;var dark=window.matchMedia('(prefers-color-scheme: dark)').matches;var t=dark?'dark':'light';document.documentElement.setAttribute('data-theme',t);document.cookie='${ADMIN_THEME_COOKIE}='+t+';path=/;max-age=31536000;samesite=lax';}catch(e){}})();`;
 
 export default async function AdminLayout({
   children,
@@ -36,11 +29,8 @@ export default async function AdminLayout({
       className="admin-app flex min-h-screen"
       data-theme={theme ?? undefined}
     >
-      {/* Plain inline script (not next/script beforeInteractive, which is only
-          valid in the root layout and errors when rendered in a nested layout on
-          client navigation). Cookie-guarded + idempotent: only acts on the first
-          server-rendered load, so it needs no client-nav execution. */}
-      <script dangerouslySetInnerHTML={{ __html: NO_FLASH_SCRIPT }} />
+      {/* First-visit OS-preference fallback lives in the root layout's
+          BootstrapScript, which stamps data-theme on <html> before paint. */}
       <AdminSidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <AdminTopbar />

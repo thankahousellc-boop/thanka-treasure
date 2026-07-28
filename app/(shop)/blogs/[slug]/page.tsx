@@ -17,7 +17,7 @@ type BlogDetailPageProps = {
 };
 
 const BLOG_META_FALLBACK =
-  "Read stories, guides, and cultural insights from the Thangka Treasure journal.";
+  "Read stories, guides, and cultural insights from the thanka Treasure journal.";
 const BLOG_NOT_FOUND_DESCRIPTION =
   "This article may have moved, is unpublished, or does not exist.";
 

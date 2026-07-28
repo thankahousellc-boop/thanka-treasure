@@ -669,7 +669,7 @@ export const productRepository = {
       `);
     }
 
-    return db
+    const rows = await db
       .select({
         id: products.id,
         title: products.title,
@@ -686,6 +686,37 @@ export const productRepository = {
       .groupBy(products.id)
       .orderBy(desc(products.createdAt))
       .limit(limit);
+
+    // Thumbnails come from a follow-up query, not a join: the query above already
+    // fans out over variants to sum inventory, so joining images would multiply
+    // those rows and inflate the count.
+    const productIds = rows.map((row) => row.id);
+    const imageRows = productIds.length
+      ? await db
+          .select({
+            productId: productImages.productId,
+            bucket: productImages.bucket,
+            path: productImages.path,
+          })
+          .from(productImages)
+          .where(inArray(productImages.productId, productIds))
+          .orderBy(asc(productImages.position))
+      : [];
+
+    const firstImage = new Map<string, { bucket: string; path: string }>();
+    for (const image of imageRows) {
+      if (!firstImage.has(image.productId)) {
+        firstImage.set(image.productId, {
+          bucket: image.bucket,
+          path: image.path,
+        });
+      }
+    }
+
+    return rows.map((row) => ({
+      ...row,
+      imageUrl: resolveUrl(firstImage.get(row.id) ?? null),
+    }));
   },
 
   async findByIdForAdmin(id: string) {

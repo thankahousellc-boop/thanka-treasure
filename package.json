@@ -9,6 +9,7 @@
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:migrate-prod": "node ./scripts/migrate-prod.mjs",
     "db:seed:admin": "node ./scripts/seed-admin.mjs",
     "db:seed:storage": "node ./scripts/seed-storage-buckets.mjs",
     "db:studio": "drizzle-kit studio",

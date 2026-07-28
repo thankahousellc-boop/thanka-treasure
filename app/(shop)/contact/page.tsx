@@ -45,7 +45,7 @@ export default async function ContactPage() {
               </div>
             ) : null}
 
-            {(contact.phone || contact.whatsapp) ? (
+            {contact.phone || contact.whatsapp ? (
               <div className="space-y-2 text-sm text-warm-gray-700">
                 <p className="text-xs uppercase tracking-[0.08em] text-warm-gray-500">
                   Phone & WhatsApp
@@ -116,7 +116,7 @@ export default async function ContactPage() {
           </p>
           <div className="mt-4 overflow-hidden rounded border border-border-light">
             <iframe
-              title="Thangka Treasure map"
+              title="thanka Treasure map"
               src="https://maps.google.com/maps?q=Thamel%2C%20Kathmandu&t=&z=15&ie=UTF8&iwloc=&output=embed"
               className="h-80 w-full"
               loading="lazy"

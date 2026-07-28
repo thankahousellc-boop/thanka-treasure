@@ -17,31 +17,81 @@ const COLUMNS: Array<{
   notes: string;
 }> = [
   { name: "title", required: true, notes: "Product title (≤180 chars)." },
-  { name: "slug", required: false, notes: "Auto-generated from title if blank. Rows sharing a slug merge into one product." },
-  { name: "description", required: false, notes: "Long description. May contain HTML." },
+  {
+    name: "slug",
+    required: false,
+    notes:
+      "Auto-generated from title if blank. Rows sharing a slug merge into one product.",
+  },
+  {
+    name: "description",
+    required: false,
+    notes: "Long description. May contain HTML.",
+  },
   { name: "metaTitle", required: false, notes: "SEO title (≤180 chars)." },
-  { name: "metaDescription", required: false, notes: "SEO description (≤320 chars)." },
-  { name: "status", required: false, notes: "draft (default) | active | archived." },
+  {
+    name: "metaDescription",
+    required: false,
+    notes: "SEO description (≤320 chars).",
+  },
+  {
+    name: "status",
+    required: false,
+    notes: "draft (default) | active | archived.",
+  },
   { name: "productType", required: false, notes: "Free-form classifier." },
   { name: "vendor", required: false, notes: "Vendor / artist name." },
   { name: "tags", required: false, notes: "Comma-separated tags." },
-  { name: "variantTitle", required: false, notes: "Variant name. Defaults to \"Default\"." },
-  { name: "sku", required: false, notes: "SKU (must be unique across the store)." },
-  { name: "price", required: true, notes: "Decimal in main currency unit (e.g. 49.99)." },
+  {
+    name: "variantTitle",
+    required: false,
+    notes: 'Variant name. Defaults to "Default".',
+  },
+  {
+    name: "sku",
+    required: false,
+    notes: "SKU (must be unique across the store).",
+  },
+  {
+    name: "price",
+    required: true,
+    notes: "Decimal in main currency unit (e.g. 49.99).",
+  },
   { name: "compareAtPrice", required: false, notes: "Optional MSRP, ≥ price." },
-  { name: "option1", required: false, notes: "Variant option 1 (e.g. Size: 24x36)." },
+  {
+    name: "option1",
+    required: false,
+    notes: "Variant option 1 (e.g. Size: 24x36).",
+  },
   { name: "option2", required: false, notes: "Variant option 2." },
   { name: "option3", required: false, notes: "Variant option 3." },
-  { name: "inventoryQuantity", required: false, notes: "Whole number, default 0." },
-  { name: "lowStockThreshold", required: false, notes: "Whole number, default 5." },
-  { name: "images", required: false, notes: "Pipe-separated. Each entry is either a full https:// URL or a filename matching one of the uploaded image files." },
-  { name: "imageAltText", required: false, notes: "Pipe-separated alt texts, aligned with images by index." },
+  {
+    name: "inventoryQuantity",
+    required: false,
+    notes: "Whole number, default 0.",
+  },
+  {
+    name: "lowStockThreshold",
+    required: false,
+    notes: "Whole number, default 5.",
+  },
+  {
+    name: "images",
+    required: false,
+    notes:
+      "Pipe-separated. Each entry is either a full https:// URL or a filename matching one of the uploaded image files.",
+  },
+  {
+    name: "imageAltText",
+    required: false,
+    notes: "Pipe-separated alt texts, aligned with images by index.",
+  },
 ];
 
 const SAMPLE_CSV = [
   "title,slug,status,price,inventoryQuantity,images,imageAltText",
-  "\"Avalokiteshvara Thangka\",avalokiteshvara,active,499.00,3,\"https://example.com/a.jpg|main.jpg\",\"Front view|Detail\"",
-  "\"Green Tara Thangka\",,draft,349.00,5,green-tara.jpg,\"Center panel\"",
+  '"Avalokiteshvara thanka",avalokiteshvara,active,499.00,3,"https://example.com/a.jpg|main.jpg","Front view|Detail"',
+  '"Green Tara thanka",,draft,349.00,5,green-tara.jpg,"Center panel"',
 ].join("\n");
 
 function csvField(value: string): string {
@@ -50,15 +100,15 @@ function csvField(value: string): string {
 
 const TEMPLATE_ROWS: Array<Record<string, string>> = [
   {
-    title: "Avalokiteshvara Thangka",
+    title: "Avalokiteshvara thanka",
     slug: "avalokiteshvara",
     description: "<p>Hand-painted on cotton canvas with mineral pigments.</p>",
-    metaTitle: "Avalokiteshvara Thangka",
-    metaDescription: "Traditional hand-painted Avalokiteshvara thangka.",
+    metaTitle: "Avalokiteshvara thanka",
+    metaDescription: "Traditional hand-painted Avalokiteshvara thanka.",
     status: "active",
-    productType: "Thangka",
+    productType: "thanka",
     vendor: "Thanka Treasure",
-    tags: "buddhist,thangka,handmade",
+    tags: "buddhist,thanka,handmade",
     variantTitle: "24x36",
     sku: "AVK-24x36",
     price: "499.00",
@@ -72,13 +122,13 @@ const TEMPLATE_ROWS: Array<Record<string, string>> = [
     imageAltText: "Front view|Detail",
   },
   {
-    title: "Avalokiteshvara Thangka",
+    title: "Avalokiteshvara thanka",
     slug: "avalokiteshvara",
     description: "",
     metaTitle: "",
     metaDescription: "",
     status: "active",
-    productType: "Thangka",
+    productType: "thanka",
     vendor: "Thanka Treasure",
     tags: "",
     variantTitle: "36x48",
@@ -94,13 +144,13 @@ const TEMPLATE_ROWS: Array<Record<string, string>> = [
     imageAltText: "",
   },
   {
-    title: "Green Tara Thangka",
+    title: "Green Tara thanka",
     slug: "",
     description: "",
     metaTitle: "",
     metaDescription: "",
     status: "draft",
-    productType: "Thangka",
+    productType: "thanka",
     vendor: "",
     tags: "",
     variantTitle: "",
@@ -139,7 +189,8 @@ export default function ProductImportPage() {
             className="mt-1 text-sm"
             style={{ color: "var(--admin-text-soft)" }}
           >
-            Upload a CSV to create many products at once. Optionally include image files referenced from the CSV.
+            Upload a CSV to create many products at once. Optionally include
+            image files referenced from the CSV.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -235,8 +286,13 @@ export default function ProductImportPage() {
             className="list-disc space-y-1 pl-5 text-xs"
             style={{ color: "var(--admin-text-soft)" }}
           >
-            <li>Rows whose slug already exists in the catalogue are skipped.</li>
-            <li>Image fetch failures do not abort the row — the product is created and the failed image is reported.</li>
+            <li>
+              Rows whose slug already exists in the catalogue are skipped.
+            </li>
+            <li>
+              Image fetch failures do not abort the row — the product is created
+              and the failed image is reported.
+            </li>
             <li>Only JPEG / PNG / WEBP up to 5MB each.</li>
           </ul>
         </CardBody>
