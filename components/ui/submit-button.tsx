@@ -1,15 +1,10 @@
 "use client";
 
-import {
-  useEffect,
-  useRef,
-  useState,
-  type ButtonHTMLAttributes,
-  type ReactNode,
-} from "react";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 
 import { Spinner } from "@/components/ui/spinner";
+import { useNativeFormPending } from "@/components/ui/use-native-form-pending";
 
 const pendingClasses =
   "disabled:cursor-not-allowed disabled:opacity-60 aria-busy:cursor-progress";
@@ -90,12 +85,8 @@ export function SubmitButton({
 
 /**
  * Submit button for native forms that navigate the browser
- * (`<form method="get" action="/products">`). `useFormStatus` only tracks
- * server actions, so pending is derived from the form's own submit event and
- * held until the navigation replaces the page.
- *
- * `pageshow` resets it because a bfcache restore reuses the old DOM, which
- * would otherwise leave the button stuck disabled after a browser Back.
+ * (`<form method="get" action="/products">`), which `useFormStatus` cannot
+ * see. See `useNativeFormPending` for how the pending window is derived.
  */
 export function NativeSubmitButton({
   className = "",
@@ -105,29 +96,12 @@ export function NativeSubmitButton({
   spinnerSize = 14,
   ...props
 }: BaseProps) {
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const [pending, setPending] = useState(false);
-
-  useEffect(() => {
-    const form = buttonRef.current?.form;
-    if (!form) return;
-
-    const handleSubmit = () => setPending(true);
-    const handlePageShow = () => setPending(false);
-
-    form.addEventListener("submit", handleSubmit);
-    window.addEventListener("pageshow", handlePageShow);
-
-    return () => {
-      form.removeEventListener("submit", handleSubmit);
-      window.removeEventListener("pageshow", handlePageShow);
-    };
-  }, []);
+  const { ref, pending } = useNativeFormPending<HTMLButtonElement>();
 
   return (
     <button
       {...props}
-      ref={buttonRef}
+      ref={ref}
       type="submit"
       disabled={disabled || pending}
       aria-busy={pending}

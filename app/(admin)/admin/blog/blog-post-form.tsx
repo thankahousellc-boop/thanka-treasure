@@ -25,6 +25,7 @@ import {
   ShowWhenDirty,
   Textarea,
 } from "@/components/admin/ui";
+import { Spinner } from "@/components/ui/spinner";
 
 type BlogPostStatus = "draft" | "published" | "scheduled";
 
@@ -556,8 +557,16 @@ export function BlogPostForm({
               variant="primary"
               size="md"
               disabled={isPending}
+              aria-busy={isPending}
             >
-              {isPending ? "Saving…" : submitLabel}
+              {isPending ? (
+                <>
+                  <Spinner />
+                  Saving…
+                </>
+              ) : (
+                submitLabel
+              )}
             </Button>
           </div>
         </div>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { Icon } from "@/components/admin/ui/icons";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 type UserMenuProps = {
   email: string;
@@ -106,13 +107,13 @@ export function UserMenu({ email, signOutAction }: UserMenuProps) {
             <Icon.Layers width={14} height={14} /> View storefront
           </Link>
           <form action={signOutAction}>
-            <button
-              type="submit"
-              className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm transition hover:bg-(--admin-danger)/10"
+            <SubmitButton
+              className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm transition enabled:hover:bg-(--admin-danger)/10"
               style={{ color: "var(--admin-danger)" }}
+              pendingLabel="Signing out…"
             >
               <Icon.Logout width={14} height={14} /> Sign out
-            </button>
+            </SubmitButton>
           </form>
         </div>
       ) : null}

@@ -1,6 +1,7 @@
 export { Card, CardHeader, CardBody, CardFooter } from "./card";
 export { Button, ButtonLink } from "./button";
 export { SubmitButton } from "./submit-button";
+export { NativeSubmitButton } from "./native-submit-button";
 export {
   DirtyForm,
   DirtyFormProvider,

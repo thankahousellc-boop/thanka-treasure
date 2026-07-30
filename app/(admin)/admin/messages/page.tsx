@@ -3,11 +3,11 @@ import { formatDistanceToNow } from "date-fns";
 
 import {
   Badge,
-  Button,
   ButtonLink,
   Card,
   EmptyState,
   Icon,
+  NativeSubmitButton,
   PageHeader,
   StatCard,
   SubmitButton,
@@ -238,9 +238,13 @@ export default async function AdminMessagesPage({
                 style={{ color: "var(--admin-text)" }}
               />
             </label>
-            <Button type="submit" size="sm" variant="secondary">
+            <NativeSubmitButton
+              size="sm"
+              variant="secondary"
+              pendingLabel="Searching…"
+            >
               Search
-            </Button>
+            </NativeSubmitButton>
             {filtersActive ? (
               <ButtonLink
                 href="/admin/messages"

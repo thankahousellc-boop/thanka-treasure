@@ -1,9 +1,9 @@
 import {
-  Button,
   ButtonLink,
   Card,
   CardBody,
   CardHeader,
+  NativeSubmitButton,
   StatCard,
 } from "@/components/admin/ui";
 import { customerRepository } from "@/lib/repositories/customer-repository";
@@ -94,7 +94,9 @@ export default async function AdminCustomersPage({
               />
             </label>
             <div className="flex gap-2">
-              <Button type="submit">Search</Button>
+              <NativeSubmitButton pendingLabel="Searching…">
+                Search
+              </NativeSubmitButton>
               <ButtonLink href="/admin/customers" variant="secondary">
                 Reset
               </ButtonLink>
