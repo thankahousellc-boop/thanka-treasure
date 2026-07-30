@@ -11,6 +11,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:migrate-prod": "node ./scripts/migrate-prod.mjs",
     "db:seed:admin": "node ./scripts/seed-admin.mjs",
+    "db:seed:admin-prod": "node ./scripts/seed-admin-prod.mjs",
     "db:seed:storage": "node ./scripts/seed-storage-buckets.mjs",
     "db:studio": "drizzle-kit studio",
     "db:parity": "node ./scripts/check-drizzle-parity.mjs",
