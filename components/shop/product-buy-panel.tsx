@@ -11,6 +11,7 @@ import {
   useSelectedFrame,
   type FrameOption,
 } from "@/components/shop/selected-frame-context";
+import { PendingButton } from "@/components/ui/pending-button";
 import { useCartStore } from "@/lib/store/cart";
 
 type VariantOption = {
@@ -279,11 +280,14 @@ export function ProductBuyPanel({
             </>
           ) : null}
         </button>
-        <button
-          type="button"
+        <PendingButton
           onClick={handleBuyNow}
           aria-label="Buy now"
-          className="grid h-14 w-14 place-items-center rounded-full border border-(--line) bg-paper text-ink-soft transition hover:border-ink hover:text-ink"
+          // Icon-only: the spinner stands in for the heart while the checkout
+          // route loads, so there is no label to keep beside it.
+          pendingLabel={null}
+          spinnerSize={18}
+          className="grid h-14 w-14 place-items-center rounded-full border border-(--line) bg-paper text-ink-soft transition enabled:hover:border-ink enabled:hover:text-ink"
           title="Buy now"
         >
           <svg
@@ -296,7 +300,7 @@ export function ProductBuyPanel({
           >
             <path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 11c0 5.5-7 10-7 10Z" />
           </svg>
-        </button>
+        </PendingButton>
         <button
           type="button"
           aria-label="Share"

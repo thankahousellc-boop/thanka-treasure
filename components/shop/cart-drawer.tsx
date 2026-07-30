@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { BASE_CURRENCY } from "@/lib/currency/config";
 import { convertFromUsd } from "@/lib/currency/convert";
 import { useCurrency } from "@/components/shop/currency-provider";
+import { PendingLink } from "@/components/ui/pending-link";
 import { useCartDrawerStore } from "@/lib/store/cart-drawer";
 import { getCartLineKey, useCartStore } from "@/lib/store/cart";
 import { formatCurrency } from "@/lib/utils/formatters";
@@ -280,13 +281,13 @@ export function CartDrawer() {
                 Proceed to checkout
               </button>
             ) : (
-              <Link
+              <PendingLink
                 href="/checkout"
                 onClick={close}
-                className="mt-4 inline-flex h-11 w-full items-center justify-center border border-maroon-700 bg-maroon-700 px-4 text-sm font-medium uppercase tracking-[0.08em] text-white hover:bg-maroon-600"
+                className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 border border-maroon-700 bg-maroon-700 px-4 text-sm font-medium uppercase tracking-[0.08em] text-white hover:bg-maroon-600"
               >
                 Proceed to checkout
-              </Link>
+              </PendingLink>
             )}
 
             <button
