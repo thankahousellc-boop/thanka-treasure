@@ -5,6 +5,7 @@ import { cache } from "react";
 
 import { ProductCard } from "@/components/shop/product-card";
 import { PageShell } from "@/components/ui/page-shell";
+import { NativeSubmitButton } from "@/components/ui/submit-button";
 import { collectionRepository } from "@/lib/repositories/collection-repository";
 import { productRepository } from "@/lib/repositories/product-repository";
 import { buildMetaDescription, getAbsoluteUrl } from "@/lib/seo";
@@ -414,12 +415,13 @@ export default async function CollectionPage({
         </label>
 
         <div className="flex items-end gap-2 md:col-span-2 lg:col-span-5">
-          <button
-            type="submit"
-            className="inline-flex h-10 items-center bg-maroon-700 px-4 text-xs font-medium uppercase tracking-[0.06em] text-white hover:bg-maroon-800"
+          <NativeSubmitButton
+            className="inline-flex h-10 items-center justify-center gap-2 bg-maroon-700 px-4 text-xs font-medium uppercase tracking-[0.06em] text-white transition enabled:hover:bg-maroon-800"
+            pendingLabel="Applying…"
+            spinnerSize={12}
           >
             Apply Filters
-          </button>
+          </NativeSubmitButton>
           <Link
             href={basePath}
             className="inline-flex h-10 items-center border border-border-light px-4 text-xs font-medium uppercase tracking-[0.06em] text-warm-gray-700 hover:bg-bg-secondary"

@@ -13,7 +13,11 @@ import { Spinner } from "@/components/ui/spinner";
 type PendingButtonProps = {
   className?: string;
   children: ReactNode;
-  /** Content shown while the handler is in flight. Falls back to `children`. */
+  /**
+   * Content shown beside the spinner while the handler is in flight. Omit to
+   * keep `children`; pass `null` for icon-only buttons, where the spinner
+   * should replace the icon rather than sit next to it.
+   */
   pendingLabel?: ReactNode;
   disabled?: boolean;
   spinnerSize?: number;
@@ -69,7 +73,7 @@ export function PendingButton({
       {pending ? (
         <>
           <Spinner size={spinnerSize} />
-          {pendingLabel ?? children}
+          {pendingLabel === undefined ? children : pendingLabel}
         </>
       ) : (
         children

@@ -17,7 +17,11 @@ const pendingClasses =
 type BaseProps = {
   className?: string;
   children: ReactNode;
-  /** Content shown while the request is in flight. Falls back to `children`. */
+  /**
+   * Content shown beside the spinner while the request is in flight. Omit to
+   * keep `children`; pass `null` for icon-only buttons, where the spinner
+   * should replace the icon rather than sit next to it.
+   */
   pendingLabel?: ReactNode;
   /** Disable independently of pending state (e.g. invalid form). */
   disabled?: boolean;
@@ -77,7 +81,7 @@ export function SubmitButton({
       <Content
         pending={pending}
         idleLabel={children}
-        pendingLabel={pendingLabel ?? children}
+        pendingLabel={pendingLabel === undefined ? children : pendingLabel}
         spinnerSize={spinnerSize}
       />
     </button>
@@ -132,7 +136,7 @@ export function NativeSubmitButton({
       <Content
         pending={pending}
         idleLabel={children}
-        pendingLabel={pendingLabel ?? children}
+        pendingLabel={pendingLabel === undefined ? children : pendingLabel}
         spinnerSize={spinnerSize}
       />
     </button>
