@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { shopPrimaryButtonClass } from "@/components/ui/button-styles";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { auth } from "@/lib/auth";
 import { isAuthConfigError } from "@/lib/auth/errors";
 import { monitor } from "@/lib/monitoring/logger";
@@ -153,12 +155,12 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
           />
         </label>
 
-        <button
-          type="submit"
-          className="inline-flex h-11 items-center border border-maroon-700 bg-maroon-700 px-6 text-sm font-medium uppercase tracking-[0.08em] text-white hover:bg-maroon-600"
+        <SubmitButton
+          className={shopPrimaryButtonClass}
+          pendingLabel="Creating account…"
         >
           Create Account
-        </button>
+        </SubmitButton>
 
         {error ? (
           <p

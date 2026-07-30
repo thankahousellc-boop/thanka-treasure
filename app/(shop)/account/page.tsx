@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { SubmitButton } from "@/components/ui/submit-button";
 import { auth } from "@/lib/auth";
 import { customerRepository } from "@/lib/repositories/customer-repository";
 import { orderRepository } from "@/lib/repositories/order-repository";
@@ -95,12 +96,13 @@ export default async function AccountPage() {
           Manage Addresses
         </Link>
         <form action={signOutAction}>
-          <button
-            type="submit"
-            className="inline-flex h-10 items-center border border-ink-soft px-4 text-xs font-medium uppercase tracking-[0.06em] text-ink-soft hover:bg-paper-2"
+          <SubmitButton
+            className="inline-flex h-10 items-center justify-center gap-2 border border-ink-soft px-4 text-xs font-medium uppercase tracking-[0.06em] text-ink-soft transition enabled:hover:bg-paper-2"
+            pendingLabel="Signing out…"
+            spinnerSize={12}
           >
             Sign Out
-          </button>
+          </SubmitButton>
         </form>
       </div>
 
