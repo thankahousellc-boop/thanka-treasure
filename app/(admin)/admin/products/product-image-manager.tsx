@@ -3,6 +3,7 @@
 import Image from "next/image";
 import type { DragEvent } from "react";
 import { useEffect, useRef, useState } from "react";
+import { useFormStatus } from "react-dom";
 
 import {
   Badge,
@@ -17,6 +18,7 @@ import {
   SubmitButton,
   Thumb,
 } from "@/components/admin/ui";
+import { Spinner } from "@/components/ui/spinner";
 import { resolveUrl } from "@/lib/storage";
 
 import {
@@ -537,30 +539,72 @@ function IconActionForm({
       }}
     >
       <input type="hidden" name="imageId" value={imageId} />
-      <button
-        type="submit"
+      <IconActionButton
         disabled={disabled}
-        title={label}
-        aria-label={label}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-md backdrop-blur-sm transition disabled:cursor-not-allowed disabled:opacity-40"
-        style={{
-          color: baseColor,
-          background: baseBg,
-          border: "1px solid var(--admin-border-strong)",
-        }}
-        onMouseEnter={(event) => {
-          if (!disabled) {
-            event.currentTarget.style.backgroundColor = hoverBg;
-          }
-        }}
-        onMouseLeave={(event) => {
-          if (!disabled) {
-            event.currentTarget.style.backgroundColor = baseBg;
-          }
-        }}
-      >
-        {icon}
-      </button>
+        label={label}
+        icon={icon}
+        baseColor={baseColor}
+        baseBg={baseBg}
+        hoverBg={hoverBg}
+      />
     </form>
+  );
+}
+
+type IconActionButtonProps = {
+  disabled?: boolean;
+  label: string;
+  icon: React.ReactNode;
+  baseColor: string;
+  baseBg: string;
+  hoverBg: string;
+};
+
+/**
+ * Split out from IconActionForm because useFormStatus only reports the pending
+ * state of an *ancestor* form — reading it in the component that renders the
+ * <form> would always return false.
+ *
+ * Reorder and delete each hit the server, and these controls are 8x8 icons on
+ * top of an image, so without this the only sign a click landed was the image
+ * eventually moving.
+ */
+function IconActionButton({
+  disabled,
+  label,
+  icon,
+  baseColor,
+  baseBg,
+  hoverBg,
+}: IconActionButtonProps) {
+  const { pending } = useFormStatus();
+  const inactive = disabled || pending;
+
+  return (
+    <button
+      type="submit"
+      disabled={inactive}
+      aria-busy={pending}
+      title={label}
+      aria-label={label}
+      className="inline-flex h-8 w-8 items-center justify-center rounded-md backdrop-blur-sm transition disabled:cursor-not-allowed disabled:opacity-40 aria-busy:cursor-progress"
+      style={{
+        color: baseColor,
+        background: baseBg,
+        border: "1px solid var(--admin-border-strong)",
+      }}
+      onMouseEnter={(event) => {
+        if (!inactive) {
+          event.currentTarget.style.backgroundColor = hoverBg;
+        }
+      }}
+      onMouseLeave={(event) => {
+        if (!inactive) {
+          event.currentTarget.style.backgroundColor = baseBg;
+        }
+      }}
+    >
+      {pending ? <Spinner size={14} /> : icon}
+    </button>
   );
 }
