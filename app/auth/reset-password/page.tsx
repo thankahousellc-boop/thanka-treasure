@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
+import { monitor } from "@/lib/monitoring/logger";
 import { getAbsoluteUrl } from "@/lib/seo";
 
 type ResetPasswordSearchParams = {
@@ -35,9 +36,21 @@ async function requestResetAction(formData: FormData) {
     );
   }
 
+  const redirectTo = getAbsoluteUrl("/auth/reset-password");
+  let failed = false;
+
   try {
-    await auth.resetPassword(email, getAbsoluteUrl("/auth/reset-password"));
-  } catch {
+    await auth.resetPassword(email, redirectTo);
+  } catch (error) {
+    failed = true;
+    monitor.error("Password reset request failed", error, {
+      redirectTo,
+      status: (error as { status?: number }).status,
+      code: (error as { code?: string }).code,
+    });
+  }
+
+  if (failed) {
     redirect(
       `/auth/reset-password?error=${encodeURIComponent("Unable to send reset instructions right now.")}`,
     );
@@ -68,10 +81,21 @@ async function applyResetAction(formData: FormData) {
     );
   }
 
+  let failed = false;
+
   try {
     await auth.verifyOtp(token, type);
     await auth.updatePassword(password);
-  } catch {
+  } catch (error) {
+    failed = true;
+    monitor.error("Password reset apply failed", error, {
+      type,
+      status: (error as { status?: number }).status,
+      code: (error as { code?: string }).code,
+    });
+  }
+
+  if (failed) {
     redirect(
       `/auth/reset-password?token=${encodeURIComponent(token)}&type=${encodeURIComponent(type)}&error=${encodeURIComponent("Could not update your password. Please request a new reset link.")}`,
     );
