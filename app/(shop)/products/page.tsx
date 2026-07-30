@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ProductCard } from "@/components/shop/product-card";
+import { NativeSubmitButton } from "@/components/ui/submit-button";
 import {
   getActiveProductTypes,
   getCatalogFacets,
@@ -241,12 +242,13 @@ export default async function ProductsPage({
                 className="flex-1 border-0 bg-transparent text-sm text-ink outline-none placeholder:text-ink-mute"
               />
             </label>
-            <button
-              type="submit"
-              className="hidden rounded-full bg-ink px-5 py-2.5 text-[11.5px] font-medium uppercase tracking-[0.14em] text-paper hover:bg-ink-soft sm:inline-flex"
+            <NativeSubmitButton
+              className="hidden items-center justify-center gap-2 rounded-full bg-ink px-5 py-2.5 text-[11.5px] font-medium uppercase tracking-[0.14em] text-paper transition enabled:hover:bg-ink-soft sm:inline-flex"
+              pendingLabel="Searching…"
+              spinnerSize={12}
             >
               Search
-            </button>
+            </NativeSubmitButton>
           </form>
           <div className="flex items-center gap-3.5">
             <span className="text-[13px] text-ink-mute">
@@ -278,10 +280,13 @@ export default async function ProductsPage({
                   <option value="price_asc">Price: low → high</option>
                   <option value="price_desc">Price: high → low</option>
                 </select>
-                <button
-                  type="submit"
+                <NativeSubmitButton
                   aria-label="Apply sort"
-                  className="text-ink-mute hover:text-ink"
+                  className="inline-flex text-ink-mute enabled:hover:text-ink"
+                  spinnerSize={12}
+                  // Icon-only: the spinner replaces the chevron outright, so
+                  // there is no label to keep alongside it.
+                  pendingLabel={null}
                 >
                   <svg
                     width="12"
@@ -294,7 +299,7 @@ export default async function ProductsPage({
                   >
                     <path d="m9 18 6-6-6-6" />
                   </svg>
-                </button>
+                </NativeSubmitButton>
               </label>
             </form>
           </div>
@@ -372,12 +377,13 @@ export default async function ProductsPage({
                   className="h-9 w-full rounded-md border border-(--line) bg-paper px-2.5 text-[13px] text-ink outline-none focus:border-ink"
                 />
               </div>
-              <button
-                type="submit"
-                className="text-[12px] uppercase tracking-[0.14em] text-ink-soft underline-offset-4 hover:text-ink hover:underline"
+              <NativeSubmitButton
+                className="inline-flex items-center gap-1.5 text-[12px] uppercase tracking-[0.14em] text-ink-soft underline-offset-4 enabled:hover:text-ink enabled:hover:underline"
+                pendingLabel="Applying…"
+                spinnerSize={11}
               >
                 Apply price
-              </button>
+              </NativeSubmitButton>
             </form>
           </SidebarGroup>
 

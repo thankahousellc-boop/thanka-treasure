@@ -13,6 +13,7 @@ import {
   Field,
   Icon,
   Input,
+  SubmitButton,
   Textarea,
 } from "@/components/admin/ui";
 import { resolveUrl } from "@/lib/storage/resolve-url";
@@ -694,9 +695,9 @@ function DeleteFrameForm({
   return (
     <form action={action} onSubmit={handleSubmit}>
       <input type="hidden" name="id" value={frameId} />
-      <Button type="submit" variant="danger" size="sm">
+      <SubmitButton variant="danger" size="sm" pendingLabel="Deleting…">
         Delete frame
-      </Button>
+      </SubmitButton>
     </form>
   );
 }

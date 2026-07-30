@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Icon } from "@/components/admin/ui";
+import { Spinner } from "@/components/ui/spinner";
 import type { PosLookupResult } from "@/lib/repositories/product-repository";
 import { formatCurrency } from "@/lib/utils/formatters";
 
@@ -377,13 +378,21 @@ export function PosKiosk({
           <button
             type="submit"
             disabled={isLooking}
-            className="inline-flex h-14 items-center gap-2 rounded-xl px-6 text-lg font-bold transition hover:brightness-110 disabled:opacity-50"
+            aria-busy={isLooking}
+            className="inline-flex h-14 items-center gap-2 rounded-xl px-6 text-lg font-bold transition enabled:hover:brightness-110 disabled:opacity-50 aria-busy:cursor-progress"
             style={{
               background: "var(--admin-accent)",
               color: "var(--admin-on-accent)",
             }}
           >
-            {isLooking ? "Finding…" : "Find"}
+            {isLooking ? (
+              <>
+                <Spinner size={18} />
+                Finding…
+              </>
+            ) : (
+              "Find"
+            )}
           </button>
         </form>
 
@@ -479,17 +488,25 @@ export function PosKiosk({
           type="button"
           onClick={completeSale}
           disabled={cart.length === 0 || isCompleting}
-          className="flex h-16 shrink-0 items-center justify-center gap-3 rounded-2xl text-xl font-bold transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+          aria-busy={isCompleting}
+          className="flex h-16 shrink-0 items-center justify-center gap-3 rounded-2xl text-xl font-bold transition enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-progress"
           style={{
             background: "var(--admin-accent)",
             color: "var(--admin-on-accent)",
             boxShadow: "var(--admin-shadow)",
           }}
         >
-          <Icon.Check width={26} height={26} />
-          {isCompleting
-            ? "Completing…"
-            : `Charge · ${formatCurrency(grandTotal)}`}
+          {isCompleting ? (
+            <>
+              <Spinner size={26} />
+              Completing…
+            </>
+          ) : (
+            <>
+              <Icon.Check width={26} height={26} />
+              {`Charge · ${formatCurrency(grandTotal)}`}
+            </>
+          )}
         </button>
       </div>
 

@@ -1,7 +1,7 @@
 import {
-  Button,
   Card,
   CardBody,
+  NativeSubmitButton,
   CardHeader,
   StatCard,
 } from "@/components/admin/ui";
@@ -119,7 +119,7 @@ export default async function AdminAnalyticsPage({
               </option>
             ))}
           </select>
-          <Button type="submit">Apply</Button>
+          <NativeSubmitButton pendingLabel="Applying…">Apply</NativeSubmitButton>
         </form>
       </header>
 

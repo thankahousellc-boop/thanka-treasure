@@ -1,5 +1,10 @@
 import Link from "next/link";
-import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
+import type {
+  ButtonHTMLAttributes,
+  CSSProperties,
+  ReactNode,
+  Ref,
+} from "react";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 type Size = "sm" | "md";
@@ -53,7 +58,11 @@ function variantStyle(variant: Variant): CSSProperties {
 }
 
 type ButtonProps = CommonProps &
-  Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className" | "children">;
+  Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className" | "children"> & {
+    /** Forwarded to the underlying element — NativeSubmitButton needs it to
+     *  find its parent form. React 19 passes ref as a plain prop. */
+    ref?: Ref<HTMLButtonElement>;
+  };
 
 export function Button({
   variant = "primary",

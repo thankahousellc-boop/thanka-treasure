@@ -1,3 +1,4 @@
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
 
@@ -80,6 +81,7 @@ export default async function RootLayout({
           Skip to main content
         </a>
         {children}
+        <SpeedInsights />
       </body>
     </html>
   );

@@ -4,21 +4,29 @@ import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { publicEnv } from "@/lib/env";
+import { monitor } from "@/lib/monitoring/logger";
 
+import { AuthConfigError } from "../errors";
 import type { AuthProvider, AuthUser, Session } from "../types";
 
+/** Log the misconfiguration once per runtime, not once per request. */
+let warnedMissingAuthConfig = false;
+
 function getSupabasePublicEnv() {
-  if (
-    !publicEnv.NEXT_PUBLIC_SUPABASE_URL ||
-    !publicEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-  ) {
-    return null;
+  const url = publicEnv.NEXT_PUBLIC_SUPABASE_URL;
+  const key = publicEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+  if (!url || !key) {
+    return {
+      env: null,
+      missing: [
+        ...(url ? [] : ["NEXT_PUBLIC_SUPABASE_URL"]),
+        ...(key ? [] : ["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"]),
+      ],
+    };
   }
 
-  return {
-    url: publicEnv.NEXT_PUBLIC_SUPABASE_URL,
-    key: publicEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-  };
+  return { env: { url, key }, missing: [] };
 }
 
 function deriveRole(user: User): AuthUser["role"] {
@@ -52,9 +60,12 @@ function toSession(user: User | null, expiresAt?: string | null): Session {
 
 export class SupabaseAuthProvider implements AuthProvider {
   private async createServerAuthClient() {
-    const env = getSupabasePublicEnv();
+    const { env, missing } = getSupabasePublicEnv();
     if (!env) {
-      throw new Error("Supabase public environment variables are missing.");
+      throw new AuthConfigError(
+        `Supabase auth is not configured — missing ${missing.join(", ")}.`,
+        missing,
+      );
     }
 
     const cookieStore = await cookies();
@@ -223,10 +234,21 @@ export class SupabaseAuthProvider implements AuthProvider {
   }
 
   async getSessionFromRequest(request: NextRequest) {
-    const env = getSupabasePublicEnv();
+    const { env, missing } = getSupabasePublicEnv();
     const response = NextResponse.next();
 
     if (!env) {
+      // The proxy runs on every request, so this cannot throw — treat the
+      // visitor as signed out, but say so once instead of failing silently.
+      if (!warnedMissingAuthConfig) {
+        warnedMissingAuthConfig = true;
+        monitor.error(
+          "Supabase auth is not configured — all requests are treated as signed out.",
+          new AuthConfigError(`Missing ${missing.join(", ")}.`, missing),
+          { missing },
+        );
+      }
+
       return { session: { user: null, expiresAt: null } as Session, response };
     }
 

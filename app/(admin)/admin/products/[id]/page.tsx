@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 
 import {
-  Button,
   Card,
   CardBody,
   CardHeader,
   DirtyFormProvider,
+  SubmitButton,
 } from "@/components/admin/ui";
 import { FlashToast } from "@/components/admin/flash-toast";
 import { getBarcodeConfig } from "@/lib/barcode/config";
@@ -297,9 +297,13 @@ export default async function AdminEditProductPage({
         <CardBody>
           <form action={archiveProductAction}>
             <input type="hidden" name="id" value={record.product.id} />
-            <Button type="submit" variant="danger" size="sm">
+            <SubmitButton
+              variant="danger"
+              size="sm"
+              pendingLabel="Archiving…"
+            >
               Archive product
-            </Button>
+            </SubmitButton>
           </form>
         </CardBody>
       </Card>

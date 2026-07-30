@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { shopPrimaryButtonClass } from "@/components/ui/button-styles";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { auth } from "@/lib/auth";
+import { isAuthConfigError } from "@/lib/auth/errors";
+import { monitor } from "@/lib/monitoring/logger";
 import { customerRepository } from "@/lib/repositories/customer-repository";
 
 type SignupPageSearchParams = {
@@ -47,6 +51,12 @@ async function signUpAction(formData: FormData) {
     );
   }
 
+  // `redirect()` works by throwing, so it must stay outside the try block —
+  // otherwise a successful signup lands in the catch and the visitor is told
+  // their account could not be created.
+  let signedIn = false;
+  let failureMessage: string | null = null;
+
   try {
     const session = await auth.signUp(
       email,
@@ -60,18 +70,31 @@ async function signUpAction(formData: FormData) {
       firstName: fullName || null,
     });
 
-    if (session.expiresAt) {
-      redirect(nextPath);
-    }
+    signedIn = Boolean(session.expiresAt);
+  } catch (error) {
+    monitor.error("Sign-up failed", error, {
+      status: (error as { status?: number }).status,
+      code: (error as { code?: string }).code,
+    });
 
+    failureMessage = isAuthConfigError(error)
+      ? "Account creation is temporarily unavailable. Please try again later."
+      : "Unable to create your account right now.";
+  }
+
+  if (failureMessage) {
     redirect(
-      `/auth/login?message=${encodeURIComponent("Account created. Please sign in to continue.")}`,
-    );
-  } catch {
-    redirect(
-      `/auth/signup?next=${nextQuery}&error=${encodeURIComponent("Unable to create your account right now.")}`,
+      `/auth/signup?next=${nextQuery}&error=${encodeURIComponent(failureMessage)}`,
     );
   }
+
+  if (signedIn) {
+    redirect(nextPath);
+  }
+
+  redirect(
+    `/auth/login?message=${encodeURIComponent("Account created. Please sign in to continue.")}`,
+  );
 }
 
 export default async function SignupPage({ searchParams }: SignupPageProps) {
@@ -132,12 +155,12 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
           />
         </label>
 
-        <button
-          type="submit"
-          className="inline-flex h-11 items-center border border-maroon-700 bg-maroon-700 px-6 text-sm font-medium uppercase tracking-[0.08em] text-white hover:bg-maroon-600"
+        <SubmitButton
+          className={shopPrimaryButtonClass}
+          pendingLabel="Creating account…"
         >
           Create Account
-        </button>
+        </SubmitButton>
 
         {error ? (
           <p

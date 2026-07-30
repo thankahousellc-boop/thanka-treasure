@@ -1,11 +1,11 @@
 import {
   Badge,
-  Button,
   ButtonLink,
   Card,
   CardBody,
   CardHeader,
   EmptyState,
+  NativeSubmitButton,
   Icon,
   StatCard,
 } from "@/components/admin/ui";
@@ -242,9 +242,12 @@ export default async function AdminOrdersPage({
             </label>
 
             <div className="flex flex-wrap items-end gap-2 sm:col-span-2 lg:col-span-3 xl:col-span-5">
-              <Button type="submit" className="max-sm:flex-1">
+              <NativeSubmitButton
+                className="max-sm:flex-1"
+                pendingLabel="Applying…"
+              >
                 Apply filters
-              </Button>
+              </NativeSubmitButton>
               <ButtonLink
                 href="/admin/orders"
                 variant="secondary"

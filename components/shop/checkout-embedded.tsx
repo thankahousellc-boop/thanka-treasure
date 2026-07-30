@@ -20,6 +20,8 @@ import {
   useState,
 } from "react";
 
+import { PendingButton } from "@/components/ui/pending-button";
+import { Spinner } from "@/components/ui/spinner";
 import { useCartStore } from "@/lib/store/cart";
 import { formatCurrency } from "@/lib/utils/formatters";
 
@@ -486,13 +488,13 @@ function CheckoutFlow() {
             </p>
           </div>
 
-          <button
-            type="button"
+          <PendingButton
             onClick={handleEmailContinue}
-            className="h-11 w-full bg-maroon-800 text-sm font-medium uppercase tracking-[0.08em] text-white transition-colors hover:bg-maroon-700"
+            pendingLabel="Saving…"
+            className="inline-flex h-11 w-full items-center justify-center gap-2 bg-maroon-800 text-sm font-medium uppercase tracking-[0.08em] text-white transition-colors enabled:hover:bg-maroon-700"
           >
             Continue to shipping
-          </button>
+          </PendingButton>
         </section>
       ) : null}
 
@@ -600,13 +602,25 @@ function CheckoutFlow() {
             </p>
           ) : null}
 
+          {/* Keeps its own `submitting` flag rather than using PendingButton:
+              on success Stripe redirects away, so the button must stay busy
+              until the page unloads instead of resetting when confirm()
+              resolves. */}
           <button
             type="button"
             onClick={handlePay}
             disabled={submitting || !checkout.canConfirm}
-            className="h-11 w-full bg-maroon-800 text-sm font-medium uppercase tracking-[0.08em] text-white transition-colors hover:bg-maroon-700 disabled:cursor-not-allowed disabled:opacity-50"
+            aria-busy={submitting}
+            className="inline-flex h-11 w-full items-center justify-center gap-2 bg-maroon-800 text-sm font-medium uppercase tracking-[0.08em] text-white transition-colors enabled:hover:bg-maroon-700 disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-progress"
           >
-            {submitting ? "Processing…" : `Pay ${checkout.total.total.amount}`}
+            {submitting ? (
+              <>
+                <Spinner />
+                Processing…
+              </>
+            ) : (
+              `Pay ${checkout.total.total.amount}`
+            )}
           </button>
           <p className="text-center text-xs text-warm-gray-500">
             Secured by Stripe. Your card details never touch our servers.

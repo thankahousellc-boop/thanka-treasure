@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { BlogCard } from "@/components/shop/blog-card";
 import { ProductCard } from "@/components/shop/product-card";
+import { NativeSubmitButton } from "@/components/ui/submit-button";
 import { blogRepository } from "@/lib/repositories/blog-repository";
 import { productRepository } from "@/lib/repositories/product-repository";
 import { toPlainText } from "@/lib/seo";
@@ -73,12 +74,13 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         </label>
 
         <div className="flex gap-2">
-          <button
-            type="submit"
-            className="inline-flex h-11 items-center rounded-md bg-ink px-5 text-xs font-medium uppercase tracking-[0.06em] text-paper transition-colors hover:bg-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+          <NativeSubmitButton
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-ink px-5 text-xs font-medium uppercase tracking-[0.06em] text-paper transition-colors enabled:hover:bg-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+            pendingLabel="Searching…"
+            spinnerSize={12}
           >
             Search
-          </button>
+          </NativeSubmitButton>
           <Link
             href="/search"
             className="inline-flex h-11 items-center rounded-md border border-paper-3 px-5 text-xs font-medium uppercase tracking-[0.06em] text-ink-soft transition-colors hover:bg-paper-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
