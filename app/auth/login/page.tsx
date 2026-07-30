@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { shopPrimaryButtonClass } from "@/components/ui/button-styles";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { auth, type Session } from "@/lib/auth";
+import { isAuthConfigError } from "@/lib/auth/errors";
+import { monitor } from "@/lib/monitoring/logger";
 
 type LoginPageSearchParams = {
   next?: string | string[];
@@ -45,12 +49,28 @@ async function signInAction(formData: FormData) {
     );
   }
 
-  let session: Session;
+  let session: Session | null = null;
+  let failureMessage: string | null = null;
+
   try {
     session = await auth.signInWithPassword(email, password);
-  } catch {
+  } catch (error) {
+    monitor.error("Sign-in failed", error, {
+      status: (error as { status?: number }).status,
+      code: (error as { code?: string }).code,
+    });
+
+    // A misconfigured deployment is not a bad password. Saying "wrong
+    // credentials" there sends the visitor (and the operator) hunting the wrong
+    // problem, so report it as an outage instead.
+    failureMessage = isAuthConfigError(error)
+      ? "Sign-in is temporarily unavailable. Please try again later."
+      : "Unable to sign in with these credentials.";
+  }
+
+  if (failureMessage || !session) {
     redirect(
-      `/auth/login?next=${nextQuery}&error=${encodeURIComponent("Unable to sign in with these credentials.")}`,
+      `/auth/login?next=${nextQuery}&error=${encodeURIComponent(failureMessage ?? "Unable to sign in with these credentials.")}`,
     );
   }
 
@@ -105,12 +125,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           />
         </label>
 
-        <button
-          type="submit"
-          className="inline-flex h-11 items-center border border-maroon-700 bg-maroon-700 px-6 text-sm font-medium uppercase tracking-[0.08em] text-white hover:bg-maroon-600"
+        <SubmitButton
+          className={shopPrimaryButtonClass}
+          pendingLabel="Signing in…"
         >
           Sign In
-        </button>
+        </SubmitButton>
 
         {error ? (
           <p

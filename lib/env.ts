@@ -9,13 +9,43 @@ function optionalEnv(value: string | undefined) {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-const publicEnvSchema = z.object({
-  NEXT_PUBLIC_APP_URL: z.string().url().optional(),
-  NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional(),
-  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().optional(),
-  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),
-  NEXT_PUBLIC_WHATSAPP_NUMBER: z.string().optional(),
-});
+// Supabase Auth is the only login path, so a production build without these is
+// a dead site: every sign-in/sign-up throws at request time and the UI can only
+// report a generic failure. Fail at build instead — `next build` runs with
+// NODE_ENV=production, so a missing Vercel env var breaks the deploy loudly
+// rather than shipping a store nobody can log into.
+// Trade-off: a production build now *requires* these vars to be present in the
+// build environment. Dev (`next dev`) and tooling scripts are unaffected.
+const PRODUCTION_REQUIRED_PUBLIC_ENV = [
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+] as const;
+
+const publicEnvSchema = z
+  .object({
+    NEXT_PUBLIC_APP_URL: z.string().url().optional(),
+    NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional(),
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().optional(),
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),
+    NEXT_PUBLIC_WHATSAPP_NUMBER: z.string().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (process.env.NODE_ENV !== "production") {
+      return;
+    }
+
+    for (const key of PRODUCTION_REQUIRED_PUBLIC_ENV) {
+      if (value[key]) {
+        continue;
+      }
+
+      ctx.addIssue({
+        code: "custom",
+        path: [key],
+        message: `${key} is required in production. Set it on the hosting provider (Vercel > Settings > Environment Variables > Production) and redeploy — NEXT_PUBLIC_* values are inlined at build time.`,
+      });
+    }
+  });
 
 const serverEnvSchema = z.object({
   DATABASE_URL: z.string().optional(),
