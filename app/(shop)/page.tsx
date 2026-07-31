@@ -232,37 +232,39 @@ export default async function HomePage() {
             {/* Width cap keeps the 3:4 plate — and its caption — inside the
                 first viewport instead of running off the bottom edge. */}
             <div className="relative w-full max-w-84 lg:max-w-92 xl:max-w-100">
-              {/* Offset frame — gives the plate a mounted, gallery feel. */}
-              <div
-                aria-hidden="true"
-                className="absolute -top-4 -right-4 hidden h-full w-full border border-gold/30 md:block"
-              />
-
-              <figure className="relative">
-                <Link
-                  href={
-                    heroProduct ? `/products/${heroProduct.slug}` : "/products"
-                  }
-                  aria-label={
-                    heroProduct
-                      ? `View ${heroProduct.title}`
-                      : "Browse hand-painted thangkas"
-                  }
-                  className="group relative block aspect-3/4 overflow-hidden bg-paper-2 shadow-(--shadow-2) outline-none focus-visible:ring-2 focus-visible:ring-saffron focus-visible:ring-offset-2"
-                >
-                  <Image
-                    src={heroPlate.src}
-                    alt={heroPlate.alt}
-                    fill
-                    priority
-                    sizes="(max-width: 768px) 100vw, 400px"
-                    className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
-                  />
+              <figure>
+                {/* Offset frame scoped to the plate only — matching the image
+                    box so its edges never cross the caption below. */}
+                <div className="relative">
                   <div
-                    className="pointer-events-none absolute inset-3 border border-gold/35"
                     aria-hidden="true"
+                    className="absolute -top-4 -right-4 hidden aspect-3/4 w-full border border-gold/30 md:block"
                   />
-                </Link>
+                  <Link
+                    href={
+                      heroProduct ? `/products/${heroProduct.slug}` : "/products"
+                    }
+                    aria-label={
+                      heroProduct
+                        ? `View ${heroProduct.title}`
+                        : "Browse hand-painted thangkas"
+                    }
+                    className="group relative block aspect-3/4 overflow-hidden bg-paper-2 shadow-(--shadow-2) outline-none focus-visible:ring-2 focus-visible:ring-saffron focus-visible:ring-offset-2"
+                  >
+                    <Image
+                      src={heroPlate.src}
+                      alt={heroPlate.alt}
+                      fill
+                      priority
+                      sizes="(max-width: 768px) 100vw, 400px"
+                      className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+                    />
+                    <div
+                      className="pointer-events-none absolute inset-3 border border-gold/35"
+                      aria-hidden="true"
+                    />
+                  </Link>
+                </div>
 
                 {heroProduct ? (
                   <figcaption className="mt-4 flex items-end justify-between gap-5 border-t border-(--line) pt-3.5">

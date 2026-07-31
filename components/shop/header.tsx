@@ -45,10 +45,10 @@ export async function ShopHeader() {
             <Image
               src={branding.logoLightUrl}
               alt={branding.brandName}
-              width={160}
-              height={48}
-              sizes="160px"
-              className="max-h-10 w-auto object-contain"
+              width={280}
+              height={112}
+              sizes="(max-width: 768px) 140px, 240px"
+              className="max-h-16 w-auto object-contain max-md:max-h-12"
               priority
             />
           ) : (
