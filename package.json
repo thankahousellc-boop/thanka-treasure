@@ -13,6 +13,7 @@
     "db:seed:admin": "node ./scripts/seed-admin.mjs",
     "db:seed:admin-prod": "node ./scripts/seed-admin-prod.mjs",
     "db:seed:storage": "node ./scripts/seed-storage-buckets.mjs",
+    "db:seed:storage:prod": "node ./scripts/seed-storage-buckets-prod.mjs",
     "db:studio": "drizzle-kit studio",
     "db:parity": "node ./scripts/check-drizzle-parity.mjs",
     "ops:verify:supabase": "node ./scripts/verify-supabase-setup.mjs",
