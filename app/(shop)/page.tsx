@@ -2,6 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { BlogCard } from "@/components/shop/blog-card";
+import CraftGuide, { CRAFT_STAGES } from "@/components/shop/craft-guide";
+import { Price } from "@/components/shop/price";
 import { ProductCard } from "@/components/shop/product-card";
 import { getFeaturedProducts } from "@/lib/catalog-cache";
 import { blogRepository } from "@/lib/repositories/blog-repository";
@@ -75,268 +77,479 @@ async function loadHomeData() {
 
 export const revalidate = 3600;
 
+// Every plate on the page is pulled from the live catalogue; only the craft
+// sequence in <CraftGuide> uses the fixed /public/craft photographs. When the
+// catalogue has fewer pieces than the page has slots, indexes wrap.
+const CATALOGUE_FALLBACK = {
+  src: CRAFT_STAGES[7].src,
+  alt: CRAFT_STAGES[7].alt,
+  href: "/products",
+};
+
+const STORY_FACTS = [
+  { label: "Established", value: "1978" },
+  { label: "Galleries in Thamel", value: "Three" },
+  { label: "Years of practice", value: "Nearly 50" },
+];
+
+const TRUST_MARKS = [
+  "Hand-painted in Thamel, Kathmandu",
+  "Blessed at Kapan Monastery",
+  "Free worldwide shipping",
+  "Three galleries since 1978",
+];
+
+type FeaturedProduct = Awaited<
+  ReturnType<typeof loadHomeData>
+>["featuredProducts"][number];
+
+// Wraps so a three-piece catalogue still fills every slot on the page.
+function plateAt(products: FeaturedProduct[], index: number) {
+  if (products.length === 0) return CATALOGUE_FALLBACK;
+  const product = products[index % products.length];
+  return {
+    src: product.primaryImage,
+    alt: product.title,
+    href: `/products/${product.slug}`,
+  };
+}
+
 export default async function HomePage() {
   const { featuredProducts, blogPosts, reviews } = await loadHomeData();
+
   const heroProduct = featuredProducts[0] ?? null;
-  const craftProduct = featuredProducts[1] ?? featuredProducts[0] ?? null;
+  const heroInset = featuredProducts[1] ?? null;
+  const heroPlate = plateAt(featuredProducts, 0);
+  // Push the grid past the two hero pieces when the catalogue is deep enough.
+  const galleryProducts =
+    featuredProducts.length >= 5
+      ? featuredProducts.slice(2, 5)
+      : featuredProducts.slice(0, 3);
+  const storyPlate = plateAt(featuredProducts, 5);
+  const symbolPlate = plateAt(featuredProducts, 3);
+
+  const ratedReviews = reviews.filter((review) => review.rating > 0);
+  const averageRating =
+    ratedReviews.length > 0
+      ? ratedReviews.reduce((sum, review) => sum + review.rating, 0) /
+        ratedReviews.length
+      : null;
 
   return (
-    <div>
+    <div className="bg-paper">
       {/* Hero */}
-      <section className="relative overflow-hidden border-b border-(--line-soft) bg-paper">
-        <div className="container-page grid items-center gap-12 py-20 md:grid-cols-[1.15fr_1fr] md:py-28">
-          <div>
-            <p className="mb-5 text-[11.5px] font-medium uppercase tracking-[0.22em] text-saffron">
-              Sacred Art · Est. 1998
+      <section className="relative isolate overflow-hidden border-b border-(--line) bg-paper">
+        {/* Warm wash behind the plate column. Fades out leftward so the panel
+            never shows a hard vertical seam against the paper. */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-y-0 right-0 hidden w-[56%] bg-linear-to-l from-paper-2 via-paper-2/55 to-transparent md:block"
+        />
+
+        <div className="relative container-page grid items-center gap-12 py-14 md:grid-cols-[1.05fr_1fr] md:gap-16 md:py-20 md:pb-24 lg:gap-20">
+          <div className="order-2 md:order-1">
+            <p className="flex items-center gap-3 text-[10.5px] uppercase tracking-[0.28em] text-saffron">
+              Sacred Art · Est. 1978
+              <span aria-hidden="true" className="h-px w-10 bg-saffron/45" />
             </p>
-            <h1 className="font-serif text-[clamp(40px,5.5vw,72px)] leading-[1.02] font-medium tracking-[-0.012em] text-ink">
-              The painted{" "}
-              <em className="font-normal text-ink-soft">presence</em> of
-              awakened beings,{" "}
-              <em className="font-normal text-ink-soft">unbroken</em> for a
-              thousand years.
+
+            {/* leading-[1.08] keeps Cormorant descenders clear of the next
+                line; pb-3 on the emphasis reserves room for the swash. */}
+            <h1 className="mt-6 max-w-[15ch] font-serif text-[clamp(40px,5.2vw,68px)] leading-[1.08] font-medium tracking-[-0.02em] text-balance text-ink">
+              Four months of breath, line, and{" "}
+              <em className="relative inline-block pb-3 font-normal text-ink-soft">
+                silence
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 200 10"
+                  preserveAspectRatio="none"
+                  className="absolute bottom-0 left-0 h-2 w-full text-saffron/70"
+                >
+                  <path
+                    d="M2 7c40-4 78-5 118-2.5 26 1.6 48 2.4 78 0.8"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </em>
+              .
             </h1>
-            <p className="mt-7 max-w-[58ch] text-[17px] leading-[1.65] text-ink-soft">
-              A small atelier of master thanka painters, working in Boudhanath,
-              Kathmandu. Mineral pigment, 24-karat gold, and breath-thin lines —
-              each piece blessed at the stupa and shipped directly to your wall.
+
+            <p className="mt-7 max-w-[44ch] text-[17px] leading-[1.65] text-ink-soft">
+              Hand-painted thangkas from a family atelier in Thamel, Kathmandu —
+              mineral pigment, twenty-four-karat gold, and nearly fifty years of
+              practice.
             </p>
-            <div className="mt-9 flex flex-wrap items-center gap-3.5">
+
+            <div className="mt-9 flex flex-wrap items-center gap-x-7 gap-y-4">
               <Link
                 href="/products"
-                className="inline-flex items-center gap-2.5 rounded-full bg-ink px-7 py-4 text-[13px] font-medium uppercase tracking-[0.16em] text-paper transition hover:-translate-y-0.5 hover:bg-ink-soft hover:shadow-(--shadow-1)"
+                className="group inline-flex min-h-12 items-center gap-3 bg-ink px-8 py-4 text-[12.5px] font-medium uppercase tracking-[0.18em] text-paper transition-colors hover:bg-ink-soft"
               >
-                Browse the archive →
+                Browse the collection
+                <span
+                  aria-hidden="true"
+                  className="transition-transform duration-200 ease-out group-hover:translate-x-1"
+                >
+                  →
+                </span>
               </Link>
               <Link
-                href="/blogs"
-                className="inline-flex items-center gap-2 border-b border-ink-mute pb-1 text-[12.5px] uppercase tracking-[0.18em] text-ink-soft hover:border-ink hover:text-ink"
+                href="#how-its-made"
+                className="group inline-flex min-h-12 items-center text-[12.5px] uppercase tracking-[0.18em] text-ink-soft transition-colors hover:text-ink"
               >
-                Read the journal
+                <span className="border-b border-ink-mute pb-1 transition-colors group-hover:border-ink">
+                  See how one is painted
+                </span>
               </Link>
             </div>
+
+            {averageRating !== null ? (
+              <div className="mt-10 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-(--line) pt-6">
+                <span
+                  className="text-[15px] tracking-[0.14em] text-saffron"
+                  aria-hidden="true"
+                >
+                  {"★".repeat(Math.round(averageRating))}
+                  <span className="text-paper-3">
+                    {"★".repeat(5 - Math.round(averageRating))}
+                  </span>
+                </span>
+                <p className="text-[12.5px] text-ink-soft">
+                  <span className="font-medium text-ink">
+                    {averageRating.toFixed(1)}
+                  </span>{" "}
+                  average from {ratedReviews.length} collector{" "}
+                  {ratedReviews.length === 1 ? "review" : "reviews"}
+                </p>
+              </div>
+            ) : null}
           </div>
 
-          <div className="relative">
-            <Link
-              href={heroProduct ? `/products/${heroProduct.slug}` : "/products"}
-              aria-label={
-                heroProduct
-                  ? `View ${heroProduct.title}`
-                  : "Browse featured Thangkas"
-              }
-              className="group relative block aspect-4/5 overflow-hidden rounded-md bg-ink shadow-(--shadow-2) outline-none focus-visible:ring-2 focus-visible:ring-saffron focus-visible:ring-offset-2"
-            >
-              {heroProduct ? (
-                <Image
-                  src={heroProduct.primaryImage}
-                  alt={heroProduct.title}
-                  fill
-                  priority
-                  sizes="(max-width: 768px) 100vw, 45vw"
-                  className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
-                />
-              ) : (
-                <div className="absolute inset-0 bg-linear-to-br from-ink via-ink-soft to-paper-3" />
-              )}
-              <div
-                className="pointer-events-none absolute inset-3.5 border border-gold/40"
-                aria-hidden="true"
-              />
-            </Link>
-            <div className="absolute -bottom-6 -left-6 hidden max-w-[18rem] rounded-md bg-paper p-5 shadow-(--shadow-1) md:block">
-              <p className="font-serif text-[15px] italic text-ink-soft">
-                &ldquo;I do not paint a Buddha. I uncover the one already
-                waiting in the cloth.&rdquo;
-              </p>
-              <p className="mt-2 text-[10.5px] uppercase tracking-[0.22em] text-ink-mute">
-                Tenzin Dorjee · Master painter
-              </p>
+          <div className="order-1 flex justify-center md:order-2 md:justify-end">
+            {/* Width cap keeps the 3:4 plate — and its caption — inside the
+                first viewport instead of running off the bottom edge. */}
+            <div className="relative w-full max-w-84 lg:max-w-92 xl:max-w-100">
+              <figure>
+                {/* Offset frame scoped to the plate only — matching the image
+                    box so its edges never cross the caption below. */}
+                <div className="relative">
+                  <div
+                    aria-hidden="true"
+                    className="absolute -top-4 -right-4 hidden aspect-3/4 w-full border border-gold/30 md:block"
+                  />
+                  <Link
+                    href={
+                      heroProduct ? `/products/${heroProduct.slug}` : "/products"
+                    }
+                    aria-label={
+                      heroProduct
+                        ? `View ${heroProduct.title}`
+                        : "Browse hand-painted thangkas"
+                    }
+                    className="group relative block aspect-3/4 overflow-hidden bg-paper-2 shadow-(--shadow-2) outline-none focus-visible:ring-2 focus-visible:ring-saffron focus-visible:ring-offset-2"
+                  >
+                    <Image
+                      src={heroPlate.src}
+                      alt={heroPlate.alt}
+                      fill
+                      priority
+                      sizes="(max-width: 768px) 100vw, 400px"
+                      className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+                    />
+                    <div
+                      className="pointer-events-none absolute inset-3 border border-gold/35"
+                      aria-hidden="true"
+                    />
+                  </Link>
+                </div>
+
+                {heroProduct ? (
+                  <figcaption className="mt-4 flex items-end justify-between gap-5 border-t border-(--line) pt-3.5">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.24em] text-ink-mute">
+                        From the gallery
+                      </p>
+                      <p className="mt-1 font-serif text-[19px] leading-tight text-ink">
+                        {heroProduct.title}
+                      </p>
+                    </div>
+                    <Price
+                      cents={heroProduct.priceCents}
+                      className="shrink-0 font-serif text-[19px] text-ink-soft"
+                    />
+                  </figcaption>
+                ) : null}
+              </figure>
+
+              {/* Second piece, tucked under the primary plate. */}
+              {heroInset ? (
+                <Link
+                  href={`/products/${heroInset.slug}`}
+                  aria-label={`View ${heroInset.title}`}
+                  className="group absolute -bottom-14 -left-12 hidden w-32 outline-none lg:block xl:w-36"
+                >
+                  <div className="relative aspect-3/4 overflow-hidden border-[6px] border-paper bg-paper-2 shadow-(--shadow-2)">
+                    <Image
+                      src={heroInset.primaryImage}
+                      alt={heroInset.title}
+                      fill
+                      sizes="150px"
+                      className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+                    />
+                  </div>
+                </Link>
+              ) : null}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Featured */}
-      <section className="border-b border-(--line-soft) py-20 md:py-24">
-        <div className="container-page">
-          <div className="mb-12 flex flex-wrap items-end justify-between gap-5">
-            <div>
-              <p className="mb-2 text-[11.5px] font-medium uppercase tracking-[0.22em] text-saffron">
-                Recently completed
-              </p>
-              <h2 className="font-serif text-[clamp(34px,4vw,46px)] leading-tight font-medium tracking-[-0.005em] text-ink">
-                Highlights from the{" "}
-                <em className="font-normal text-ink-soft">archive</em>
-              </h2>
-            </div>
-            <Link
-              href="/products"
-              className="border-b border-ink-mute pb-1 text-[12.5px] uppercase tracking-[0.18em] text-ink-soft hover:border-ink hover:text-ink"
+      {/* Trust strip */}
+      <section aria-label="What every piece includes" className="border-b border-(--line) bg-paper-2">
+        <ul className="container-page flex flex-wrap items-center justify-between gap-x-8 gap-y-2.5 py-4">
+          {TRUST_MARKS.map((mark) => (
+            <li
+              key={mark}
+              className="flex items-center gap-2.5 text-[11px] uppercase tracking-[0.16em] text-ink-soft"
             >
-              View all pieces →
-            </Link>
-          </div>
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                className="shrink-0 text-saffron"
+              >
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+              {mark}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* Gallery */}
+      <section className="border-b border-(--line) py-16 md:py-24">
+        <div className="container-page">
+          <SectionHeading
+            index="01"
+            label="The Gallery"
+            title="Artwork from our"
+            emphasis="Gallery"
+            action={{ href: "/products", text: "All pieces →" }}
+          />
 
           {featuredProducts.length > 0 ? (
-            <div className="grid grid-cols-3 gap-x-7 gap-y-12 max-[1100px]:grid-cols-2 max-[560px]:grid-cols-1">
-              {featuredProducts.slice(0, 3).map((product) => (
-                <ProductCard key={product.slug} {...product} />
+            <div className="mt-12 grid grid-cols-3 gap-x-8 gap-y-14 max-[1100px]:grid-cols-2 max-[560px]:grid-cols-1">
+              {galleryProducts.map((product, index) => (
+                <div key={product.slug}>
+                  <p className="mb-3 border-t border-(--line) pt-3 text-[10.5px] uppercase tracking-[0.24em] text-ink-mute">
+                    Plate {toRoman(index + 1)}
+                  </p>
+                  <ProductCard {...product} />
+                </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-ink-soft">
+            <p className="mt-12 border-t border-(--line) pt-6 text-sm text-ink-soft">
               Featured pieces will appear here once products are published.
             </p>
           )}
         </div>
       </section>
 
-      {/* The Craft (story) */}
-      <section className="border-b border-(--line-soft) bg-paper-2 py-20 md:py-24">
-        <div className="container-page grid items-center gap-16 max-md:gap-9 md:grid-cols-[1fr_1.1fr]">
-          {craftProduct ? (
+      {/* Our story */}
+      <section className="border-b border-(--line) bg-paper-2 py-16 md:py-24">
+        <div className="container-page grid items-center gap-10 md:grid-cols-2 md:gap-16">
+          <figure>
             <Link
-              href={`/products/${craftProduct.slug}`}
-              aria-label={`View ${craftProduct.title}`}
-              className="group relative block aspect-5/6 overflow-hidden rounded-md bg-paper-3 shadow-(--shadow-1) outline-none focus-visible:ring-2 focus-visible:ring-saffron focus-visible:ring-offset-2"
+              href={storyPlate.href}
+              aria-label={`View ${storyPlate.alt}`}
+              className="group relative block aspect-4/3 overflow-hidden bg-paper-3 shadow-(--shadow-1) outline-none focus-visible:ring-2 focus-visible:ring-saffron focus-visible:ring-offset-2 md:aspect-4/5"
             >
               <Image
-                src={craftProduct.primaryImage}
-                alt={craftProduct.title}
+                src={storyPlate.src}
+                alt={storyPlate.alt}
                 fill
-                sizes="(max-width: 768px) 100vw, 45vw"
+                sizes="(max-width: 768px) 100vw, 46vw"
                 className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
               />
               <div
-                className="pointer-events-none absolute inset-3.5 border border-gold/30"
+                className="pointer-events-none absolute inset-3 border border-gold/30"
                 aria-hidden="true"
               />
             </Link>
-          ) : (
-            <div className="relative aspect-5/6 overflow-hidden rounded-md bg-linear-to-br from-ink-soft to-maroon-900 shadow-(--shadow-1)" />
-          )}
+            <figcaption className="mt-3 border-t border-(--line) pt-3 text-[10.5px] uppercase tracking-[0.2em] text-ink-mute">
+              From the gallery — {storyPlate.alt}
+            </figcaption>
+          </figure>
+
           <div>
-            <p className="mb-4 text-[11.5px] font-medium uppercase tracking-[0.22em] text-saffron">
-              The craft
-            </p>
-            <h2 className="font-serif text-[clamp(34px,4vw,46px)] leading-tight font-medium tracking-[-0.005em] text-ink">
-              Four months of breath, line,{" "}
-              <em className="font-normal text-ink-soft">and silence</em>.
+            <SectionKicker index="02" label="Our Story" />
+            <h2 className="mt-5 font-serif text-[clamp(32px,4.2vw,50px)] leading-[1.05] font-medium tracking-[-0.012em] text-ink">
+              A street stall in Basantapur,{" "}
+              <em className="font-normal text-ink-soft">
+                and the patience to wait
+              </em>
             </h2>
-            <p className="mt-5 text-[16.5px] leading-[1.75] text-ink-soft">
-              Cotton canvas sized with chalk and lime. Pigments ground from
-              lapis, malachite, vermillion, conch — bound in yak-hide glue.
-              Twenty-four-karat gold leaf burnished by hand with agate.
+            <p className="mt-6 max-w-[52ch] text-[17px] leading-[1.75] text-ink-soft">
+              Every thangka carries a story; so do we. We began in the late
+              1960s as a simple street stall in Basantapur, armed with nothing
+              but a deep respect for Tibetan art and the patience to wait. In
+              1978 that patience paid off — a single humble corner in Thamel,
+              which grew shop by shop into three galleries. Nearly fifty years
+              on, built on trust, meticulous craftsmanship, and an unwavering
+              belief in sacred art, Surendra&rsquo;s Tibetan Thangka Treasure
+              stands as one of Kathmandu&rsquo;s most respected names in thangka
+              art.
             </p>
-            <div className="my-6 border-l-2 border-saffron py-1.5 pl-5.5 font-serif text-[22px] leading-[1.4] italic text-ink">
-              &ldquo;The Buddha is already in the cloth. The painter only
-              uncovers him, slowly, with great care.&rdquo;
-            </div>
-            <p className="text-[16.5px] leading-[1.75] text-ink-soft">
-              Each piece passes through three artists, four months, and a final
-              eye-opening — the moment the painting becomes alive. Then it is
-              taken to Boudhanath stupa, blessed, rolled in silk, and shipped to
-              you.
-            </p>
-            <Link
-              href="/blogs"
-              className="mt-7 inline-flex border-b border-ink-mute pb-1 text-[12.5px] uppercase tracking-[0.18em] text-ink-soft hover:border-ink hover:text-ink"
-            >
-              How a thanka is painted →
-            </Link>
+
+            <dl className="mt-9 flex flex-wrap gap-x-12 gap-y-5 border-t border-(--line) pt-6">
+              {STORY_FACTS.map((fact) => (
+                <div key={fact.label}>
+                  <dt className="text-[10.5px] uppercase tracking-[0.22em] text-ink-mute">
+                    {fact.label}
+                  </dt>
+                  <dd className="mt-1 font-serif text-[26px] leading-none text-ink">
+                    {fact.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
           </div>
         </div>
+      </section>
+
+      {/* The making */}
+      <section id="how-its-made" className="border-b border-(--line)">
+        <CraftGuide />
       </section>
 
       {/* Symbolism */}
-      <section className="border-b border-(--line-soft) bg-paper py-20 md:py-24">
+      <section className="border-b border-(--line) py-16 md:py-24">
         <div className="container-page">
-          <div className="mx-auto max-w-[60ch] text-center">
-            <p className="mb-3 text-[11.5px] font-medium uppercase tracking-[0.22em] text-saffron">
-              Symbolism
-            </p>
-            <h2 className="font-serif text-[clamp(34px,4vw,46px)] leading-tight font-medium tracking-[-0.005em] text-ink">
-              Every line is a{" "}
-              <em className="font-normal text-ink-soft">visualisation</em>
-            </h2>
-            <p className="mt-4 text-[15px] text-ink-mute">
-              Mudras, mantras, mandalas. A thanka is not decoration — it is a
-              meditation made visible.
-            </p>
-          </div>
-          <div className="mt-12 grid grid-cols-4 gap-6 max-md:grid-cols-2">
-            <SymbolCard
-              title="Mudras"
-              body="Hand gestures of awakening — earth-touching, meditation, teaching, fearlessness."
-              icon={
-                <>
-                  <path d="M12 4v16M5 12h14" />
-                  <circle cx="12" cy="12" r="5" />
-                </>
-              }
-            />
-            <SymbolCard
-              title="Mandalas"
-              body="Sacred geometry as a map of the awakened mind, drawn in concentric rings."
-              icon={
-                <>
-                  <circle cx="12" cy="12" r="9" />
-                  <circle cx="12" cy="12" r="3" />
-                </>
-              }
-            />
-            <SymbolCard
-              title="Lotus thrones"
-              body="Eight-petaled — the Eightfold Path. Born of mud, blooming pure."
-              icon={
-                <>
-                  <path d="M12 3c4 4 4 6 0 12-4-6-4-8 0-12Z" />
-                  <path d="M3 15h18" />
-                </>
-              }
-            />
-            <SymbolCard
-              title="Aureoles"
-              body="Concentric haloes for body, speech, and mind — the three doors of practice."
-              icon={
-                <>
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M5 14c2-4 5-6 7-6s5 2 7 6" />
-                  <path d="M5 14c2 4 5 6 7 6s5-2 7-6" />
-                </>
-              }
-            />
+          <SectionHeading
+            index="04"
+            label="Symbolism"
+            title="Every line is a"
+            emphasis="visualisation"
+          />
+
+          <div className="mt-12 grid gap-10 border-t border-(--line) pt-10 md:grid-cols-12 md:gap-14">
+            <figure className="md:col-span-5">
+              <Link
+                href={symbolPlate.href}
+                aria-label={`View ${symbolPlate.alt}`}
+                className="group relative block aspect-3/4 overflow-hidden bg-paper-2 shadow-(--shadow-1) outline-none focus-visible:ring-2 focus-visible:ring-saffron focus-visible:ring-offset-2"
+              >
+                <Image
+                  src={symbolPlate.src}
+                  alt={symbolPlate.alt}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 40vw"
+                  className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+                />
+                <div
+                  className="pointer-events-none absolute inset-3 border border-gold/30"
+                  aria-hidden="true"
+                />
+              </Link>
+              <figcaption className="mt-3 border-t border-(--line-soft) pt-3 text-[10.5px] uppercase tracking-[0.2em] text-ink-mute">
+                {symbolPlate.alt}
+              </figcaption>
+            </figure>
+
+            <div className="md:col-span-7">
+              <blockquote>
+                <p className="font-serif text-[clamp(22px,2.5vw,30px)] leading-[1.35] text-ink">
+                  &ldquo;All the elements of a Tibetan religious painting have a
+                  symbolic value. These symbols serve as aids to developing
+                  inner qualities on the spiritual path. The deities themselves
+                  are regarded as representing particular characteristics of
+                  enlightenment.&rdquo;
+                </p>
+                <footer className="mt-4 text-[10.5px] uppercase tracking-[0.24em] text-saffron">
+                  Dalai Lama
+                </footer>
+              </blockquote>
+
+              <div className="mt-10 grid gap-x-8 gap-y-8 border-t border-(--line) pt-8 sm:grid-cols-2">
+                <SymbolEntry
+                  number="i"
+                  title="Mudras"
+                  body="Hand gestures of awakening — earth-touching, meditation, teaching."
+                  icon={
+                    <>
+                      <path d="M12 4v16M5 12h14" />
+                      <circle cx="12" cy="12" r="5" />
+                    </>
+                  }
+                />
+                <SymbolEntry
+                  number="ii"
+                  title="Mandalas"
+                  body="Sacred geometry as a map of the awakened mind, in concentric rings."
+                  icon={
+                    <>
+                      <circle cx="12" cy="12" r="9" />
+                      <circle cx="12" cy="12" r="3" />
+                    </>
+                  }
+                />
+                <SymbolEntry
+                  number="iii"
+                  title="Lotus thrones"
+                  body="Eight-petaled — the Eightfold Path. Born of mud, blooming pure."
+                  icon={
+                    <>
+                      <path d="M12 3c4 4 4 6 0 12-4-6-4-8 0-12Z" />
+                      <path d="M3 15h18" />
+                    </>
+                  }
+                />
+                <SymbolEntry
+                  number="iv"
+                  title="Aureoles"
+                  body="Haloes for body, speech, and mind — the three doors of practice."
+                  icon={
+                    <>
+                      <circle cx="12" cy="12" r="9" />
+                      <path d="M5 14c2-4 5-6 7-6s5 2 7 6" />
+                      <path d="M5 14c2 4 5 6 7 6s5-2 7-6" />
+                    </>
+                  }
+                />
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Reviews */}
+      {/* Collectors */}
       {reviews.length > 0 ? (
-        <section className="border-b border-(--line-soft) bg-paper-2 py-20 md:py-24">
+        <section className="border-b border-(--line) bg-paper-2 py-16 md:py-24">
           <div className="container-page">
-            <div className="mb-12 flex flex-wrap items-end justify-between gap-5">
-              <div>
-                <p className="mb-2 text-[11.5px] font-medium uppercase tracking-[0.22em] text-saffron">
-                  The collectors
-                </p>
-                <h2 className="font-serif text-[clamp(34px,4vw,46px)] leading-tight font-medium tracking-[-0.005em] text-ink">
-                  Words from{" "}
-                  <em className="font-normal text-ink-soft">our patrons</em>
-                </h2>
-              </div>
-              <a
-                href="https://www.etsy.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="border-b border-ink-mute pb-1 text-[12.5px] uppercase tracking-[0.18em] text-ink-soft hover:border-ink hover:text-ink"
-              >
-                Read on Etsy →
-              </a>
-            </div>
-            <div className="grid grid-cols-3 gap-7 max-md:grid-cols-1">
+            <SectionHeading
+              index="05"
+              label="The Collectors"
+              title="Words from"
+              emphasis="our patrons"
+              action={{
+                href: "https://www.etsy.com",
+                text: "Read on Etsy →",
+                external: true,
+              }}
+            />
+            <div className="mt-12 grid border-t border-(--line) md:grid-cols-3">
               {reviews.map((review) => (
-                <ReviewCard key={review.id} {...review} />
+                <ReviewEntry key={review.id} {...review} />
               ))}
             </div>
           </div>
@@ -345,26 +558,16 @@ export default async function HomePage() {
 
       {/* Journal */}
       {blogPosts.length > 0 ? (
-        <section className="border-b border-(--line-soft) py-20 md:py-24">
+        <section className="py-16 md:py-24">
           <div className="container-page">
-            <div className="mb-12 flex flex-wrap items-end justify-between gap-5">
-              <div>
-                <p className="mb-2 text-[11.5px] font-medium uppercase tracking-[0.22em] text-saffron">
-                  The journal
-                </p>
-                <h2 className="font-serif text-[clamp(34px,4vw,46px)] leading-tight font-medium tracking-[-0.005em] text-ink">
-                  Writings from the{" "}
-                  <em className="font-normal text-ink-soft">studio</em>
-                </h2>
-              </div>
-              <Link
-                href="/blogs"
-                className="border-b border-ink-mute pb-1 text-[12.5px] uppercase tracking-[0.18em] text-ink-soft hover:border-ink hover:text-ink"
-              >
-                All articles →
-              </Link>
-            </div>
-            <div className="grid gap-9 lg:grid-cols-2">
+            <SectionHeading
+              index="06"
+              label="The Journal"
+              title="Writings from the"
+              emphasis="studio"
+              action={{ href: "/blogs", text: "All articles →" }}
+            />
+            <div className="mt-12 grid gap-10 border-t border-(--line) pt-10 lg:grid-cols-2">
               {blogPosts.map((post) => (
                 <BlogCard key={post.slug} {...post} />
               ))}
@@ -376,39 +579,112 @@ export default async function HomePage() {
   );
 }
 
-function SymbolCard({
+function toRoman(value: number) {
+  const numerals = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"];
+  return numerals[value - 1] ?? String(value);
+}
+
+function SectionKicker({
+  index,
+  label,
+}: {
+  index: string;
+  label: string;
+}) {
+  return (
+    <p className="flex items-center gap-3 text-[10.5px] uppercase tracking-[0.28em] text-ink-mute">
+      <span className="text-saffron">No. {index}</span>
+      <span aria-hidden="true" className="h-px w-8 bg-(--line)" />
+      <span>{label}</span>
+    </p>
+  );
+}
+
+function SectionHeading({
+  index,
+  label,
+  title,
+  emphasis,
+  action,
+}: {
+  index: string;
+  label: string;
+  title: string;
+  emphasis: string;
+  action?: { href: string; text: string; external?: boolean };
+}) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
+      <div>
+        <SectionKicker index={index} label={label} />
+        <h2 className="mt-5 font-serif text-[clamp(32px,4.2vw,52px)] leading-[1.05] font-medium tracking-[-0.012em] text-ink">
+          {title} <em className="font-normal text-ink-soft">{emphasis}</em>
+        </h2>
+      </div>
+      {action ? (
+        action.external ? (
+          <a
+            href={action.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="border-b border-ink-mute pb-1.5 text-[12px] uppercase tracking-[0.2em] text-ink-soft transition-colors hover:border-ink hover:text-ink"
+          >
+            {action.text}
+          </a>
+        ) : (
+          <Link
+            href={action.href}
+            className="border-b border-ink-mute pb-1.5 text-[12px] uppercase tracking-[0.2em] text-ink-soft transition-colors hover:border-ink hover:text-ink"
+          >
+            {action.text}
+          </Link>
+        )
+      ) : null}
+    </div>
+  );
+}
+
+function SymbolEntry({
+  number,
   title,
   body,
   icon,
 }: {
+  number: string;
   title: string;
   body: string;
   icon: React.ReactNode;
 }) {
   return (
-    <div className="rounded-md border border-(--line) bg-paper p-7 text-center transition-all duration-300 hover:-translate-y-0.5 hover:border-ink-mute hover:shadow-(--shadow-2)">
-      <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-paper-2 text-ink">
+    <div>
+      <div className="flex items-center gap-3 text-ink-mute">
         <svg
-          width="28"
-          height="28"
+          width="22"
+          height="22"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="1.4"
+          strokeWidth="1.3"
           strokeLinecap="round"
+          aria-hidden="true"
         >
           {icon}
         </svg>
+        <span className="text-[10.5px] uppercase tracking-[0.24em]">
+          {number}
+        </span>
       </div>
-      <h4 className="mb-1.5 font-serif text-xl font-medium text-ink">
+      <h3 className="mt-4 font-serif text-[24px] leading-tight font-medium text-ink">
         {title}
-      </h4>
-      <p className="text-[13.5px] leading-[1.55] text-ink-soft">{body}</p>
+      </h3>
+      <p className="mt-2 max-w-[34ch] text-[14.5px] leading-[1.6] text-ink-soft">
+        {body}
+      </p>
     </div>
   );
 }
 
-function ReviewCard({
+function ReviewEntry({
   authorName,
   rating,
   body,
@@ -421,33 +697,27 @@ function ReviewCard({
   productTitle: string | null;
   reviewedAt: string | null;
 }) {
-  const initial = authorName.trim().charAt(0).toUpperCase() || "★";
   const stars = Math.max(0, Math.min(5, rating));
 
   return (
-    <article className="flex flex-col gap-4 rounded-md bg-paper p-7 shadow-(--shadow-1) transition-all hover:-translate-y-0.5 hover:shadow-(--shadow-2)">
+    <article className="flex flex-col gap-4 border-b border-(--line-soft) py-8 md:border-b-0 md:border-r md:border-(--line-soft) md:pr-8 md:last:border-r-0 md:not-first:pl-8">
       <div
-        className="flex items-center gap-1 text-[15px] text-saffron"
+        className="flex items-center gap-1 text-[13px] tracking-[0.18em] text-saffron"
         aria-label={`${stars} out of 5 stars`}
       >
         {"★".repeat(stars)}
-        <span className="text-ink-mute">{"★".repeat(5 - stars)}</span>
+        <span className="text-paper-3">{"★".repeat(5 - stars)}</span>
       </div>
-      <p className="text-[14.5px] leading-[1.6] text-ink-soft">
+      <p className="font-serif text-[19px] leading-[1.5] text-ink">
         &ldquo;{body}&rdquo;
       </p>
-      <div className="mt-auto flex items-center gap-4 pt-2">
-        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gradient-to-br from-rose to-ink font-serif text-lg text-paper">
-          {initial}
-        </div>
-        <div>
-          <h3 className="font-serif text-[17px] font-medium text-ink">
-            {authorName}
-          </h3>
-          <p className="text-[11px] uppercase tracking-[0.16em] text-ink-mute">
-            {[productTitle, reviewedAt].filter(Boolean).join(" · ")}
-          </p>
-        </div>
+      <div className="mt-auto pt-2">
+        <h3 className="text-[12px] font-medium uppercase tracking-[0.18em] text-ink-soft">
+          {authorName}
+        </h3>
+        <p className="mt-1 text-[10.5px] uppercase tracking-[0.18em] text-ink-mute">
+          {[productTitle, reviewedAt].filter(Boolean).join(" · ")}
+        </p>
       </div>
     </article>
   );

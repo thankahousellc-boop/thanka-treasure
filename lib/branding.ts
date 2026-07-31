@@ -42,7 +42,7 @@ export type Branding = {
 
 const DEFAULT_BRANDING: Branding = {
   brandName: "Thanka Treasure",
-  brandTagline: "Sacred Art · Est. 1998",
+  brandTagline: "Sacred Art · Est. 1978",
   logoLightUrl: null,
   logoDarkUrl: null,
   faviconUrl: null,

@@ -3,8 +3,8 @@ type AnnouncementBarProps = {
 };
 
 const DEFAULT_MESSAGES: Array<{ text: string; highlight?: string }> = [
-  { text: "Free worldwide shipping over", highlight: "$500" },
-  { text: "Each piece blessed at Boudhanath Stupa" },
+  { text: "Free worldwide shipping" },
+  { text: "Each piece blessed at Kapan Monastery" },
   { text: "Lifetime authenticity guarantee" },
 ];
 
