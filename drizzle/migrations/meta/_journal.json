@@ -78,6 +78,13 @@
       "when": 1783587077662,
       "tag": "0010_low_wither",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1785858216710,
+      "tag": "0011_checkout_reservations",
+      "breakpoints": true
     }
   ]
 }

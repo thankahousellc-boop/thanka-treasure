@@ -178,6 +178,44 @@ export const pendingCheckoutSessions = pgTable(
   ],
 );
 
+// One row per variant held by a live checkout. This table is the single source
+// of truth for reserved stock: a row counts only while `status = 'open'` AND
+// `expires_at > now()`, so an abandoned checkout releases its hold with no code
+// running and nothing to clean up. `inventory.reserved_quantity` is no longer
+// written by application code.
+export const checkoutReservations = pgTable(
+  "checkout_reservations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    stripeSessionId: text("stripe_session_id").notNull(),
+    variantId: uuid("variant_id")
+      .notNull()
+      .references(() => productVariants.id, { onDelete: "cascade" }),
+    quantity: integer("quantity").notNull(),
+    // open = held, released = returned early, confirmed = paid and deducted.
+    status: text("status").notNull().default("open"),
+    // Pushed forward by the checkout page keepalive. Past this instant the row
+    // stops counting toward reserved stock.
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    // Serves the live reserved sum per variant.
+    index("checkout_reservations_variant_live_idx").on(
+      table.variantId,
+      table.status,
+      table.expiresAt,
+    ),
+    // Serves keepalive, release, and confirm, which all key on the session.
+    index("checkout_reservations_session_idx").on(table.stripeSessionId),
+  ],
+);
+
 export const discounts = pgTable(
   "discounts",
   {

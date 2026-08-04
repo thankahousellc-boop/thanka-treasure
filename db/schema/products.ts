@@ -4,6 +4,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  pgView,
   real,
   text,
   timestamp,
@@ -241,3 +242,17 @@ export const inventory = pgTable(
   },
   (table) => [uniqueIndex("inventory_variant_id_unique").on(table.variantId)],
 );
+
+// Reserved stock is derived, never stored: it is the live sum of open,
+// unexpired rows in `checkout_reservations`. Every availability read joins this
+// view so the definition exists in exactly one place.
+//
+// `.existing()` tells drizzle-kit the view is created by hand-written migration
+// SQL and must not be generated or diffed.
+export const variantAvailability = pgView("variant_availability", {
+  variantId: uuid("variant_id").notNull(),
+  quantity: integer("quantity").notNull(),
+  lowStockThreshold: integer("low_stock_threshold").notNull(),
+  reservedQuantity: integer("reserved_quantity").notNull(),
+  availableQuantity: integer("available_quantity").notNull(),
+}).existing();
