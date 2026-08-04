@@ -1,9 +1,10 @@
 import { createHash } from "node:crypto";
 
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { inventory, pendingCheckoutSessions } from "@/db/schema";
+import { pendingCheckoutSessions } from "@/db/schema";
+import { reservationRepository } from "@/lib/repositories/reservation-repository";
 
 export type ReservedItem = {
   variantId: string;
@@ -68,117 +69,72 @@ export const checkoutSessionRepository = {
     return row ?? null;
   },
 
-  // Reserves every item and records the pending row in one transaction. If any
-  // item lacks stock the whole transaction rolls back (nothing reserved) and
-  // null is returned so the caller can surface an out-of-stock error.
-  async createWithReservation(input: {
+  // Records the pending session and holds stock for it. Stock holding lives in
+  // the reservation repository; this repository owns session identity only.
+  // Returns null when any item lacks stock, with nothing reserved.
+  async createSession(input: {
     stripeSessionId: string;
     cartSignature: string;
     currency: string;
     expiresAt: Date;
     items: ReservedItem[];
   }): Promise<PendingRow | null> {
-    const db = getDb();
+    const reserved = await reservationRepository.createForSession({
+      stripeSessionId: input.stripeSessionId,
+      items: input.items,
+    });
 
-    try {
-      return await db.transaction(async (tx) => {
-        for (const item of input.items) {
-          const reserved = await tx
-            .update(inventory)
-            .set({
-              reservedQuantity: sql`${inventory.reservedQuantity} + ${item.quantity}`,
-              updatedAt: new Date(),
-            })
-            .where(
-              and(
-                eq(inventory.variantId, item.variantId),
-                gte(
-                  sql`${inventory.quantity} - ${inventory.reservedQuantity}`,
-                  item.quantity,
-                ),
-              ),
-            )
-            .returning({ id: inventory.id });
-
-          // No inventory row at all = untracked variant; treat as unlimited and
-          // skip reserving it (matches the route's existing behaviour). A row
-          // that exists but lacks stock returns zero updates → abort.
-          if (reserved.length === 0) {
-            const [exists] = await tx
-              .select({ id: inventory.id })
-              .from(inventory)
-              .where(eq(inventory.variantId, item.variantId))
-              .limit(1);
-
-            if (exists) {
-              throw new InsufficientStockError(item.variantId);
-            }
-          }
-        }
-
-        const reservedItems = input.items.map((item) => ({
-          variantId: item.variantId,
-          quantity: item.quantity,
-        }));
-
-        const [row] = await tx
-          .insert(pendingCheckoutSessions)
-          .values({
-            stripeCheckoutSessionId: input.stripeSessionId,
-            cartSignature: input.cartSignature,
-            currency: input.currency.toUpperCase(),
-            reservedItems,
-            status: "open",
-            expiresAt: input.expiresAt,
-            updatedAt: new Date(),
-          })
-          .returning();
-
-        return row ?? null;
-      });
-    } catch (error) {
-      if (error instanceof InsufficientStockError) {
-        return null;
-      }
-      throw error;
+    if (!reserved) {
+      return null;
     }
+
+    const db = getDb();
+    const [row] = await db
+      .insert(pendingCheckoutSessions)
+      .values({
+        stripeCheckoutSessionId: input.stripeSessionId,
+        cartSignature: input.cartSignature,
+        currency: input.currency.toUpperCase(),
+        // Superseded by checkout_reservations; written as [] until the column
+        // is dropped in the follow-up migration.
+        reservedItems: [],
+        status: "open",
+        expiresAt: input.expiresAt,
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    if (!row) {
+      await reservationRepository.releaseSession(input.stripeSessionId);
+      return null;
+    }
+
+    return row;
   },
 
-  // Returns reserved stock and flips the row to `released`. Idempotent: a row
-  // already released/completed returns false and touches no inventory, so the
-  // replace path and the webhook can never double-release.
+  // Flips the session row to `released` and returns its stock early. Idempotent:
+  // a row already released or completed returns false and touches nothing, so
+  // the replace path, the beacon, and the webhook can never conflict.
   async releaseByRow(rowId: string): Promise<boolean> {
     const db = getDb();
 
-    return await db.transaction(async (tx) => {
-      const [row] = await tx
-        .update(pendingCheckoutSessions)
-        .set({ status: "released", updatedAt: new Date() })
-        .where(
-          and(
-            eq(pendingCheckoutSessions.id, rowId),
-            eq(pendingCheckoutSessions.status, "open"),
-          ),
-        )
-        .returning();
+    const [row] = await db
+      .update(pendingCheckoutSessions)
+      .set({ status: "released", updatedAt: new Date() })
+      .where(
+        and(
+          eq(pendingCheckoutSessions.id, rowId),
+          eq(pendingCheckoutSessions.status, "open"),
+        ),
+      )
+      .returning();
 
-      if (!row) {
-        return false;
-      }
+    if (!row) {
+      return false;
+    }
 
-      const reservedItems = (row.reservedItems as ReservedItem[]) ?? [];
-      for (const item of reservedItems) {
-        await tx
-          .update(inventory)
-          .set({
-            reservedQuantity: sql`greatest(${inventory.reservedQuantity} - ${item.quantity}, 0)`,
-            updatedAt: new Date(),
-          })
-          .where(eq(inventory.variantId, item.variantId));
-      }
-
-      return true;
-    });
+    await reservationRepository.releaseSession(row.stripeCheckoutSessionId);
+    return true;
   },
 
   // Same as releaseByRow but keyed by Stripe session id (webhook path).
@@ -191,7 +147,7 @@ export const checkoutSessionRepository = {
   },
 
   // Marks the row completed on successful payment so a late `expired` webhook
-  // cannot release stock that was already confirmed.
+  // cannot release stock that was already sold.
   async markCompletedBySessionId(stripeSessionId: string): Promise<void> {
     const db = getDb();
     await db
@@ -203,15 +159,7 @@ export const checkoutSessionRepository = {
           stripeSessionId,
         ),
       );
+
+    await reservationRepository.confirmSession(stripeSessionId);
   },
 };
-
-class InsufficientStockError extends Error {
-  variantId: string;
-
-  constructor(variantId: string) {
-    super(`Insufficient stock for variant ${variantId}.`);
-    this.name = "InsufficientStockError";
-    this.variantId = variantId;
-  }
-}

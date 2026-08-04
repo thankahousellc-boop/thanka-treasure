@@ -13,9 +13,10 @@ import { stripe } from "@/lib/stripe/client";
 import { toStripeLineItems } from "@/lib/stripe/helpers";
 import { checkoutSchema } from "@/lib/utils/validators";
 
-// How long a created Stripe Checkout session (and its inventory reservation)
-// stays valid. Stripe requires 30 min minimum; abandoned sessions release their
-// reservation via the `checkout.session.expired` webhook after this.
+// Stripe requires a session to live at least 30 minutes, so that is what the
+// Stripe session gets. Our inventory hold is separate and much shorter — see
+// RESERVATION_TTL_MS — because it expires on our clock and therefore does not
+// depend on the `checkout.session.expired` webhook arriving.
 const SESSION_TTL_MS = 30 * 60 * 1000;
 
 type StripeDeliveryUnit = "business_day" | "day" | "hour" | "month" | "week";
@@ -709,10 +710,10 @@ async function handleCheckoutPost(request: Request) {
     );
   }
 
-  // Reserve stock and record the pending session atomically. Out of stock rolls
-  // the whole reservation back; we then expire the just-created Stripe session
-  // so it can't be paid for stock we don't have.
-  const reservation = await checkoutSessionRepository.createWithReservation({
+  // Hold stock and record the pending session. Out of stock holds nothing; we
+  // then expire the just-created Stripe session so it cannot be paid for stock
+  // we do not have.
+  const reservation = await checkoutSessionRepository.createSession({
     stripeSessionId: session.id,
     cartSignature,
     currency,
