@@ -22,6 +22,7 @@ import {
 
 import { PendingButton } from "@/components/ui/pending-button";
 import { Spinner } from "@/components/ui/spinner";
+import { KEEPALIVE_INTERVAL_MS } from "@/lib/checkout/reservation-config";
 import { useCartStore } from "@/lib/store/cart";
 import { formatCurrency } from "@/lib/utils/formatters";
 
@@ -121,6 +122,9 @@ export function CheckoutEmbedded() {
   const [discountCode, setDiscountCode] = useState("");
   const [appliedCode, setAppliedCode] = useState("");
   const [session, setSession] = useState<SessionState>({ status: "idle" });
+  // The live Stripe session id, mirrored into state so the keepalive and
+  // release effects can react to it. localStorage alone is not reactive.
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   // Dedupes session creation: each create reserves inventory server-side, so we
   // must fire exactly once per cart/discount signature. Survives React Strict
   // Mode's double-invoked effect (same instance keeps the ref).
@@ -144,7 +148,31 @@ export function CheckoutEmbedded() {
   // session bakes in the validated discount, shipping options, and automatic
   // tax server-side; the client only drives the UI.
   useEffect(() => {
-    if (items.length === 0 || hasMixedCurrencies || !stripePromise) {
+    if (items.length === 0) {
+      // Cart emptied on this page: hand the hold back now rather than letting
+      // it sit until expiry. Returning early without this is what leaked stock.
+      if (activeSessionId) {
+        const releasedSessionId = activeSessionId;
+        writeStoredCheckoutSessionId(null);
+        requestedKeyRef.current = null;
+
+        void (async () => {
+          try {
+            await fetch("/api/checkout", {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ sessionId: releasedSessionId }),
+            });
+          } catch {
+            // Request never landed. The hold expires on its own regardless.
+          }
+          setActiveSessionId(null);
+        })();
+      }
+      return;
+    }
+
+    if (hasMixedCurrencies || !stripePromise) {
       return;
     }
 
@@ -206,6 +234,7 @@ export function CheckoutEmbedded() {
           // Drop the stored id so the next attempt starts clean instead of
           // retrying a session the server already rejected.
           writeStoredCheckoutSessionId(null);
+          setActiveSessionId(null);
           setSession({
             status: "error",
             message: payload.error ?? "Unable to initialize checkout.",
@@ -215,6 +244,7 @@ export function CheckoutEmbedded() {
 
         if (payload.sessionId) {
           writeStoredCheckoutSessionId(payload.sessionId);
+          setActiveSessionId(payload.sessionId);
         }
 
         setSession({ status: "ready", clientSecret: payload.clientSecret });
@@ -233,7 +263,72 @@ export function CheckoutEmbedded() {
       cancelled = true;
     };
     // appliedCode change re-creates the session with the new discount baked in.
-  }, [items, checkoutCurrency, hasMixedCurrencies, appliedCode]);
+  }, [items, checkoutCurrency, hasMixedCurrencies, appliedCode, activeSessionId]);
+
+  // Keeps the inventory hold alive while this page is open. The server hold is
+  // short (RESERVATION_TTL_MS) so an abandoned tab frees stock quickly; this
+  // ping is what stops a slow-but-active shopper from losing their hold.
+  useEffect(() => {
+    // Gated on the cart too: an emptied cart releases its hold, and a ping
+    // racing that release would extend a hold nobody wants.
+    if (!activeSessionId || items.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const interval = setInterval(() => {
+      void (async () => {
+        try {
+          const response = await fetch("/api/checkout/keepalive", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionId: activeSessionId }),
+          });
+
+          // 404 = the hold is gone (expired, released, or paid). Stop pinging;
+          // the session effect re-creates one if the cart is still live.
+          if (!cancelled && response.status === 404) {
+            setActiveSessionId(null);
+          }
+        } catch {
+          // Network blip. The next tick retries well inside the hold window.
+        }
+      })();
+    }, KEEPALIVE_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [activeSessionId, items.length]);
+
+  // Returns stock the moment the shopper leaves, instead of waiting out the
+  // hold. `pagehide` rather than `beforeunload`: it is the only one that fires
+  // reliably when mobile Safari backgrounds a tab.
+  useEffect(() => {
+    if (!activeSessionId) {
+      return;
+    }
+
+    const release = () => {
+      const body = JSON.stringify({ sessionId: activeSessionId });
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon("/api/checkout", body);
+        return;
+      }
+      void fetch("/api/checkout", {
+        method: "DELETE",
+        body,
+        keepalive: true,
+      });
+    };
+
+    window.addEventListener("pagehide", release);
+    return () => {
+      window.removeEventListener("pagehide", release);
+    };
+  }, [activeSessionId]);
 
   if (items.length === 0) {
     return (

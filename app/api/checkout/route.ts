@@ -416,6 +416,14 @@ async function resolveCheckoutItems(
 }
 
 export async function POST(request: Request) {
+  // `navigator.sendBeacon` can only issue a POST, so a page-hide release beacon
+  // arrives here rather than at DELETE. Detect it by content type — the beacon
+  // sends text/plain — and hand it to the same release logic.
+  const contentType = request.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    return DELETE(request);
+  }
+
   const limited = await enforceRateLimit("strict", request);
   if (limited) return limited;
 
