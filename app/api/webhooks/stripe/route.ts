@@ -9,6 +9,7 @@ import { checkoutSessionRepository } from "@/lib/repositories/checkout-session-r
 import { discountRepository } from "@/lib/repositories/discount-repository";
 import { inventoryRepository } from "@/lib/repositories/inventory-repository";
 import { orderRepository } from "@/lib/repositories/order-repository";
+import { reservationRepository } from "@/lib/repositories/reservation-repository";
 import { stripe } from "@/lib/stripe/client";
 
 const uuidPattern =
@@ -213,32 +214,32 @@ async function runPaidCheckoutSideEffects(args: {
   const inventoryResults = await Promise.all(
     items
       .filter((item) => Boolean(item.variantId))
-      .map(async (item) => ({
-        variantId: item.variantId as string,
-        quantity: item.quantity,
-        ok: await inventoryRepository.confirm(
+      .map(async (item) => {
+        const result = await inventoryRepository.confirm(
           item.variantId as string,
           item.quantity,
-        ),
-      })),
+        );
+        return {
+          variantId: item.variantId as string,
+          quantity: item.quantity,
+          ...result,
+        };
+      }),
   );
 
-  const failed = inventoryResults.filter((entry) => !entry.ok);
-  if (failed.length > 0) {
+  const oversold = inventoryResults.filter((entry) => entry.oversold);
+  if (oversold.length > 0) {
     await orderRepository.appendEvent(order.id, {
-      eventType: "inventory.confirmation.partial_failure",
+      eventType: "inventory.oversold",
       description:
-        "One or more inventory confirmations failed after checkout completion.",
+        "Stock went negative confirming this order. Review inventory levels.",
       actor: "stripe-webhook",
-      metadata: {
-        failed,
-      },
+      metadata: { oversold },
     });
   }
 
-  // Reservation was just confirmed by inventoryRepository.confirm above. Mark the
-  // pending row completed so a stray `expired` event can never release stock
-  // that has already been sold.
+  // Settle the reservation rows and mark the pending session completed so a
+  // stray `expired` event can never release stock that has already been sold.
   await checkoutSessionRepository.markCompletedBySessionId(session.id);
 }
 
@@ -358,9 +359,10 @@ async function handleCheckoutAsyncPaymentFailed(checkoutSessionId: string) {
     return;
   }
 
-  // Release via the pending row (status-guarded) so we return exactly what was
-  // reserved, exactly once — even if the replace path already released it.
+  // Belt and braces: release via the pending row, then directly. Both are
+  // idempotent and status-guarded, so a double call is a no-op.
   await checkoutSessionRepository.releaseBySessionId(checkoutSessionId);
+  await reservationRepository.releaseSession(checkoutSessionId);
 }
 
 async function handleCheckoutExpired(checkoutSessionId: string) {
@@ -368,7 +370,9 @@ async function handleCheckoutExpired(checkoutSessionId: string) {
 
   // Independent of order state: an expired session always releases its
   // reservation. Idempotent — a row already released/completed is a no-op.
+  // Released twice by design, in case the session has no pending row.
   await checkoutSessionRepository.releaseBySessionId(checkoutSessionId);
+  await reservationRepository.releaseSession(checkoutSessionId);
 }
 
 async function handleChargeRefunded(charge: Stripe.Charge) {
