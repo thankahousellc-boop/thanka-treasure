@@ -7,11 +7,12 @@ import { checkoutSessionRepository } from "@/lib/repositories/checkout-session-r
 import { discountRepository } from "@/lib/repositories/discount-repository";
 import { frameRepository } from "@/lib/repositories/frame-repository";
 import { productRepository } from "@/lib/repositories/product-repository";
+import { reservationRepository } from "@/lib/repositories/reservation-repository";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { resolveUrl } from "@/lib/storage/resolve-url";
 import { stripe } from "@/lib/stripe/client";
 import { toStripeLineItems } from "@/lib/stripe/helpers";
-import { checkoutSchema } from "@/lib/utils/validators";
+import { checkoutReleaseSchema, checkoutSchema } from "@/lib/utils/validators";
 
 // Stripe requires a session to live at least 30 minutes, so that is what the
 // Stripe session gets. Our inventory hold is separate and much shorter — see
@@ -753,4 +754,37 @@ async function handleCheckoutPost(request: Request) {
     clientSecret: session.client_secret,
     sessionId: session.id,
   });
+}
+
+/**
+ * Returns a checkout's held stock early — fired by `navigator.sendBeacon` on
+ * page hide and when the cart empties.
+ *
+ * Always answers 202: a beacon is fire-and-forget and the client cannot read
+ * the response, and correctness never depends on this arriving — an unreleased
+ * hold expires on its own within RESERVATION_TTL_MS.
+ *
+ * The body is read as text, not via `request.json()`, because `sendBeacon`
+ * sends a Blob with `text/plain` (or no content type at all) and the JSON
+ * helper rejects it.
+ */
+export async function DELETE(request: Request) {
+  const raw = await request.text().catch(() => "");
+
+  let payload: unknown = null;
+  try {
+    payload = JSON.parse(raw);
+  } catch {
+    return NextResponse.json({ ok: true }, { status: 202 });
+  }
+
+  const parsed = checkoutReleaseSchema.safeParse(payload);
+  if (!parsed.success) {
+    return NextResponse.json({ ok: true }, { status: 202 });
+  }
+
+  await checkoutSessionRepository.releaseBySessionId(parsed.data.sessionId);
+  await reservationRepository.releaseSession(parsed.data.sessionId);
+
+  return NextResponse.json({ ok: true }, { status: 202 });
 }
