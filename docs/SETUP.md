@@ -229,11 +229,28 @@ Set that as **`STRIPE_WEBHOOK_SECRET`**. Note: the secret changes each time you 
 | Event | Purpose |
 |---|---|
 | `checkout.session.completed` | Create order, confirm inventory, send confirmation email |
-| `checkout.session.expired` | Release reserved inventory |
+| `checkout.session.expired` | Release held inventory early (optional — holds also expire on their own after 5 minutes) |
 | `checkout.session.async_payment_succeeded` | Handle delayed payment success |
 | `checkout.session.async_payment_failed` | Handle delayed payment failure |
 | `charge.refunded` | Record refund on the order |
 | `charge.dispute.created` | Log dispute event to order timeline |
+
+#### Inventory Holds
+
+Opening checkout holds stock as rows in `checkout_reservations`, each carrying an
+`expires_at`. Reserved stock is the live sum of open, unexpired rows — read
+through the `variant_availability` view, never from a stored counter. The
+checkout page pushes `expires_at` forward every 90 seconds while it is open, so
+an active shopper keeps their hold while an abandoned tab lapses within 5
+minutes.
+
+Because holds expire on their own clock, a missed or misconfigured
+`checkout.session.expired` webhook delays stock returning by at most 5 minutes
+rather than leaking it permanently. The webhook and the page-leave beacon are
+speed optimisations, not correctness requirements.
+
+Run `pnpm ops:verify:reservations` to confirm reserved stock still matches the
+live holds it is derived from.
 
 ---
 
