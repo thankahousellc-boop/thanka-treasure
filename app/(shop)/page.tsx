@@ -118,12 +118,11 @@ export default async function HomePage() {
   const { featuredProducts, blogPosts, reviews } = await loadHomeData();
 
   const heroProduct = featuredProducts[0] ?? null;
-  const heroInset = featuredProducts[1] ?? null;
   const heroPlate = plateAt(featuredProducts, 0);
-  // Push the grid past the two hero pieces when the catalogue is deep enough.
+  // Push the grid past the hero piece when the catalogue is deep enough.
   const galleryProducts =
-    featuredProducts.length >= 5
-      ? featuredProducts.slice(2, 5)
+    featuredProducts.length >= 4
+      ? featuredProducts.slice(1, 4)
       : featuredProducts.slice(0, 3);
   const storyPlate = plateAt(featuredProducts, 5);
   const symbolPlate = plateAt(featuredProducts, 3);
@@ -283,25 +282,6 @@ export default async function HomePage() {
                   </figcaption>
                 ) : null}
               </figure>
-
-              {/* Second piece, tucked under the primary plate. */}
-              {heroInset ? (
-                <Link
-                  href={`/products/${heroInset.slug}`}
-                  aria-label={`View ${heroInset.title}`}
-                  className="group absolute -bottom-14 -left-12 hidden w-32 outline-none lg:block xl:w-36"
-                >
-                  <div className="relative aspect-3/4 overflow-hidden border-[6px] border-paper bg-paper-2 shadow-(--shadow-2)">
-                    <Image
-                      src={heroInset.primaryImage}
-                      alt={heroInset.title}
-                      fill
-                      sizes="150px"
-                      className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
-                    />
-                  </div>
-                </Link>
-              ) : null}
             </div>
           </div>
         </div>
