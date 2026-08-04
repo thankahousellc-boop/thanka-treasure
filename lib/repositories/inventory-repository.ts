@@ -1,7 +1,13 @@
 import { and, asc, eq, gte, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { inventory, productImages, products, productVariants } from "@/db/schema";
+import {
+  inventory,
+  productImages,
+  products,
+  productVariants,
+  variantAvailability,
+} from "@/db/schema";
 import { requireAdminSession } from "@/lib/repositories/authz";
 import { resolveUrl } from "@/lib/storage/resolve-url";
 
@@ -24,10 +30,10 @@ export const inventoryRepository = {
     const query = input?.query?.trim();
     const limit = Math.min(Math.max(input?.limit ?? 250, 1), 500);
 
-    const quantityExpr = sql<number>`coalesce(${inventory.quantity}, 0)`;
-    const reservedQuantityExpr = sql<number>`coalesce(${inventory.reservedQuantity}, 0)`;
-    const lowStockThresholdExpr = sql<number>`coalesce(${inventory.lowStockThreshold}, 5)`;
-    const availableQuantityExpr = sql<number>`coalesce(${inventory.quantity}, 0) - coalesce(${inventory.reservedQuantity}, 0)`;
+    const quantityExpr = sql<number>`coalesce(${variantAvailability.quantity}, 0)`;
+    const reservedQuantityExpr = sql<number>`coalesce(${variantAvailability.reservedQuantity}, 0)`;
+    const lowStockThresholdExpr = sql<number>`coalesce(${variantAvailability.lowStockThreshold}, 5)`;
+    const availableQuantityExpr = sql<number>`coalesce(${variantAvailability.availableQuantity}, 0)`;
 
     const rows = await db
       .select({
@@ -45,7 +51,10 @@ export const inventoryRepository = {
       })
       .from(productVariants)
       .innerJoin(products, eq(products.id, productVariants.productId))
-      .leftJoin(inventory, eq(inventory.variantId, productVariants.id))
+      .leftJoin(
+        variantAvailability,
+        eq(variantAvailability.variantId, productVariants.id),
+      )
       .where(
         and(
           isNull(products.deletedAt),

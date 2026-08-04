@@ -18,6 +18,7 @@ import {
   categories,
   collectionProducts,
   inventory,
+  variantAvailability,
   productAttributeValues,
   productImages,
   products,
@@ -677,11 +678,14 @@ export const productRepository = {
         status: products.status,
         createdAt: products.createdAt,
         updatedAt: products.updatedAt,
-        inventoryCount: sql<number>`coalesce(sum(coalesce(${inventory.quantity}, 0) - coalesce(${inventory.reservedQuantity}, 0)), 0)::int`,
+        inventoryCount: sql<number>`coalesce(sum(coalesce(${variantAvailability.availableQuantity}, 0)), 0)::int`,
       })
       .from(products)
       .leftJoin(productVariants, eq(productVariants.productId, products.id))
-      .leftJoin(inventory, eq(inventory.variantId, productVariants.id))
+      .leftJoin(
+        variantAvailability,
+        eq(variantAvailability.variantId, productVariants.id),
+      )
       .where(and(isNull(products.deletedAt), ...attributeConditions))
       .groupBy(products.id)
       .orderBy(desc(products.createdAt))
@@ -1215,10 +1219,13 @@ export const productRepository = {
         title: productVariants.title,
         sku: productVariants.sku,
         price: productVariants.price,
-        availableQuantity: sql<number>`coalesce(${inventory.quantity}, 0) - coalesce(${inventory.reservedQuantity}, 0)`,
+        availableQuantity: sql<number>`coalesce(${variantAvailability.availableQuantity}, 0)`,
       })
       .from(productVariants)
-      .leftJoin(inventory, eq(inventory.variantId, productVariants.id))
+      .leftJoin(
+        variantAvailability,
+        eq(variantAvailability.variantId, productVariants.id),
+      )
       .where(eq(productVariants.productId, productId))
       .orderBy(asc(productVariants.createdAt));
 
@@ -1287,10 +1294,13 @@ export const productRepository = {
         sku: productVariants.sku,
         price: productVariants.price,
         createdAt: productVariants.createdAt,
-        availableQuantity: sql<number>`coalesce(${inventory.quantity}, 0) - coalesce(${inventory.reservedQuantity}, 0)`,
+        availableQuantity: sql<number>`coalesce(${variantAvailability.availableQuantity}, 0)`,
       })
       .from(productVariants)
-      .leftJoin(inventory, eq(inventory.variantId, productVariants.id))
+      .leftJoin(
+        variantAvailability,
+        eq(variantAvailability.variantId, productVariants.id),
+      )
       .where(inArray(productVariants.productId, productIds))
       .orderBy(asc(productVariants.createdAt));
 

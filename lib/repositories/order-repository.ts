@@ -658,8 +658,18 @@ export const orderRepository = {
           .where(
             and(
               eq(inventory.variantId, item.variantId),
+              // Live checkout holds, computed inline rather than read from
+              // `variant_availability`: this UPDATE holds a row lock on the
+              // inventory row, which serialises it against concurrent sales.
+              // A view cannot be locked.
               gte(
-                sql`${inventory.quantity} - ${inventory.reservedQuantity}`,
+                sql`${inventory.quantity} - (
+                  select coalesce(sum(cr.quantity), 0)
+                  from checkout_reservations cr
+                  where cr.variant_id = ${inventory.variantId}
+                    and cr.status = 'open'
+                    and cr.expires_at > now()
+                )`,
                 item.quantity,
               ),
             ),

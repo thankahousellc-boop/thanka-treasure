@@ -4,10 +4,10 @@ import { getDb } from "@/db";
 import {
   blogPosts,
   contactSubmissions,
-  inventory,
   newsletterSubscribers,
   orderItems,
   orders,
+  variantAvailability,
 } from "@/db/schema";
 import { requireAdminSession } from "@/lib/repositories/authz";
 
@@ -94,9 +94,9 @@ export const analyticsRepository = {
         .then((rows) => rows[0]),
       db
         .select({ total: sql<number>`count(*)` })
-        .from(inventory)
+        .from(variantAvailability)
         .where(
-          sql`${inventory.quantity} - ${inventory.reservedQuantity} <= ${inventory.lowStockThreshold}`,
+          sql`${variantAvailability.availableQuantity} <= ${variantAvailability.lowStockThreshold}`,
         )
         .then((rows) => rows[0]),
       db
