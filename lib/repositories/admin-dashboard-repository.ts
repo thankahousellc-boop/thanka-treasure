@@ -3,13 +3,13 @@ import { and, desc, eq, gte, inArray, isNotNull, isNull, lt, sql } from "drizzle
 import { getDb } from "@/db";
 import {
   contactSubmissions,
-  inventory,
   newsletterSubscribers,
   orderEvents,
   orderItems,
   orders,
   products,
   productVariants,
+  variantAvailability,
 } from "@/db/schema";
 import { requireAdminSession } from "@/lib/repositories/authz";
 
@@ -94,9 +94,9 @@ export const adminDashboardRepository = {
         .then((rows) => rows[0]),
       db
         .select({ total: sql<number>`count(*)` })
-        .from(inventory)
+        .from(variantAvailability)
         .where(
-          sql`${inventory.quantity} - ${inventory.reservedQuantity} <= ${inventory.lowStockThreshold}`,
+          sql`${variantAvailability.availableQuantity} <= ${variantAvailability.lowStockThreshold}`,
         )
         .then((rows) => rows[0]),
     ]);
@@ -128,10 +128,8 @@ export const adminDashboardRepository = {
         .then((rows) => rows[0]),
       db
         .select({ total: sql<number>`count(*)` })
-        .from(inventory)
-        .where(
-          sql`${inventory.quantity} - ${inventory.reservedQuantity} <= 0`,
-        )
+        .from(variantAvailability)
+        .where(sql`${variantAvailability.availableQuantity} <= 0`)
         .then((rows) => rows[0]),
     ]);
 
@@ -242,24 +240,22 @@ export const adminDashboardRepository = {
 
     return db
       .select({
-        variantId: inventory.variantId,
+        variantId: variantAvailability.variantId,
         variantTitle: productVariants.title,
         productTitle: sql<string>`coalesce(${productVariants.title}, '')`,
         productId: productVariants.productId,
-        available: sql<number>`${inventory.quantity} - ${inventory.reservedQuantity}`,
-        threshold: inventory.lowStockThreshold,
+        available: variantAvailability.availableQuantity,
+        threshold: variantAvailability.lowStockThreshold,
       })
-      .from(inventory)
+      .from(variantAvailability)
       .innerJoin(
         productVariants,
-        eq(productVariants.id, inventory.variantId),
+        eq(productVariants.id, variantAvailability.variantId),
       )
       .where(
-        sql`${inventory.quantity} - ${inventory.reservedQuantity} <= ${inventory.lowStockThreshold}`,
+        sql`${variantAvailability.availableQuantity} <= ${variantAvailability.lowStockThreshold}`,
       )
-      .orderBy(
-        sql`${inventory.quantity} - ${inventory.reservedQuantity}`,
-      )
+      .orderBy(variantAvailability.availableQuantity)
       .limit(limit);
   },
 

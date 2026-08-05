@@ -5,6 +5,7 @@ import { cache } from "react";
 import { Price } from "@/components/shop/price";
 import { ProductBuyPanel } from "@/components/shop/product-buy-panel";
 import { ProductCard } from "@/components/shop/product-card";
+import { ProductDescription } from "@/components/shop/product-description";
 import {
   ProductGallery,
   type GalleryImage,
@@ -226,7 +227,11 @@ export default async function ProductDetailPage({
 
         <SelectedFrameProvider frames={frameOptions}>
           <section className="grid grid-cols-[1.2fr_1fr] items-start gap-16 pb-20 max-[980px]:grid-cols-1 max-[980px]:gap-9">
-            <ProductGallery images={galleryImages} badge="One of one" />
+            {/* Sticky so the plate stays in frame while the long legacy
+                description scrolls past it. */}
+            <div className="min-[981px]:sticky min-[981px]:top-24">
+              <ProductGallery images={galleryImages} badge="One of one" />
+            </div>
 
             <div>
               <div className="mb-3.5 text-[11.5px] font-medium uppercase tracking-[0.22em] text-saffron">
@@ -249,11 +254,8 @@ export default async function ProductDetailPage({
               </div>
 
               {product.description ? (
-                <div
-                  className="prose prose-stone mb-7 max-w-none font-serif text-[17px] leading-[1.65] text-ink-soft prose-p:my-3 prose-ul:my-3"
-                  dangerouslySetInnerHTML={{
-                    __html: sanitizeRichText(product.description),
-                  }}
+                <ProductDescription
+                  html={sanitizeRichText(product.description)}
                 />
               ) : null}
 

@@ -1,7 +1,13 @@
 import { and, asc, eq, gte, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { inventory, productImages, products, productVariants } from "@/db/schema";
+import {
+  inventory,
+  productImages,
+  products,
+  productVariants,
+  variantAvailability,
+} from "@/db/schema";
 import { requireAdminSession } from "@/lib/repositories/authz";
 import { resolveUrl } from "@/lib/storage/resolve-url";
 
@@ -24,10 +30,10 @@ export const inventoryRepository = {
     const query = input?.query?.trim();
     const limit = Math.min(Math.max(input?.limit ?? 250, 1), 500);
 
-    const quantityExpr = sql<number>`coalesce(${inventory.quantity}, 0)`;
-    const reservedQuantityExpr = sql<number>`coalesce(${inventory.reservedQuantity}, 0)`;
-    const lowStockThresholdExpr = sql<number>`coalesce(${inventory.lowStockThreshold}, 5)`;
-    const availableQuantityExpr = sql<number>`coalesce(${inventory.quantity}, 0) - coalesce(${inventory.reservedQuantity}, 0)`;
+    const quantityExpr = sql<number>`coalesce(${variantAvailability.quantity}, 0)`;
+    const reservedQuantityExpr = sql<number>`coalesce(${variantAvailability.reservedQuantity}, 0)`;
+    const lowStockThresholdExpr = sql<number>`coalesce(${variantAvailability.lowStockThreshold}, 5)`;
+    const availableQuantityExpr = sql<number>`coalesce(${variantAvailability.availableQuantity}, 0)`;
 
     const rows = await db
       .select({
@@ -45,7 +51,10 @@ export const inventoryRepository = {
       })
       .from(productVariants)
       .innerJoin(products, eq(products.id, productVariants.productId))
-      .leftJoin(inventory, eq(inventory.variantId, productVariants.id))
+      .leftJoin(
+        variantAvailability,
+        eq(variantAvailability.variantId, productVariants.id),
+      )
       .where(
         and(
           isNull(products.deletedAt),
@@ -143,53 +152,45 @@ export const inventoryRepository = {
     return row ?? null;
   },
 
-  async reserve(variantId: string, quantity: number) {
-    const db = getDb();
-
-    const updatedRows = await db
-      .update(inventory)
-      .set({
-        reservedQuantity: sql`${inventory.reservedQuantity} + ${quantity}`,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(inventory.variantId, variantId),
-          gte(
-            sql`${inventory.quantity} - ${inventory.reservedQuantity}`,
-            quantity,
-          ),
-        ),
-      )
-      .returning({ id: inventory.id });
-
-    return updatedRows.length > 0;
-  },
-
+  /**
+   * Deducts sold stock from `quantity`.
+   *
+   * Deliberately not guarded on a live reservation: a hold can lapse while the
+   * shopper is on the payment step, and refusing the deduction there would sell
+   * the item without ever reducing stock. The reservation rows are settled
+   * separately by `reservationRepository.confirmSession`.
+   *
+   * A deduction that would go below zero still applies, and reports `oversold`
+   * so the caller can record it. A visible negative is recoverable; a silent
+   * skip is not.
+   */
   async confirm(variantId: string, quantity: number) {
     const db = getDb();
 
-    const updatedRows = await db
+    const [row] = await db
       .update(inventory)
       .set({
         quantity: sql`${inventory.quantity} - ${quantity}`,
-        reservedQuantity: sql`greatest(${inventory.reservedQuantity} - ${quantity}, 0)`,
         updatedAt: new Date(),
       })
-      .where(
-        and(
-          eq(inventory.variantId, variantId),
-          gte(inventory.reservedQuantity, quantity),
-        ),
-      )
-      .returning({ id: inventory.id });
+      .where(eq(inventory.variantId, variantId))
+      .returning({ quantity: inventory.quantity });
 
-    return updatedRows.length > 0;
+    if (!row) {
+      // No inventory row = untracked variant. Nothing to deduct.
+      return { ok: true, oversold: false };
+    }
+
+    return { ok: true, oversold: Number(row.quantity) < 0 };
   },
 
   // Single-step deduction for an in-store (POS) sale: there is no prior
-  // reservation, so this decrements `quantity` directly, guarded by available
-  // stock (quantity - reserved >= qty). Returns false when stock is insufficient.
+  // reservation, so this decrements `quantity` directly, guarded by stock that
+  // is not held by a live checkout. Returns false when stock is insufficient.
+  //
+  // The guard computes live holds inline rather than reading
+  // `variant_availability`: the UPDATE takes a row lock on the inventory row,
+  // which serialises this against concurrent POS sales. A view cannot be locked.
   async decrementForSale(variantId: string, quantity: number) {
     const db = getDb();
 
@@ -203,26 +204,17 @@ export const inventoryRepository = {
         and(
           eq(inventory.variantId, variantId),
           gte(
-            sql`${inventory.quantity} - ${inventory.reservedQuantity}`,
+            sql`${inventory.quantity} - (
+              select coalesce(sum(cr.quantity), 0)
+              from checkout_reservations cr
+              where cr.variant_id = ${inventory.variantId}
+                and cr.status = 'open'
+                and cr.expires_at > now()
+            )`,
             quantity,
           ),
         ),
       )
-      .returning({ id: inventory.id });
-
-    return updatedRows.length > 0;
-  },
-
-  async release(variantId: string, quantity: number) {
-    const db = getDb();
-
-    const updatedRows = await db
-      .update(inventory)
-      .set({
-        reservedQuantity: sql`greatest(${inventory.reservedQuantity} - ${quantity}, 0)`,
-        updatedAt: new Date(),
-      })
-      .where(eq(inventory.variantId, variantId))
       .returning({ id: inventory.id });
 
     return updatedRows.length > 0;

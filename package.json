@@ -17,7 +17,8 @@
     "db:studio": "drizzle-kit studio",
     "db:parity": "node ./scripts/check-drizzle-parity.mjs",
     "ops:verify:supabase": "node ./scripts/verify-supabase-setup.mjs",
-    "ops:verify:secrets": "node ./scripts/verify-secrets-rollout.mjs"
+    "ops:verify:secrets": "node ./scripts/verify-secrets-rollout.mjs",
+    "ops:verify:reservations": "node ./scripts/verify-reservations.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "5.2.2",

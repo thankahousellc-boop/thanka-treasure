@@ -37,6 +37,14 @@ export const checkoutSchema = z.object({
     .min(1),
 });
 
+export const checkoutKeepaliveSchema = z.object({
+  sessionId: z.string().trim().min(1).max(255),
+});
+
+export const checkoutReleaseSchema = z.object({
+  sessionId: z.string().trim().min(1).max(255),
+});
+
 export const uploadRequestSchema = z.object({
   bucket: z
     .enum(["product-images", "blog-images", "private-assets"])

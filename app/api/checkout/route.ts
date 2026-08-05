@@ -7,15 +7,17 @@ import { checkoutSessionRepository } from "@/lib/repositories/checkout-session-r
 import { discountRepository } from "@/lib/repositories/discount-repository";
 import { frameRepository } from "@/lib/repositories/frame-repository";
 import { productRepository } from "@/lib/repositories/product-repository";
+import { reservationRepository } from "@/lib/repositories/reservation-repository";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { resolveUrl } from "@/lib/storage/resolve-url";
 import { stripe } from "@/lib/stripe/client";
 import { toStripeLineItems } from "@/lib/stripe/helpers";
-import { checkoutSchema } from "@/lib/utils/validators";
+import { checkoutReleaseSchema, checkoutSchema } from "@/lib/utils/validators";
 
-// How long a created Stripe Checkout session (and its inventory reservation)
-// stays valid. Stripe requires 30 min minimum; abandoned sessions release their
-// reservation via the `checkout.session.expired` webhook after this.
+// Stripe requires a session to live at least 30 minutes, so that is what the
+// Stripe session gets. Our inventory hold is separate and much shorter — see
+// RESERVATION_TTL_MS — because it expires on our clock and therefore does not
+// depend on the `checkout.session.expired` webhook arriving.
 const SESSION_TTL_MS = 30 * 60 * 1000;
 
 type StripeDeliveryUnit = "business_day" | "day" | "hour" | "month" | "week";
@@ -414,6 +416,14 @@ async function resolveCheckoutItems(
 }
 
 export async function POST(request: Request) {
+  // `navigator.sendBeacon` can only issue a POST, so a page-hide release beacon
+  // arrives here rather than at DELETE. Detect it by content type — the beacon
+  // sends text/plain — and hand it to the same release logic.
+  const contentType = request.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    return DELETE(request);
+  }
+
   const limited = await enforceRateLimit("strict", request);
   if (limited) return limited;
 
@@ -709,10 +719,10 @@ async function handleCheckoutPost(request: Request) {
     );
   }
 
-  // Reserve stock and record the pending session atomically. Out of stock rolls
-  // the whole reservation back; we then expire the just-created Stripe session
-  // so it can't be paid for stock we don't have.
-  const reservation = await checkoutSessionRepository.createWithReservation({
+  // Hold stock and record the pending session. Out of stock holds nothing; we
+  // then expire the just-created Stripe session so it cannot be paid for stock
+  // we do not have.
+  const reservation = await checkoutSessionRepository.createSession({
     stripeSessionId: session.id,
     cartSignature,
     currency,
@@ -752,4 +762,37 @@ async function handleCheckoutPost(request: Request) {
     clientSecret: session.client_secret,
     sessionId: session.id,
   });
+}
+
+/**
+ * Returns a checkout's held stock early — fired by `navigator.sendBeacon` on
+ * page hide and when the cart empties.
+ *
+ * Always answers 202: a beacon is fire-and-forget and the client cannot read
+ * the response, and correctness never depends on this arriving — an unreleased
+ * hold expires on its own within RESERVATION_TTL_MS.
+ *
+ * The body is read as text, not via `request.json()`, because `sendBeacon`
+ * sends a Blob with `text/plain` (or no content type at all) and the JSON
+ * helper rejects it.
+ */
+export async function DELETE(request: Request) {
+  const raw = await request.text().catch(() => "");
+
+  let payload: unknown = null;
+  try {
+    payload = JSON.parse(raw);
+  } catch {
+    return NextResponse.json({ ok: true }, { status: 202 });
+  }
+
+  const parsed = checkoutReleaseSchema.safeParse(payload);
+  if (!parsed.success) {
+    return NextResponse.json({ ok: true }, { status: 202 });
+  }
+
+  await checkoutSessionRepository.releaseBySessionId(parsed.data.sessionId);
+  await reservationRepository.releaseSession(parsed.data.sessionId);
+
+  return NextResponse.json({ ok: true }, { status: 202 });
 }
